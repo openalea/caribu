@@ -1,6 +1,13 @@
 [build-system]
-requires = ["scikit-build-core", "setuptools"]
+requires = ["scikit-build-core", "setuptools", "setuptools-scm"]
 build-backend = "scikit_build_core.setuptools.build_meta"
+
+# enable dynamic version based on git tags
+[tool.setuptools_scm]
+# Configure to align with the one of meta.yaml
+fallback_version = "0.0.0.dev0"
+version_scheme = "guess-next-dev"
+local_scheme = "no-local-version"
 
 [project]
 name = "alinea.caribu"
@@ -20,15 +27,9 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
 ]
-version = "9.0.0"
-dynamic = ["readme"]
+dynamic = ["version", "readme"]
 dependencies = [
   "path"
 ]
