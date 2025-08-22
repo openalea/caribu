@@ -1,0 +1,74 @@
+[build-system]
+requires = ["scikit-build-core", "setuptools"]
+build-backend = "scikit_build_core.setuptools.build_meta"
+
+[project]
+name = "alinea.caribu"
+authors = [
+  { name = "Christian Fournier"},
+  { name = "Michaël Chelle"},
+  { name = "Christophe Pradal"},
+]
+description = "Eco-physiological model of light interception by plants"
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+keywords = ["openalea", "FSPM", "light"]
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+]
+version = "9.0.0"
+dynamic = ["readme"]
+dependencies = [
+  "path"
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+doc = [
+  "pydata-sphinx-theme",
+  "myst-parser",
+  "sphinx-favicon",
+  "nbsphinx",
+]
+
+[project.urls]
+Homepage = "https://openalea.readthedocs.io/"
+"Bug Tracker" = "https://github.com/openalea-incubator/caribu/issues"
+Discussions = "https://github.com/openalea-incubator/caribu/discussions"
+Changelog = "https://github.com/openalea-incubator/caribu/releases"
+
+[project.entry-points."wralea"]
+"alinea.caribu" = "alinea.caribu_wralea"
+
+[tool.scikit-build]
+build-dir="./build/{wheel_tag}"
+# sdist.include = ["$CONDA_PREFIX/bin/canestrad","$CONDA_PREFIX/bin/mcsail","$CONDA_PREFIX/bin/s2v","$CONDA_PREFIX/bin/periodise", "*.a", ".dll", ".dylib"]
+logging.level = "WARNING"
+build.verbose = true
+experimental = true
+
+[tool.scikit-build.cmake]
+build-type="Release"
+source-dir="."
+args=["-DCMAKE_INSTALL_PREFIX=PREFIX", "-DCMAKE_C_COMPILER=gcc", "-DCMAKE_CXX_COMPILER=g++", "-DCMAKE_PREFIX_PATH=PREFIX"]
+
+[tool.setuptools.dynamic]
+readme = {file = ["README.rst"]}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["alinea.*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.a", "*.dylib", "*.dll", "PREFIX/bin/canestrad","PREFIX/bin/mc-sail","PREFIX/bin/s2v","PREFIX/bin/periodise"]

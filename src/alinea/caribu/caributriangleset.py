@@ -1,5 +1,6 @@
 from alinea.caribu.display import generate_scene
 
+import numpy
 
 class AbstractCaribuTriangleSet:
     def __init__(self):
@@ -41,8 +42,6 @@ class AbstractCaribuTriangleSet:
 
     def __len__(self):
         raise NotImplemented()
-
-import numpy
 
 class CaribuTriangleSet(AbstractCaribuTriangleSet):
     def __init__(self, pointtuplelistdict):

@@ -5,7 +5,7 @@ except ImportError:
     run_test = False
 
 if run_test:
-    from .tools import assert_almost_equal
+    from tools import assert_almost_equal
 
     import openalea.plantgl.all as pgl
     from alinea.caribu.CaribuScene import CaribuScene
@@ -41,8 +41,6 @@ if run_test:
         # incomplete set of files
         cs = CaribuScene(scene=can)
         assert len(cs.material[cs.default_band]) == len(cs.scene)
-
-        return cs
 
 
     def test_instantiation_from_python():
@@ -88,8 +86,6 @@ if run_test:
                          soil_reflectance=soil_reflectance)
         assert 'par' in cs.material
         assert cs.soil_reflectance == soil_reflectance
-
-        return cs
 
 
     def test_bbox():
@@ -256,8 +252,6 @@ if run_test:
         assert len(out[cscene.default_band]['Eabs']['lower']) == 2
         assert len(out[cscene.default_band]['Eabs']['upper']) == 1
 
-        return out, agg
-
 
     def test_run_polychrome():
         pts_1 = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
@@ -297,5 +291,3 @@ if run_test:
         assert len(out['par']['Eabs']['lower']) == 2
         assert len(out['nir']['Eabs']) == 2
         assert out['par']['Eabs']['upper'][0] != out['nir']['Eabs']['upper'][0]
-
-        return out, agg

@@ -51,7 +51,7 @@ def RdRsH(Rg, DOY, heureTU, latitude):
 
 
 
-class spitters_horaire(object):
+class spitters_horaire:
     """  Doc... """ 
 
     def __init__(self):

@@ -1,6 +1,6 @@
 import os
 
-class Genlight(object):
+class Genlight:
     """  Doc... """ 
 
     def __init__(self):

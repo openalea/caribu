@@ -10,6 +10,6 @@ Contributors
 * Christophe Pradal, <christophe.pradal@cirad.fr>
 
 Scientific Lead
-............
+...............
 
 * Michaël Chelle, <michael.chelle@icloud.com> (INRAE)

@@ -1,5 +1,5 @@
 from math import sqrt
-from .tools import assert_almost_equal
+from tools import assert_almost_equal
 
 from alinea.caribu.caribu import x_radiosity, x_mixed_radiosity, x_raycasting
 

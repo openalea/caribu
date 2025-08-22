@@ -1,4 +1,4 @@
-class merge2skies(object):
+class merge2skies:
     """  Doc... """ 
 
     def __init__(self):

@@ -1,7 +1,7 @@
 from openalea.plantgl import all as pgl
 from alinea.caribu.CaribuScene import CaribuScene
 import alinea.caribu.sky_tools.turtle as turtle
-from math import radians, degrees, sin , cos
+from math import radians, sin , cos
 from six.moves import zip
 
 
@@ -14,7 +14,7 @@ def vector_direction(elevation,azimuth):
 vecteur_direction = vector_direction
 
 def emission_inv(elevation, energy):
-    """ return energy of emmision for a source of a given direction and of a given energy received on a horizontal surface """
+    """ return energy of emission for a source of a given direction and of a given energy received on a horizontal surface """
     theta = radians(90 - elevation)
     received_energy = energy * abs(cos(theta))
     return received_energy
@@ -29,7 +29,7 @@ def geom2shape(vid, mesh):
 
 def run_caribu(sources, scene_geometry, output_by_triangle = False):
     """ 
-    Calls Caribu for differents energy sources
+    Calls Caribu for different energy sources
 
     :Parameters:
     ------------
@@ -61,7 +61,7 @@ def run_caribu(sources, scene_geometry, output_by_triangle = False):
 
 def turtle_interception(sectors, scene_geometry, energy, output_by_triangle = False, convUnit = 0.01):
     """ 
-    Calls Caribu for differents energy sources
+    Calls Caribu for different energy sources
 
     :Parameters:
     ------------

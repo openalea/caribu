@@ -74,7 +74,7 @@ def _safe_iter(obj, atomic_types=(str, int, float, complex)):
 
 def _abrev(fnc, maxlg=1):
     """
-    abreviate a text string containing a path or a file content to the first maxlg lines,
+    abbreviate a text string containing a path or a file content to the first maxlg lines,
     addind '...' when the number of libnes is greater than maxlg
     """
     if fnc is None or os.path.exists(fnc):
@@ -104,7 +104,7 @@ class CaribuRunError(CaribuError):
     pass
 
 
-class Caribu(object):
+class Caribu:
     def __init__(self,
                  canfile=None,
                  skyfile=None,
@@ -133,8 +133,8 @@ class Caribu(object):
         the generic names band0,band1 if optfiles are given as content)
         patternfile: file/file content that defines a domain to till the scene.
         direct: consider only direct projection
-        infinitise: Consider a toric canopy (infinite). Needs a pattern to take effet
-        nb_layers: number of layers to be consider for the scene
+        infinitise: Consider a toric canopy (infinite). Needs a pattern to take effect
+        nb_layers: number of layers to be considered for the scene
         can_height: height of the can scene
         sphere_diameter: used for the radiosity
         debug : print messages and prevent removal of tempdir
@@ -228,9 +228,9 @@ class Caribu(object):
         print("<<<<\n\n")
 
     def init(self):
-        if self.scene == None or self.sky == None or self.opticals == None or self.opticals == []:
+        if self.scene is None or self.sky is None or self.opticals is None or self.opticals == []:
             raise CaribuOptionError(
-                "Caribu has not been fully initialized: scene, sky, and opticals have to be defined\n     =>  Caribu can not be run... - MC09")
+                "Caribu has not been fully initialized: scene, sky, and optical have to be defined\n     =>  Caribu can not be run... - MC09")
 
         # print "infty, pattern", self.infinity, self.pattern
 
@@ -245,13 +245,13 @@ class Caribu(object):
                     raise CaribuOptionError(
                         "incompatible options for nested radiosity: no infinity &&  sphere_diameter >= 0 ")
 
-        if self.pattern == None and self.infinity:
-            raise CaribuOptionError('pattern not specified => Caribu canot infinitise the scene')
+        if self.pattern is None and self.infinity:
+            raise CaribuOptionError('pattern not specified => Caribu cannot infinitise the scene')
 
         self.form_factor = True
         # self.canestra_1st = True # Boolean that indicates the first or not times, canestra is called thus form factors computed...
 
-        # nrj is a dictionary of dictionary, each containing one simulation outputs. There will be as much dictionaries as optical files given as input
+        # nrj is a dictionary of dictionary, each containing one simulation outputs. There will be as many dictionaries as optical files given as input
         self.nrj = {}
         # sensor measurements
         self.measures = {}
@@ -268,7 +268,7 @@ class Caribu(object):
                     name = str(Path(Path(opt).basename()).stripext())
                     optn.append(name)
                 else:
-                    optn.append('band%d' % (i))
+                    optn.append('band%d' % i)
             self.optnames = optn
 
         # Working directory
@@ -279,7 +279,7 @@ class Caribu(object):
 
     def init_periodise(self):
         """ init caribuscene for a periodise-only run. """
-        if self.scene == None or self.pattern == None:
+        if self.scene is None or self.pattern is None:
             raise CaribuOptionError("Periodise has not been fully initialized: scene and pattern have to be defined")
         self.infinity = True
         self.setup_working_dir()
@@ -362,9 +362,9 @@ class Caribu(object):
 
     def store_result(self, filename, band_name):
         """
-        Add a new entry to the nrj dictionnary, using band_name as key and a dictionary build from filename as value.
-        The dictionary build from filename is organised as follow:
-            - doc : the first line of filename, that contains informations on the simulation
+        Add a new entry to the nrj dictionary, using band_name as key and a dictionary build from filename as value.
+        The dictionary build from filename is organised as follows:
+            - doc : the first line of filename, that contains information on the simulation
             - data : a dictionary of vectors, each containing a column of filename
             Columns are:
                 - index (float): the polygon index
@@ -501,7 +501,7 @@ class Caribu(object):
 
         if self.my_dbg:
             print(">>> mcsail(): ", cmd)
-        logfile = "sail-%s.log" % (optname)
+        logfile = "sail-%s.log" % optname
         logfile = d / logfile
         status = _process(cmd, d, logfile)
 
@@ -525,32 +525,32 @@ class Caribu(object):
         str_pattern = str_direct = str_FF = str_diam = str_env = str_sensor = ""
 
         if self.infinity:
-            str_pattern = " -8 %s " % (self.pattern)
+            str_pattern = " -8 %s " % self.pattern
 
         if self.direct:
             str_direct = " -1 "
         else:
-            str_diam = " -d %s " % (self.sphere_diameter)
+            str_diam = " -d %s " % self.sphere_diameter
 
             if self.form_factor:
                 # compute formfactor
                 self.form_factor = False
                 self.FF_name = tempfile.mktemp(prefix="", suffix="", dir="")
-                str_FF = " -f %s " % (self.FF_name)
+                str_FF = " -f %s " % self.FF_name
             else:
                 str_FF = " -w " + self.FF_name
             if self.sphere_diameter >= 0:
-                str_env = " -e %s.env " % (optname)
+                str_env = " -e %s.env " % optname
 
         if self.sensor is not None:
-            str_sensor = " -C %s " % (self.sensor)
+            str_sensor = " -C %s " % self.sensor
 
-        str_img = "-L %d" % (self.img_size)
+        str_img = "-L %d" % self.img_size
 
         cmd = "%s -M %s -l %s -p %s -A %s %s %s %s %s %s %s " % (
             self.canestra_name, self.scene, self.sky, opt, str_pattern, str_direct, str_diam, str_FF, str_env, str_img, str_sensor)
         if self.my_dbg:
-            print((">>> Canestrad(): %s" % (cmd)))
+            print((">>> Canestrad(): %s" % cmd))
         status = _process(cmd, self.tempdir, d / "nr.log")
 
         ficres = d / 'Etri.vec0'
@@ -587,7 +587,7 @@ class Caribu(object):
             (d / "nr.log").move(d / fic)
 
         if self.my_dbg:
-            print(">>> caribu.py: Caribu::canestra (%s) finished !" % (optname))
+            print(">>> caribu.py: Caribu::canestra (%s) finished !" % optname)
 
 
 def vcaribu(canopy, lightsource, optics, pattern, options):
@@ -597,7 +597,7 @@ def vcaribu(canopy, lightsource, optics, pattern, options):
 
     Available options are:
          1st: consider only direct projection if True.
-         Nz: number of layers to be consider for the scene
+         Nz: number of layers to be considered for the scene
          Hc: height of the can scene
          Ds: diameter of the sphere for nested radiosity
          debug : print messages and prevent removal of tempdir
@@ -638,7 +638,7 @@ def vcaribu(canopy, lightsource, optics, pattern, options):
         # --debug mode (if True, prevent removal of tempdir)
         if 'debug' in list(options.keys()):
             sim.my_dbg = options['debug']
-        # --names of optical properties (usefull if opticals are given as strings
+        # --names of optical properties (useful if opticals are given as strings
         if 'wavelength' in list(options.keys()):
             sim.optnames = options['wavelength']
         # size of the projection image for first order
@@ -670,7 +670,7 @@ def main(my_arg):
 
     MC09
     """
-    print(">>> caribu.py :main(%s) starts..." % (my_arg))
+    print(">>> caribu.py :main(%s) starts..." % my_arg)
     sim = Caribu()
 
     print(">>> caribu.py :main(): options analysis")

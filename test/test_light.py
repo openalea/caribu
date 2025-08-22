@@ -1,5 +1,5 @@
 from math import sqrt, radians, cos
-from .tools import assert_almost_equal
+from tools import assert_almost_equal
 
 from alinea.caribu.caribu import green_leaf_PAR, raycasting
 from alinea.caribu.light import light_sources

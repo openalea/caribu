@@ -1,6 +1,6 @@
 from . import Sky
 
-class mergeNskies(object):
+class mergeNskies:
     """  Doc... """ 
 
     def __init__(self):

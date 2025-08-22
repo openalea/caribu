@@ -1,4 +1,4 @@
-class get_meteo_dat(object):
+class get_meteo_dat:
     """  Doc... """ 
 
     def __init__(self):

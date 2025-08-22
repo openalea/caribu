@@ -1,5 +1,5 @@
 """Functional Interfaces to CaribuScene class methods
-Theses interfaces are mainly tageted for building visualea nodes
+These interfaces are mainly targeted for building visualea nodes
 They generally have an additional copyscene argument, that pass caribuscene by copy instead of by reference
 
 """
@@ -13,11 +13,17 @@ from alinea.caribu.caribu import opt_string_and_labels, triangles_string
 cdoc = CaribuScene()
 
 
-def newCaribuScene(scene=None, light=[(1, (0, 0, -1))], pattern=None,
-                   opt={'band1': (0.06, 0.07)},
-                   soil_reflectance={'band1': 0.15},
+def newCaribuScene(scene=None, light=None, pattern=None,
+                   opt=None,
+                   soil_reflectance=None,
                    soil_mesh=-1, z_soil=0., scene_unit='cm'):
     # backward compatibility for opt file
+    if soil_reflectance is None:
+        soil_reflectance = {'band1': 0.15}
+    if opt is None:
+        opt = {'band1': (0.06, 0.07)}
+    if light is None:
+        light = [(1, (0, 0, -1))]
     if isinstance(opt, str):
         opt = [opt]
     return CaribuScene(scene=scene, light=light, pattern=pattern, opt=opt,
@@ -27,9 +33,11 @@ newCaribuScene.__doc__ = cdoc.__init__.__doc__
 
 
 def runCaribu(caribuscene, direct=True,
-              scatterOpt={'d_sphere': 0.5, 'layers': 5, 'height': None},
+              scatterOpt=None,
               infinite=False, screen_size=1536, split_face=False,
               simplify=True):
+    if scatterOpt is None:
+        scatterOpt = {'d_sphere': 0.5, 'layers': 5, 'height': None}
     if caribuscene is None:
         return None, {}, {}
     d_sphere, layers, height = None, None, None

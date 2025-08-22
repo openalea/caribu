@@ -28,7 +28,6 @@ if run_test:
         css = list(cs.values())[1]
         assert len(css[0]) == 3
         assert len(css[0][0]) == 3
-        return cs
 
 
     def test_mtg():
@@ -44,5 +43,3 @@ if run_test:
         assert len(cs) == 1
         assert len(list(cs.values())[0][0]) == 3
         assert len(list(cs.values())[0][0][0]) == 3
-
-        return cs

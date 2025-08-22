@@ -56,7 +56,7 @@ def caribu_star(scene_geometry, directions=1, output_by_triangle=False, domain=N
         a dict id:star (ratio viewed area / area) and id:exposed_surface (m2)
     """
 
-    # TODO : check that sources are okay for star (energy of emisssion should be the one normalised)
+    # TODO : check that sources are okay for star (energy of emission should be the one normalised)
 
     c_scene, raw, aggregated = _caribu_call(scene_geometry, str(directions), domain=domain, convUnit=convUnit)
     if output_by_triangle:
@@ -102,13 +102,13 @@ def rain_and_light_star(g, light_sectors=16, output_by_triangle=False, domain=No
     rain_star, rain_exposed_area = caribu_star(geom, directions=light_sectors, output_by_triangle=output_by_triangle,
                                                convUnit=convUnit, domain=domain)
 
-    if not 'rain_exposed_area' in g.properties():
+    if 'rain_exposed_area' not in g.properties():
         g.add_property('rain_exposed_area')
-    if not 'rain_star' in g.properties():
+    if 'rain_star' not in g.properties():
         g.add_property('rain_star')
-    if not 'light_exposed_area' in g.properties():
+    if 'light_exposed_area' not in g.properties():
         g.add_property('light_exposed_area')
-    if not 'light_star' in g.properties():
+    if 'light_star' not in g.properties():
         g.add_property('light_star')
     g.property('rain_exposed_area').update(rain_exposed_area)
     g.property('light_exposed_area').update(light_exposed_area)

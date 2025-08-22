@@ -11,16 +11,9 @@
 # ==============================================================================
 """ 3D display of caribu objects
 """
+from math import isnan
 import matplotlib as mpl
 from matplotlib import pyplot
-
-
-try:
-    from math import isnan
-except ImportError:
-    # to be back compatile with python 2.5
-    def isnan(num):
-        return num != num
 
 
 import openalea.plantgl.all as pgl
@@ -32,7 +25,7 @@ def nan_to_zero(values):
 
 
 def plot_color_scale(values, minval=None, maxval=None, label=None):
-    """    Produce an plot of a colorscale
+    """    Produce a plot of a colorscale
     """
     # Make a figure and axes with dimensions as desired.
     fig = pyplot.figure(figsize=(8, 1.5))

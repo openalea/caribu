@@ -1,7 +1,7 @@
 from math import *
 from numpy import array
 
-class Sky(object):
+class Sky:
     def __init__(self,Nbp,Nbt):
         """ initialise sky avec I=0; Nbp=nb secteurs d'azimut, Nbt nombre secteurs zenithaux """
         self.sec = [Nbp,Nbt]

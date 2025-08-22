@@ -12,7 +12,7 @@ def reduceDict(dictlist):
     def _bind(d, e):
         vals = []
         for k in d:
-            if (isinstance(d[k], list)):
+            if isinstance(d[k], list):
                 nl = d[k]
             else:
                 nl = [d[k]]

@@ -1,6 +1,6 @@
 from . import Sky
 
-class place_sun(object):
+class place_sun:
     """  Doc... """ 
 
     def __init__(self):

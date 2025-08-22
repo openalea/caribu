@@ -1,0 +1,59 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Caribu
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Michaël
+    family-names: Chelle
+    email: michael.chelle@inrae.fr
+    affiliation: INRAE
+    orcid: 'https://orcid.org/0000-0001-8151-1555'
+  - orcid: 'https://orcid.org/0000-0001-7098-8278'
+    given-names: Christian
+    family-names: Fournier
+    email: christian.fournier@inrae.fr
+    affiliation: INRAE
+  - given-names: Christophe
+    orcid: 'https://orcid.org/0000-0002-2555-761X'
+    email: christophe.pradal@cirad.fr
+    family-names: Pradal
+    affiliation: CIRAD
+identifiers:
+  - type: doi
+    value: 10.1007/s003710050127
+    description: Springer
+  - type: swh
+    value: 'swh:1:rev:5be29662ca257bc6056d29f8d55940c16eb98735'
+repository-code: 'https://github.com/openalea-incubator/caribu'
+url: 'https://caribu.readthedocs.io'
+abstract: >-
+  Caribu is a modelling suite for lighting 3D virtual
+  scenes, especially designed for the illumination of
+  virtual plant canopies such as virtual crop fields. It
+  uses a special algorithm, the nested radiosity (Chelle et
+  al., 1998), that allows for a precise estimation of light
+  absorption at the level of small canopy elements
+  (typically 1 cm2). It takes into account multiple
+  scattering, allows for infinitisation of the scene (by
+  virtual replication) and performs in a reasonable time
+  (typically a few minutes). The idea is to mix a projection
+  model (Z-buffer) that solves the first order illumination,
+  a model that solves the radiosity equations for the ligth
+  exchanges between a canopy element and its close
+  neighbourhood, and a model that solves turbid medium
+  equations for the exchanges between a canopy element and
+  the rest of the canopy. Ref: Michaël Chelle, Bruno
+  Andrieu, K. Bouatouch. Nested radiosity for plant
+  canopies. The Visual Computer, 1998, 14, pp.109-125.
+  ⟨10.1007/s003710050127⟩. ⟨hal-02697207⟩ 
+keywords:
+  - plant modeling
+  - 3D radiative transfer
+  - nested radiosity
+  - light simulation
+license: CECILL-C

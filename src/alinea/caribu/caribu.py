@@ -159,7 +159,7 @@ def _absorptance(material):
 def get_incident(eabs, materials):
     """ estimate incident light using absorbed light and materials
     
-        For asymetric materials, return a mean estimate
+        For asymmetric materials, return a mean estimate
     """
     # check for integrity of caribu output
     if len(eabs) != len(materials):
@@ -455,13 +455,13 @@ def mixed_radiosity(triangles, materials, lights, domain, soil_reflectance,
                     A 2-tuple encode a symmetric translucent material defined by a reflectance and a transmittance
                     A 4-tuple encode an asymmetric translucent material defined the reflectance and transmittance
                     of the upper and lower side respectively
-        lights: (list of tuples) a list of (Energy, (vx, vy, vz)) tuples defining ligh sources
-                Energy is ligth flux passing throuh a unit area (scene unit) horizontal plane.
+        lights: (list of tuples) a list of (Energy, (vx, vy, vz)) tuples defining light sources
+                Energy is light flux passing through a unit area (scene unit) horizontal plane.
         domain: (tuple of floats) 2D Coordinates of the domain bounding the scene for its replication.
                  (xmin, ymin, xmax, ymax) scene is not bounded along z axis
         soil_reflectance: (float) the reflectance of the soil
         diameter: diameter (scene unit) of the sphere defining the close neighbourhood for local radiosity.
-        layers: vertical subdivisions of scene used for approximation of far contrbution
+        layers: vertical subdivisions of scene used for approximation of far contribution
         height: upper limit of canopy layers (scene unit)
         screen_size: (int) buffer size for projection images (pixels)
         sensors: (list of list of tuples) a list of triangles defining virtual sensors

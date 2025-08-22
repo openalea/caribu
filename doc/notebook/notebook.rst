@@ -1,9 +1,12 @@
-========
-Notebook
-========
+=========
+Notebooks
+=========
+
+.. nbgallery ::
+    caribu_crops
 
 .. toctree::
     :glob:
-    :caption: Notebook
+    :caption: Notebooks
 
     ./Raycasting_methods_with_simple_object_python.rst

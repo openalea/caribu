@@ -1,4 +1,4 @@
-class group_seq(object):
+class group_seq:
     """  Doc... """ 
 
     def __init__(self):

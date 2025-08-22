@@ -1,9 +1,8 @@
-from math import *
 from numpy import array
 
 def gammaTrans(values, gamma=1,minval =None,maxval=None):
-    '''    return value normalised and raised at exponent gamma
-    '''
+    """    return value normalised and raised at exponent gamma
+    """
     values = array(values)
 
     if minval is None:
@@ -16,7 +15,7 @@ def gammaTrans(values, gamma=1,minval =None,maxval=None):
     else:
         M = maxval
 
-    if (m == M) :
+    if m == M:
         norm = 1.
     else:
         norm = M - m

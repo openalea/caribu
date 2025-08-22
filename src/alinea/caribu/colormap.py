@@ -16,8 +16,8 @@
 """
 
 
-class ColorMap(object):
-    """A RGB color map, between 2 colors defined in HSV code
+class ColorMap:
+    """An RGB color map, between 2 colors defined in HSV code
 
     :Examples:
 
@@ -56,15 +56,16 @@ class ColorMap(object):
             col = (self.coul1, self.coul1 * b + self.coul2 * a, self.coul2)
         elif winter > 3:
             col = (self.coul1, self.coul2, self.coul2)
-        return (int(col[0]), int(col[1]), int(col[2]))
+        return int(col[0]), int(col[1]), int(col[2])
 
-    def greycolor(self, normedU):
+    @staticmethod
+    def greycolor(normedU):
         """
 
         :param normedU: todo
         :returns: todo
         """
-        return (int(255 * normedU), int(255 * normedU), int(255 * normedU))
+        return int(255 * normedU), int(255 * normedU), int(255 * normedU)
 
     def grey(self, u):
         """

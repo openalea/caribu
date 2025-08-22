@@ -1,6 +1,6 @@
 from . import IOtable
 
-class read_meteo_file(object):
+class read_meteo_file:
     """  Doc... """ 
 
     def __init__(self):

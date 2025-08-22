@@ -1,6 +1,4 @@
 import openalea.plantgl.all as pgl
-import random
-import types
 
 
 # TODO: store data (optics and transparencies in the scene
@@ -9,7 +7,7 @@ import types
 # test it with randomized values and color map
 # Implement discrete color map (lut?)
 
-class CanestraScene(object):
+class CanestraScene:
     def __init__(self, plants, soil, indexes):
         self.plants = plants
         self.soil = soil
@@ -64,7 +62,7 @@ class CanestraScene(object):
                 geom.colorPerVertex = False
 
             assert 3 * len(geom.colorList) == count
-            if i >= n or type(colors[i]) == float:
+            if i >= n or type(colors[i]) is float:
                 geom.colorList.append(pgl.Color4(10, 10, 10, 0))
             else:
                 r, g, b = colors[i]

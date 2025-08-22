@@ -17,7 +17,7 @@
         {
             "type": "schema:Role",
             "schema:author": "https://orcid.org/0000-0001-8151-1555",
-            "schema:roleName": "Developper",
+            "schema:roleName": "Developer",
             "schema:startDate": "1993-11-01"
         },
         {
@@ -53,7 +53,7 @@
     },
     "dateCreated": "1998-07-01",
     "datePublished": "1998-07-01",
-    "description": "Caribu is a modelling suite for lighting 3D virtual scenes, especially designed for the illumination of virtual plant canopies such as virtual crop fields. It uses a special algorithm, the nested radiosity (Chelle et al., 1998), that allows for a precise estimation of light absorption at the level of small canopy elements (typically 1 cm2). It takes into account multiple scattering, allows for infinitisation of the scene (by virtual replication) and performs in a reasonable time (typically a few minutes).\n\nThe idea is to mix a projection model (Z-buffer) that solves the first order illumination, a model that solves the radiosity equations for the ligth exchanges between a canopy element and its close neighbourhood, and a model that solves turbid medium equations for the exchanges between a canopy element and the rest of the canopy.\n\nRef: Michaël Chelle, Bruno Andrieu, K. Bouatouch. Nested radiosity for plant canopies. The Visual Computer, 1998, 14, pp.109-125. ⟨10.1007/s003710050127⟩. ⟨hal-02697207⟩",
+    "description": "Caribu is a modelling suite for lighting 3D virtual scenes, especially designed for the illumination of virtual plant canopies such as virtual crop fields. It uses a special algorithm, the nested radiosity (Chelle et al., 1998), that allows for a precise estimation of light absorption at the level of small canopy elements (typically 1 cm2). It takes into account multiple scattering, allows for infinitisation of the scene (by virtual replication) and performs in a reasonable time (typically a few minutes).\n\nThe idea is to mix a projection model (Z-buffer) that solves the first order illumination, a model that solves the radiosity equations for the light exchanges between a canopy element and its close neighbourhood, and a model that solves turbid medium equations for the exchanges between a canopy element and the rest of the canopy.\n\nRef: Michaël Chelle, Bruno Andrieu, K. Bouatouch. Nested radiosity for plant canopies. The Visual Computer, 1998, 14, pp.109-125. ⟨10.1007/s003710050127⟩. ⟨hal-02697207⟩",
     "funder": {
         "type": "Organization",
         "name": "INRAE"

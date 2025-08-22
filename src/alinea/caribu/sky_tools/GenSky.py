@@ -1,6 +1,6 @@
 from . import Sky
 
-class GenSky(object):
+class GenSky:
     """  Doc... """ 
 
     def __init__(self):

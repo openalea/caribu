@@ -11,9 +11,11 @@
 # ==============================================================================
 
 # {# pkglts, base
+from importlib.metadata import version
 
-from . import version
-
-__version__ = version.__version__
-
+try:
+    __version__ = version("alinea.caribu")
+except Exception:
+    # package is not yet installed
+    pass
 # #}

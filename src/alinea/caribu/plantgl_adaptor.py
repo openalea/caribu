@@ -11,7 +11,6 @@
 # ==============================================================================
 """ Adaptor for PlantGL object and derived
 """
-import numpy
 import openalea.plantgl.all as pgl
 
 

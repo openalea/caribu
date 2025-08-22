@@ -62,7 +62,7 @@ def _turtle(sectors='46', format='soc', energy=1.):
 
 def turtle(sectors='46', format='soc', energy=1.):
     """ Return energy on horizontal surface, energy in the direction of emission,
-    direction vector, elevation (deg) and azimuth (deg) for a turtle discretisation
+    direction vector, elevation (deg) and azimuth (deg) for a turtle discretion
     of the sky hemisphere"""
     res = [(energy, emission_inv(energy, elevation), (vecteur_direction(elevation, azimuth)), elevation, azimuth) for
            elevation, azimuth, energy in _turtle(sectors, format, energy)]
@@ -120,7 +120,7 @@ def light_source(horizontal_irradiance, elevation, azimuth):
 
 
 def emission_inv(elevation, energy):
-    """ return energy of emmision for a source of a given direction and of a given energy
+    """ return energy of emission for a source of a given direction and of a given energy
     received on a horizontal surface """
     theta = radians(90 - elevation)
     received_energy = energy * abs(cos(theta))

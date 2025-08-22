@@ -1,4 +1,4 @@
-from .tools import assert_almost_equal
+from tools import assert_almost_equal
 
 from alinea.caribu.caribu import green_leaf_PAR, raycasting
 

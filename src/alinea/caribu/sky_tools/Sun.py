@@ -2,7 +2,7 @@
 from math import *
 
 
-class Sun(object):
+class Sun:
     def __init__(self,Rsun=1.0,elev=0.,azim=0.):
         self._Rsun=Rsun
         self.elev=elev

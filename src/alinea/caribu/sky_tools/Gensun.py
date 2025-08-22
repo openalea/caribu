@@ -1,6 +1,6 @@
 from . import Sun
 
-class Gensun(object):
+class Gensun:
     """  Generate sun object from astronomical data and location latitude""" 
 
     def __init__(self):

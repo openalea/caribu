@@ -98,7 +98,7 @@ def domain_mesh(domain, z=0., subdiv=1):
     return [(a, b, c), (b, d, c)]
 
 
-class CaribuScene(object):
+class CaribuScene:
     """A class interface to Caribu algorithms"""
 
     default_material = (0.06, 0.07)
@@ -164,6 +164,7 @@ class CaribuScene(object):
             File format specifications (*.can, *.light, *.8, *.opt) can be found in data/CanestraDoc.pdf
         """
 
+        self.lightfile = None
         self.debug = debug
 
         if scene_unit not in self.units:
@@ -293,18 +294,20 @@ class CaribuScene(object):
 
 
     def __del__(self):
-        if os.path.exists(self.tempdir):
-            import shutil
-            shutil.rmtree(self.tempdir)
+        if hasattr(self, 'tempdir') and self.tempdir:
+            if os.path.exists(self.tempdir):
+                import shutil
+                shutil.rmtree(self.tempdir)
 
 
 
     def triangle_areas(self, convert=True):
         """ compute mean area of elementary triangles in the scene
 
-        If convert is true, area is xpressed in meter (scene unit otherwise)"""
+        If convert is true, area is expressed in meter (scene unit otherwise)"""
         areas = self.scene.triangle_areas()
-        if convert : areas *= self.conv_unit**2
+        if convert:
+            areas *= self.conv_unit**2
         return areas
 
     def setLight(self, light):
@@ -356,7 +359,6 @@ class CaribuScene(object):
         """
         if a_property is None:
             color_property = None
-            soil_colors = None
             values = None
         else:
             values = list(a_property.values())
@@ -482,12 +484,12 @@ class CaribuScene(object):
             direct: (bool) Whether only first order interception is to be computed
                     Default is True (no rediffusions)
             infinite: (bool) Whether the scene should be considered as infinite
-                    Default is False (non infinite canopy)
+                    Default is False (non-infinite canopy)
             d_sphere: (float) the diameter (m) of the sphere defining the close
                      neighbourhood of mixed radiosity algorithm
                        if d_sphere = 0, direct + pure layer algorithm is used
             layers: (int) the number of horizontal layers for estimating far
-            contributions
+                contributions
             height: (float) the height of the canopy (m).
                     if None (default), the maximal height of the scene is used.
             screen_size: (int) size of the screen_size x screen_size square
@@ -497,7 +499,7 @@ class CaribuScene(object):
             sensors: (dict of list of list of tuples) a {sensor_id: [triangle,...]} dict defining the virtual sensors
                 each triangle is a list of tuple defining the coordinates of its vertices
             split_face: (bool) Whether results of incidence on individual faces
-            of triangle should be outputed. Default is False
+            of triangle should be output. Default is False
             simplify: (bool)  Whether results per band should be simplified to
             a {result_name: property} dict
                     in the case of a monochromatic simulation
@@ -535,10 +537,12 @@ class CaribuScene(object):
             lights = [(e * self.conv_unit ** 2, vect) for e, vect in self.light]
 
         if self.scene is not None:
-            if self.debug : print ('Prepare scene', len(self.light))
+            if self.debug:
+                print ('Prepare scene', len(self.light))
             triangles = self.scene.allvalues(copied=True)
             groups = self.scene.allids()
-            if self.debug : print ('done')
+            if self.debug:
+                print ('done')
             if self.soil is not None:
                 triangles += self.soil
                 groups = groups + [self.soil_label] * len(self.soil)

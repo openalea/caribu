@@ -9,20 +9,25 @@ alinea.caribu
     :alt: Documentation status
     :target: https://caribu.readthedocs.io/en/latest/?badge=latest
 
-
-.. image:: https://travis-ci.org/openalea-incubator/caribu.svg?branch=master
-    :alt: Travis build status
-    :target: https://travis-ci.org/openalea-incubator/caribu
-
-
-.. image:: https://coveralls.io/repos/github/openalea-incubator/caribu/badge.svg?branch=master
-    :alt: Coverage report status
-    :target: https://coveralls.io/github/openalea-incubator/caribu?branch=master
+.. image:: https://github.com/openalea-incubator/caribu/actions/workflows/conda-package-build.yml/badge.svg
+    :alt: CI status
+    :target: https://github.com/openalea-incubator/caribu/actions/workflows/conda-package-build.yml
 
 
-.. image:: https://landscape.io/github/openalea-incubator/caribu/master/landscape.svg?style=flat
-    :alt: Code health status
-    :target: https://landscape.io/github/openalea-incubator/caribu/master
+.. image:: https://anaconda.org/openalea3/alinea.caribu/badges/version.svg
+    :target: https://anaconda.org/openalea3/alinea.caribu
+
+.. image:: https://anaconda.org/openalea3/alinea.caribu/badges/latest_release_date.svg
+    :target: https://anaconda.org/openalea3/alinea.caribu
+
+.. image:: https://anaconda.org/openalea3/alinea.caribu/badges/platforms.svg
+    :target: https://anaconda.org/openalea3/alinea.caribu
+
+.. image:: https://anaconda.org/openalea3/alinea.caribu/badges/license.svg
+    :target: https://anaconda.org/openalea3/alinea.caribu
+
+.. image:: https://anaconda.org/openalea3/alinea.caribu/badges/downloads.svg
+    :target: https://anaconda.org/openalea3/alinea.caribu
 
 .. #}
 
@@ -38,19 +43,19 @@ allows for infinitisation of the scene (by virtual replication) and performs
 in a reasonable time (typically a few minutes).
 
 The idea is to mix a projection model (Z-buffer) that solves the first order illumination,
-a model that solves the radiosity equations for the ligth exchanges between a
+a model that solves the radiosity equations for the light exchanges between a
 canopy element and its close neighbourhood, and a model that solves turbid
 medium equations for the exchanges between a canopy element and the rest of
 the canopy.
 
-Ref: Michaël Chelle, Bruno Andrieu, K. Bouatouch. Nested radiosity for plant canopies. The Visual Computer, 1998, 14, pp.109-125. ⟨10.1007/s003710050127⟩. ⟨hal-02697207⟩
+Ref: Michaël Chelle, Bruno Andrieu, K. Bouatouch. Nested radiosity for plant canopies. The Visual Computer, 1998, 14, pp.109-125. `⟨10.1007/s003710050127⟩ <https://doi.org/10.1007/s003710050127>`_. `⟨hal-02697207⟩ <https://hal.inrae.fr/hal-04945340v1>`_
 
 Content
 '''''''
 
 The suite is composed of two main sub-models : MCSail, that computes turbid
 medium equations on a layered canopy (derived from the SAIL model (Verhoef, 1984) and Canestra, that computes radiosity
-and projection. The suite also includes two utililities : periodise, that
+and projection. The suite also includes two utilities : periodise, that
 makes a scene suitable for infinite replication and S2v, that transforms a
 3D scene in a 1D multi-layer system.
 
@@ -61,7 +66,7 @@ a pattern delimiting the scene, used for infinitisation.
 
 This model is completed with a set of utilities for visualisation
 (using PlantGL), import of caribuscene from files or MTG, and tools for
-building ligth sources from meteorological data
+building light sources from meteorological data
 
 Ref: Wout Verhoef (1984), Light scattering by leaf layers with application to canopy reflectance modeling: the SAIL model. Remote Sensing of Environment, 16, 125-141
 
