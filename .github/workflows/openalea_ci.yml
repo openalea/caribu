@@ -18,7 +18,7 @@ on:
 
 jobs:
   build:
-    uses: openalea/action-build-publish-anaconda/.github/workflows/openalea_ci.yml@main
+    uses: openalea/action-build-publish-anaconda/.github/workflows/openalea_ci.yml@use_dev
     secrets:
       anaconda_token: ${{ secrets.ANACONDA_TOKEN }}
   
