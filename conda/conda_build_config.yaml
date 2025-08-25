@@ -1,0 +1,4 @@
+c_compiler:
+  - mingw32  # [win]
+cxx_compiler:
+  - mingw32  # [win]
