@@ -34,8 +34,8 @@ requirements:
     - ninja
     - m2w64-toolchain   # [win]
   build:
-    - {{ compiler('c') }}   
-    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}      # [not win]
+    - {{ compiler('cxx') }}    # [not win]
   run:
     - python
     - path              # path.py is outdated
