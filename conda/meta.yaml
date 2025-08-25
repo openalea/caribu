@@ -20,10 +20,6 @@ source:
 
 build:
   string: py{{ PY_VER }}
-  script_env:
-    - CC=x86_64-w64-mingw32-gcc        # [win]
-    - CXX=x86_64-w64-mingw32-g++       # [win]
-    - PATH=%PREFIX%\\Library\\mingw-w64\\bin;${PATH}  # [win]
   script:
     - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
@@ -36,10 +32,10 @@ requirements:
     - wheel
     - cmake
     - ninja
+    - m2w64-toolchain   # [win]
   build:
     - {{ compiler('c') }}   
     - {{ compiler('cxx') }}
-    - m2w64-toolchain   # [win]
   run:
     - python
     - path              # path.py is outdated
