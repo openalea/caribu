@@ -1,0 +1,6 @@
+c_compiler:
+  - m2w64_c_compiler           # [win]
+c_stdlib:
+  - m2w64_c_stdlib             # [win]
+cxx_compiler:
+  - m2w64_cxx_compiler         # [win]
