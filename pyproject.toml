@@ -69,14 +69,4 @@ include = ["alinea.*"]
 build-type = "Release"
 source-dir = "."
 
-# -------------------------------
-# The following table is mainly used to define default compilers
-# when building outside of conda-build environments (local dev).
-# During conda-build, CC/CXX are automatically set by the recipe
-# (e.g., {{ compiler('c') }} or m2w64-toolchain on Windows), so
-# these definitions are ignored.
-# -------------------------------
-[tool.scikit-build.cmake.define]
-CMAKE_C_COMPILER = "${env:CC|gcc}"
-CMAKE_CXX_COMPILER = "${env:CXX|g++}"
 
