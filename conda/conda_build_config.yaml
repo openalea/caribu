@@ -2,3 +2,5 @@ c_compiler:
   - mingw32  # [win]
 cxx_compiler:
   - mingw32  # [win]
+vc:  # prevent pinning from injecting vc
+  - none  # [win]
