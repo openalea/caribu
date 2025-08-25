@@ -5,14 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 
-if(DEFINED $ENV{PREFIX})
-    message(STATUS "Prefix: $ENV{PREFIX}")
-else()
-    set(PREFIX $ENV{CONDA_PREFIX})
-    message(STATUS "Prefix: $ENV{PREFIX}")
-    message(STATUS "CONDA_PREFIX: $ENV{CONDA_PREFIX}")
-endif()
-
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include_directories("src/cpp/")
