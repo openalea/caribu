@@ -23,25 +23,23 @@ build:
   script_env:
     - CMAKE_GEN=MinGW Makefiles # [win]
     - CMAKE_GENERATOR=MinGW Makefiles # [win]
-    - CXX=g++ # [win]
-    - CC=gcc # [win]
-    - cxx_compiler=g++ # [win]
-    - c_compiler=gcc # [win]
   script:
-    - PREFIX={{ PREFIX }} {{PYTHON}} -m pip install --prefix={{ PREFIX }} . -vv
+    - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
 requirements:
   host:
     - python
+    - pip
     - scikit-build-core
+    - setuptools
+    - wheel
     - cmake
-    - make
+    - make              # [unix]
     - ninja
   build:
     - {{ compiler('c') }}   
     - {{ compiler('cxx') }}
     - m2w64-toolchain   # [win]
-    - m2w64-toolchain_win-64   # [win]
   run:
     - python
     - path              # path.py is outdated
