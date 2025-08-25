@@ -21,8 +21,6 @@ source:
 build:
   string: py{{ PY_VER }}
   script_env:
-    - CMAKE_GEN=MinGW Makefiles # [win]
-    - CMAKE_GENERATOR=MinGW Makefiles # [win]
     - CC=x86_64-w64-mingw32-gcc        # [win]
     - CXX=x86_64-w64-mingw32-g++       # [win]
     - PATH=%PREFIX%\\Library\\mingw-w64\\bin;${PATH}  # [win]
@@ -37,7 +35,6 @@ requirements:
     - setuptools
     - wheel
     - cmake
-    - make              # [unix]
     - ninja
   build:
     - {{ compiler('c') }}   
