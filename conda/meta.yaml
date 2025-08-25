@@ -20,6 +20,10 @@ source:
 
 build:
   string: py{{ PY_VER }}
+  script_env:
+    - CC=x86_64-w64-mingw32-gcc        # [win]
+    - CXX=x86_64-w64-mingw32-g++       # [win]
+    - PATH=%PREFIX%\\Library\\mingw-w64\\bin;${PATH}  # [win]
   script:
     - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
