@@ -28,7 +28,7 @@ build:
     - cxx_compiler=g++ # [win]
     - c_compiler=gcc # [win]
   script:
-    - {{PYTHON}} -m pip install --prefix={{ PREFIX }} . -vv
+    - PREFIX={{ PREFIX }} {{PYTHON}} -m pip install --prefix={{ PREFIX }} . -vv
 
 requirements:
   host:
