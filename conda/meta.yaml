@@ -21,27 +21,25 @@ source:
 build:
   string: py{{ PY_VER }}
   script_env:
-    - CMAKE_GEN=MinGW Makefiles # [win]
-    - CMAKE_GENERATOR=MinGW Makefiles # [win]
-    - CXX=g++ # [win]
-    - CC=gcc # [win]
-    - cxx_compiler=g++ # [win]
-    - c_compiler=gcc # [win]
+    - CC=x86_64-w64-mingw32-gcc        # [win]
+    - CXX=x86_64-w64-mingw32-g++       # [win]
+    - PATH=%PREFIX%\\Library\\mingw-w64\\bin;${PATH}  # [win]
   script:
-    - {{PYTHON}} -m pip install --prefix={{ PREFIX }} . -vv
+    - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
 requirements:
   host:
     - python
+    - pip
     - scikit-build-core
+    - setuptools
+    - wheel
     - cmake
-    - make
     - ninja
-  build:
-    - {{ compiler('c') }}   
-    - {{ compiler('cxx') }}
     - m2w64-toolchain   # [win]
-    - m2w64-toolchain_win-64   # [win]
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
   run:
     - python
     - path              # path.py is outdated

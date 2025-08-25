@@ -1,25 +1,20 @@
 c_compiler:
-  - gcc                        # [linux]
-  - clang                      # [osx]
-c_compiler_version:            # [unix]
-  - 12                         # [linux]
-  - 16                         # [osx]
-  - 10                         # [os.environ.get("CF_CUDA_ENABLED", "False") == "True" and linux]
-  - 11                         # [os.environ.get("CF_CUDA_ENABLED", "False") == "True" and linux]
+  - mingw32  # [win]
 cxx_compiler:
-  - gxx                        # [linux]
-  - clangxx                    # [osx]
-cxx_compiler_version:          # [unix]
-  - 12                         # [linux]
-  - 16                         # [osx]
-  - 10                         # [os.environ.get("CF_CUDA_ENABLED", "False") == "True" and linux]
-  - 11                         # [os.environ.get("CF_CUDA_ENABLED", "False") == "True" and linux]
+  - mingw32  # [win]
+# Ignore any Visual Studio pins
+vc:
+  - none
+vs2017_runtime:
+  - none
+vs2019_runtime:
+  - none
+vs2022_runtime:
+  - none
 
-m2w64_c_compiler:                 # [win]
-  - gcc                           # [win]
-m2w64_c_compiler_version:         # [win]
-  - 5                            # [win]
-m2w64_cxx_compiler:               # [win]
-  - gxx                           # [win]
-m2w64_cxx_compiler_version:       # [win]
-  - 5                            # [win]
+# Optionally ignore pins from conda-forge
+ignore_pins:
+  - vc
+  - vs2017
+  - vs2019
+  - vs2022
