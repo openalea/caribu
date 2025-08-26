@@ -21,6 +21,9 @@ source:
 build:
   string: py{{ PY_VER }}
   script:
+    # Set compilers env persistent for cmake/scikit-build on Windows
+    - set CC=%CC%    # [win]
+    - set CXX=%CXX%  # [win]
     - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
 requirements:
