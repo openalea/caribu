@@ -32,7 +32,6 @@ requirements:
     - wheel
     - cmake
     - ninja
-    - m2w64-toolchain   # [win]
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
