@@ -1,7 +1,6 @@
 c_compiler:
   - gcc                        # [linux]
   - clang                      # [osx]
-  - gcc                     # [win]
 c_compiler_version:            # [unix]
   - 14                         # [linux]
   - 19                         # [osx]
@@ -10,7 +9,6 @@ c_compiler_version:            # [unix]
 c_stdlib:
   - sysroot                    # [linux]
   - macosx_deployment_target   # [osx]
-  - m2w64-sysroot                         # [win]
 m2w64_c_stdlib:                # [win]
   - m2w64-sysroot              # [win]
 m2w64_c_stdlib_version:        # [win]
@@ -23,7 +21,6 @@ c_stdlib_version:              # [unix]
 cxx_compiler:
   - gxx                        # [linux]
   - clangxx                    # [osx]
-  - gxx                     # [win]
 cxx_compiler_version:          # [unix]
   - 14                         # [linux]
   - 19                         # [osx]
