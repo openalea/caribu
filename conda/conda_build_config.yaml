@@ -5,4 +5,4 @@ c_compiler:
 cxx_compiler:
   - gxx                        # [linux]
   - clangxx                    # [osx]
-  - gxx      # [win]
+  - g++      # [win]
