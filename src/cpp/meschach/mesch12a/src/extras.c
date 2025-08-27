@@ -190,8 +190,6 @@ double	Mdot(int len,Real* x,Real* y)
 
 /* Mnorminf -- returns ||x||_inf */
 double	Mnorminf(int len,Real* x)
-int	len;
-Real	*x;
 {
     int	i;
     Real	tmp, max_val;
