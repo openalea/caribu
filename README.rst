@@ -9,9 +9,9 @@ alinea.caribu
     :alt: Documentation status
     :target: https://caribu.readthedocs.io/en/latest/?badge=latest
 
-.. image:: https://github.com/openalea-incubator/caribu/actions/workflows/conda-package-build.yml/badge.svg
+.. image:: https://github.com/openalea/caribu/actions/workflows/conda-package-build.yml/badge.svg
     :alt: CI status
-    :target: https://github.com/openalea-incubator/caribu/actions/workflows/conda-package-build.yml
+    :target: https://github.com/openalea/caribu/actions/workflows/conda-package-build.yml
 
 
 .. image:: https://anaconda.org/openalea3/alinea.caribu/badges/version.svg
