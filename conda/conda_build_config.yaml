@@ -1,16 +1,4 @@
 c_compiler:
-  - gcc                        # [linux]
-  - clang                      # [osx]
   - m2w64-toolchain          # [win]
-c_stdlib:
-  - sysroot                    # [linux]
-  - macosx_deployment_target   # [osx]
-  - m2w64-sysroot             # [win]
 cxx_compiler:
-  - gxx                        # [linux]
-  - clangxx                    # [osx]
   - m2w64-toolchain         # [win]
-fortran_compiler:              # [unix or win64]
-  - gfortran                   # [linux64 or (osx and x86_64)]
-  - gfortran                   # [aarch64 or ppc64le or armv7l or s390x]
-  - m2w64-toolchain     # [win64]
