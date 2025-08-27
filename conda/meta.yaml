@@ -24,8 +24,8 @@ build:
     # Set compilers env persistent for cmake/scikit-build on Windows
     - set CC=%CC%    # [win]
     - set CXX=%CXX%  # [win]
-    - CMAKE_GEN=MinGW Makefiles # [win]
-    - CMAKE_GENERATOR=MinGW Makefiles # [win]
+    - set CMAKE_GEN=MinGW Makefiles # [win]
+    - set CMAKE_GENERATOR=MinGW Makefiles # [win]
     - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
 requirements:
