@@ -9,25 +9,25 @@ alinea.caribu
     :alt: Documentation status
     :target: https://caribu.readthedocs.io/en/latest/?badge=latest
 
-.. image:: https://github.com/openalea/caribu/actions/workflows/conda-package-build.yml/badge.svg
+.. image:: https://github.com/openalea/caribu/actions/workflows/openalea-ci.yml/badge.svg
     :alt: CI status
-    :target: https://github.com/openalea/caribu/actions/workflows/conda-package-build.yml
+    :target: https://github.com/openalea/caribu/actions/workflows/openalea-ci.yml
 
 
-.. image:: https://anaconda.org/openalea3/alinea.caribu/badges/version.svg
-    :target: https://anaconda.org/openalea3/alinea.caribu
+.. image:: https://anaconda.org/openalea3/openalea.caribu/badges/version.svg
+    :target: https://anaconda.org/openalea3/openalea.caribu
 
-.. image:: https://anaconda.org/openalea3/alinea.caribu/badges/latest_release_date.svg
-    :target: https://anaconda.org/openalea3/alinea.caribu
+.. image:: https://anaconda.org/openalea3/openalea.caribu/badges/latest_release_date.svg
+    :target: https://anaconda.org/openalea3/openalea.caribu
 
-.. image:: https://anaconda.org/openalea3/alinea.caribu/badges/platforms.svg
-    :target: https://anaconda.org/openalea3/alinea.caribu
+.. image:: https://anaconda.org/openalea3/openalea.caribu/badges/platforms.svg
+    :target: https://anaconda.org/openalea3/openalea.caribu
 
-.. image:: https://anaconda.org/openalea3/alinea.caribu/badges/license.svg
-    :target: https://anaconda.org/openalea3/alinea.caribu
+.. image:: https://anaconda.org/openalea3/openalea.caribu/badges/license.svg
+    :target: https://anaconda.org/openalea3/openalea.caribu
 
-.. image:: https://anaconda.org/openalea3/alinea.caribu/badges/downloads.svg
-    :target: https://anaconda.org/openalea3/alinea.caribu
+.. image:: https://anaconda.org/openalea3/openalea.caribu/badges/downloads.svg
+    :target: https://anaconda.org/openalea3/openalea.caribu
 
 .. #}
 
