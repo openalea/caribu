@@ -130,9 +130,7 @@ static int err_list_end = 2;   /* number of elements in err_list */
    Note: lists numbered 0 and 1 are attached automatically,
    you do not need to do it
    */
-int err_list_attach(list_num, list_len,err_ptr,warn)
-int list_num, list_len, warn;
-char **err_ptr;
+int err_list_attach(int list_num, int list_len,char **err_ptr,int warn)
 {
    if (list_num < 0 || list_len <= 0 ||
        err_ptr == (char **)NULL) 
@@ -163,8 +161,7 @@ char **err_ptr;
 
 
 /* release the error list numbered list_num */
-int err_list_free(list_num)
-int list_num;
+int err_list_free(int list_num)
 {
    if (list_num < 0 || list_num >= err_list_end) return -1;
    if (err_list[list_num].listp != (char **)NULL) {
@@ -180,8 +177,7 @@ int list_num;
    return FALSE if not;
    return TRUE if yes
    */
-int err_is_list_attached(list_num)
-int list_num;
+int err_is_list_attached(int list_num)
 {
    if (list_num < 0 || list_num >= err_list_end)
      return FALSE;
@@ -197,8 +193,7 @@ int list_num;
 static	int	err_flag = EF_EXIT, num_errs = 0, cnt_errs = 1;
 
 /* set_err_flag -- sets err_flag -- returns old err_flag */
-int	set_err_flag(flag)
-int	flag;
+int	set_err_flag(int flag)
 {
    int	tmp;
    
@@ -208,8 +203,7 @@ int	flag;
 }
 
 /* count_errs -- sets cnt_errs (TRUE/FALSE) & returns old value */
-int	count_errs(flag)
-int	flag;
+int	count_errs(int flag)
 {
    int	tmp;
    
@@ -223,9 +217,7 @@ int	flag;
    list_num is an error list number (0 is the basic list 
    pointed by err_mesg, 1 is the basic list of warnings)
  */
-int	ev_err(file,err_num,line_num,fn_name,list_num)
-char	*file, *fn_name;
-int	err_num, line_num,list_num;
+int	ev_err(char *file,int err_num,int line_num,char *fn_name,int list_num)
 {
    int	num;
    
@@ -322,8 +314,7 @@ int	err_num, line_num,list_num;
 }
 
 /* float_error -- catches floating arithmetic signals */
-static void	float_error(num)
-int	num;
+static void	float_error(int num)
 {
    signal(SIGFPE,float_error);
    /* fprintf(stderr,"SIGFPE: signal #%d\n",num); */
