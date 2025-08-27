@@ -36,13 +36,7 @@
 static char rcsid[] = "$Id: arnoldi.c,v 1.3 1994/01/13 05:45:40 des Exp $";
 
 /* arnoldi -- an implementation of the Arnoldi method */
-MAT	*arnoldi(A,A_param,x0,m,h_rem,Q,H)
-VEC	*(*A)();
-void	*A_param;
-VEC	*x0;
-int	m;
-Real	*h_rem;
-MAT	*Q, *H;
+MAT	*arnoldi(VEC	*(*A)(),void *A_param,VEC *x0,int m,Real *h_rem,MAT *Q,MAT* H)
 {
 	static VEC	*v=VNULL, *u=VNULL, *r=VNULL, *s=VNULL, *tmp=VNULL;
 	int	i;
@@ -106,24 +100,13 @@ MAT	*Q, *H;
 }
 
 /* sp_arnoldi -- uses arnoldi() with an explicit representation of A */
-MAT	*sp_arnoldi(A,x0,m,h_rem,Q,H)
-SPMAT	*A;
-VEC	*x0;
-int	m;
-Real	*h_rem;
-MAT	*Q, *H;
+MAT	*sp_arnoldi(SPMAT *A,VEC* x0,int m, Real *h_rem, MAT* Q,MAT* H)
 {	return arnoldi(sp_mv_mlt,A,x0,m,h_rem,Q,H);	}
 
 /* gmres -- generalised minimum residual algorithm of Saad & Schultz
 		SIAM J. Sci. Stat. Comp. v.7, pp.856--869 (1986)
 	-- y is overwritten with the solution */
-VEC	*gmres(A,A_param,m,Q,R,b,tol,x)
-VEC	*(*A)();
-void	*A_param;
-VEC	*b, *x;
-int	m;
-MAT	*Q, *R;
-double	tol;
+VEC	*gmres(VEC	*(*A)(),void *A_param,int m,MAT* Q,MAT* R,VEC* b, double tol,VEC* x)
 {
     static VEC	*v=VNULL, *u=VNULL, *r=VNULL, *tmp=VNULL, *rhs=VNULL;
     static VEC	*diag=VNULL, *beta=VNULL;

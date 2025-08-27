@@ -42,7 +42,7 @@ static	char	rcsid[] = "$Id: bkpfacto.c,v 1.7 1994/01/13 05:45:50 des Exp $";
 #define alpha	0.6403882032022076 /* = (1+sqrt(17))/8 */
 
 /* sqr -- returns square of x -- utility function */
-double	sqr(double x)
+double	sqr(const double x)
 {	return x*x;	}
 
 /* interchange -- a row/column swap routine */
