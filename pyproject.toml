@@ -17,7 +17,8 @@ authors = [
   { name = "Christophe Pradal"},
 ]
 description = "Eco-physiological model of light interception by plants"
-license = {file = "LICENSE"}
+license = "CECILL-C"
+license-files = ["LICEN[CS]E*"]
 requires-python = ">=3.8"
 keywords = ["openalea", "FSPM", "light"]
 classifiers = [
