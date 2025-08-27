@@ -68,6 +68,3 @@ include = ["alinea.*"]
 [tool.scikit-build.cmake]
 build-type = "Release"
 source-dir = "."
-
-[tool.scikit-build.cmake.windows]
-generator = "MinGW Makefiles"
