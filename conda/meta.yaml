@@ -21,13 +21,10 @@ source:
 build:
   string: py{{ PY_VER }}
   script_env:
-    # Set compilers env persistent for cmake/scikit-build on Windows
-    - CMAKE_GEN=MinGW Makefiles # [win]
+    # forge cmake generator and compilers for scikit-build without msvc on Windows
     - CMAKE_GENERATOR=MinGW Makefiles # [win]
     - CXX=g++ # [win]
     - CC=gcc # [win]
-    - cxx_compiler=g++ # [win]
-    - c_compiler=gcc # [win]
   script:
     - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
