@@ -26,6 +26,8 @@ build:
     - set CXX=%CXX%  # [win]
     - set CMAKE_GEN=MinGW Makefiles # [win]
     - set CMAKE_GENERATOR=MinGW Makefiles # [win]
+    - set cxx_compiler=g++ # [win]
+    - set c_compiler=gcc # [win]
     - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
 requirements:
