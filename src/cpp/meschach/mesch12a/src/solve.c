@@ -43,7 +43,10 @@ static	char	rcsid[] = "$Id: solve.c,v 1.3 1994/01/13 05:29:57 des Exp $";
 
 /* Usolve -- back substitution with optional over-riding diagonal
 		-- can be in-situ but doesn't need to be */
-VEC	*Usolve(MAT	*matrix,VEC	*b,VEC	*out,double diag)
+VEC	*Usolve(MAT* matrix,VEC* b,VEC *out,double diag)
+//MAT	*matrix;
+//VEC	*b, *out;
+//double	diag;
 {
 	u_int	dim /* , j */;
 	int	i, i_lim;
@@ -93,7 +96,10 @@ VEC	*Usolve(MAT	*matrix,VEC	*b,VEC	*out,double diag)
 }
 
 /* Lsolve -- forward elimination with (optional) default diagonal value */
-VEC	*Lsolve(MAT	*matrix,VEC	*b,VEC	*out, double diag)
+VEC	*Lsolve(MAT* matrix,VEC *b,VEC* out,double diag)
+//MAT	*matrix;
+//VEC	*b,*out;
+//double	diag;
 {
 	u_int	dim, i, i_lim /* , j */;
 	Real	**mat_ent, *mat_row, *b_ent, *out_ent, *out_col, sum, tiny;
@@ -144,7 +150,10 @@ VEC	*Lsolve(MAT	*matrix,VEC	*b,VEC	*out, double diag)
 
 /* UTsolve -- forward elimination with (optional) default diagonal value
 		using UPPER triangular part of matrix */
-VEC	*UTsolve(MAT	*U,VEC	*b,VEC	*out,double diag)
+VEC	*UTsolve(MAT* U,VEC* b,VEC* out,double diag)
+//MAT	*U;
+//VEC	*b,*out;
+//double	diag;
 {
     u_int	dim, i, i_lim;
     Real	**U_me, *b_ve, *out_ve, tmp, invdiag, tiny;
@@ -195,7 +204,9 @@ VEC	*UTsolve(MAT	*U,VEC	*b,VEC	*out,double diag)
 }
 
 /* Dsolve -- solves Dx=b where D is the diagonal of A -- may be in-situ */
-VEC	*Dsolve(MAT	*A,VEC* b,VEC* x)
+VEC	*Dsolve(MAT* A,VEC* b,VEC* x)
+//MAT	*A;
+//VEC	*b,*x;
 {
     u_int	dim, i;
     Real	tiny;
@@ -222,7 +233,10 @@ VEC	*Dsolve(MAT	*A,VEC* b,VEC* x)
 /* LTsolve -- back substitution with optional over-riding diagonal
 		using the LOWER triangular part of matrix
 		-- can be in-situ but doesn't need to be */
-VEC	*LTsolve(MAT *L,VEC	*b,VEC	*out,double diag)
+VEC	*LTsolve(MAT* L,VEC* b,VEC *out,double diag)
+//MAT	*L;
+//VEC	*b, *out;
+//double	diag;
 {
     u_int	dim;
     int		i, i_lim;
