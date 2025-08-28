@@ -372,7 +372,6 @@ VEC	*spCHsolve(SPMAT* L,VEC* b,VEC *out)
 	-- does a Cholesky factorisation assuming NO FILL-IN
 	-- as for spCHfactor(), only the lower triangular part of A is used */
 SPMAT	*spICHfactor(SPMAT* A)
-SPMAT	*A;
 {
 	int	k, m, n, nxt_row, nxt_idx, diag_idx;
 	Real	pivot, tmp2;

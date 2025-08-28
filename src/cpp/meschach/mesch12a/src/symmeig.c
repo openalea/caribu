@@ -46,8 +46,6 @@ static char rcsid[] = "$Id: symmeig.c,v 1.6 1995/03/27 15:45:55 des Exp $";
 		and b (sub- & super-diag entries)
 	-- eigenvalues in a on return */
 VEC	*trieig(VEC* a,VEC* b,MAT* Q)
-VEC	*a, *b;
-MAT	*Q;
 {
 	int	i, i_min, i_max, n, split;
 	Real	*a_ve, *b_ve;
@@ -171,8 +169,6 @@ MAT	*Q;
 	-- Q contains orthogonal matrix of eigenvectors
 	-- returns vector of eigenvalues */
 VEC	*symmeig(MAT* A,MAT* Q,VEC *out)
-MAT	*A, *Q;
-VEC	*out;
 {
 	int	i;
 	static MAT	*tmp = MNULL;
