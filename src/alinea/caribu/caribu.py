@@ -165,8 +165,11 @@ def get_incident(eabs, materials):
     if len(eabs) != len(materials):
         raise ValueError("The number of caribu outputs doesn't match the number of inputs")
     alpha = (_absorptance(m) for m in materials)
-
-    return [float(e) / a if a != 0 else e for e, a in zip(eabs, alpha)]
+    ei = [ -1.0 if e == -1
+           else float(e) / a if a != 0
+           else e
+           for e, a in zip(eabs, alpha) ]
+    return ei
 
 
 def write_scene(triangles, materials, canfile, optfile):

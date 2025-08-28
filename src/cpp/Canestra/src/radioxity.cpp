@@ -609,8 +609,9 @@ int main(int argc,char **argv){
 	    
 	      Eabs[ia]=-1;
 	      Ei[i-1]=Ei[i]=-1;
-	      if(r0==t1)
-		Eabs[ia]=B[0]->ve[i-1]*(1/r0-1)-B[0]->ve[i];
+	     /* CF 2025: this fall-back value differs from a compiler to another : keep -1 in this case */
+	    /*  if(r0==t1)
+		Eabs[ia]=B[0]->ve[i-1]*(1/r0-1)-B[0]->ve[i];*/
 	    }
 	    else{
 	      D0= B[0]->ve[i-1]*r1 - B[0]->ve[i]*t1;
