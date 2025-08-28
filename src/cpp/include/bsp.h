@@ -17,11 +17,11 @@ public:
 public:
   ~BSP();
   // Fonctions d'acces aux membres prives de la classe
-  [[nodiscard]] int nb_diffuseur() const { return nb_diffuseurs; }
-  [[nodiscard]] int nom() const { return label; }
+  int nb_diffuseur() const { return nb_diffuseurs; }
+  int nom() const { return label; }
   void baptise(int nom) {label=nom;}
-  [[nodiscard]] reel maxi(int i) const { return position_max[i]; }
-  [[nodiscard]] reel mini(int i) const { return position_min[i]; }
+  reel maxi(int i) const { return position_max[i]; }
+  reel mini(int i) const { return position_min[i]; }
   void what_in();
   
   void destruction_boite() const; // detruit une boite
