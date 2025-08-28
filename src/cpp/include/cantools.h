@@ -35,7 +35,7 @@
 //# define SOL		0.49f,	0.39f,	0.2f
 # define SOL		0.4f,	0.26f,	0.13f
 
-// passage des valeurs Normalisées vers un octet CHAR
+// passage des valeurs Normalisï¿½es vers un octet CHAR
 #define N2CHAR 255
 // degres * DEG2RAD -> radians
 #define DEG2RAD 0.017453
@@ -71,7 +71,7 @@ typedef struct _CanData {
 void Get_Image(char * ImageBuffer, 
 		int iViewWidth, 
 	       int iViewHeight) ;
-/* Copie le buffer pcImageBuffer, aimenté par bvis, dans ImageBuffer,
+/* Copie le buffer pcImageBuffer, aimentï¿½ par bvis, dans ImageBuffer,
  * de taille iViewWidth * iViewWidth * taile_de_pixel_en_byte
  * chaque programme doit fournir sa propre version */
 
@@ -83,7 +83,7 @@ int yylex (void) ;
 //#endif
 
 void Decode_Data (CanData * res, double donnee ) ; /*label2int.c */
-/* renvoie une structure permettant l'identificaton complète
+/* renvoie une structure permettant l'identificaton complï¿½te
  * de la primitive */
 
 void Write_Png_File (FILE *out, 
@@ -91,12 +91,12 @@ void Write_Png_File (FILE *out,
 		     int iViewWidth ) ;
 
 int Label_2_Index (CanData data) ;
-/* crée un index univoque avec le label de la primitive passe dans
+/* crï¿½e un index univoque avec le label de la primitive passe dans
  * une structure Prim *
  * appelle Decode_Data */
 
 int Label_2_Indexf (double donnee ) ;
-/* crée un index univoque avec le label de la primitive passe au format
+/* crï¿½e un index univoque avec le label de la primitive passe au format
  * double
  * appelle Label_2_Index */
 

@@ -9,9 +9,9 @@
 
 typedef float mtype;
 
-void InitializeMatrixStack(void);
-int PushMatrix(void);
-int PopMatrix(void);
+void InitializeMatrixStack();
+int PushMatrix();
+int PopMatrix();
 void MultMatrices(mtype *src1, mtype *src2, mtype *res);
 void MultMatrix(mtype *mat);
 void Scale(mtype *vals);

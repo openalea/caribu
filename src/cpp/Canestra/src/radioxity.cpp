@@ -11,7 +11,9 @@
 using namespace std ;
 
 #include <ferrlog.h>
-#include <system.h>     // raytools::include::bibliotek
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
 
 #ifdef WIN32
 #include <windows.h>	// Mem partagee via CerateFileMapping/MapViewOfFile

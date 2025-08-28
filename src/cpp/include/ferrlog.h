@@ -12,14 +12,13 @@
 #include <fstream>
 #include <string>
 using namespace std;
-#include <system.h>
 
 class ferrlog
 {
  private:
   ofstream *out ;
  public:
-  ferrlog( char *filename) ;
+  explicit ferrlog( char *filename) ;
   void open(char *filename);
   ~ferrlog() ;
   ferrlog &operator << ( char * msg) ;
@@ -33,8 +32,8 @@ class ferrlog
   ferrlog &operator << ( void *msg) ;
   // ferrlog &operator << ( ostream & other) ;
   ferrlog &operator << ( string msg) ;
-  ferrlog &flush (void) ;
-  void close(void);
+  ferrlog &flush () ;
+  void close();
 
 } ;
 
