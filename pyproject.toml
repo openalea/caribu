@@ -46,9 +46,9 @@ doc = [
 
 [project.urls]
 Homepage = "https://openalea.readthedocs.io/"
-"Bug Tracker" = "https://github.com/openalea-incubator/caribu/issues"
-Discussions = "https://github.com/openalea-incubator/caribu/discussions"
-Changelog = "https://github.com/openalea-incubator/caribu/releases"
+"Bug Tracker" = "https://github.com/openalea/caribu/issues"
+Discussions = "https://github.com/openalea/caribu/discussions"
+Changelog = "https://github.com/openalea/caribu/releases"
 
 [project.entry-points."wralea"]
 "openalea.caribu" = "openalea.caribu_wralea"
@@ -64,7 +64,7 @@ readme = {file = ["README.rst"]}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["openalea.*"]
+
 
 [tool.scikit-build.cmake]
 build-type = "Release"
