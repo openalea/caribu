@@ -37,12 +37,10 @@ class Camera {
    void calc_visi(Liste <Diffuseur*>&);
    void capte_visi(Rayon &strahl,Diffuseur *inter,int nbray);  
    void capte(Rayon &,Diffuseur *,int);
-   void developpe()
-    { img->sauve();}
+   void developpe() const { img->sauve();}
    void maj_stat();
    void calc_stat(unsigned int );
-   void variance(char *nomvar="sigma.ppm")
-     { sigma->sauve(nomvar);}
+   void variance(char *nomvar="sigma.ppm") const { sigma->sauve(nomvar);}
  private: //fonctions-membres utilitaires
   void colorie_triangle(Diffuseur * pdif,Point &a,Point &b,Point &c, Tabdyn<double, 2>& Zbuf, Tabdyn<Diffuseur *, 2>& Zprim,Image* pimg=NULL);
 };// Camera

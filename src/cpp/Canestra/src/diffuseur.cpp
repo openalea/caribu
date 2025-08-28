@@ -6,7 +6,7 @@ unsigned int Diffuseur::idx=0;
 
 //-*************** face() ***********************************
 inline Face face(double scal) {
-  return ((scal>0.0)?inf:sup);
+  return scal>0.0?inf:sup;
 }
 
 //-*************** operator << ( Diffuseur) *****************
