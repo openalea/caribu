@@ -176,6 +176,8 @@ class Caribu:
         self.periodise_name = "periodise"
         self.s2v_name = "s2v"
         self.ready = True
+        self.nrj = None
+        self.measures = None
         self.img_size = projection_image_size
         if debug:
             print("\n <<<< Caribu.__init__ ends...\n")
@@ -236,7 +238,7 @@ class Caribu:
 
         if not self.direct:
             if self.sphere_diameter < 0:
-                # Compute classic radioity without toric scene
+                # Compute classic radiosity without toric scene
                 if self.infinity:
                     raise CaribuOptionError("incompatible options for radiosity : sphere_diameter < 0 && infinity")
             else:  ## diameter >=0
