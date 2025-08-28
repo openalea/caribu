@@ -41,7 +41,6 @@ typedef struct{
   reel inc[2];
 }Boxi;
 
-static Chrono chron;
 static Chrono tps;
 static int proj_cpt;
 #define PAUSE(msg)  printf(msg);printf("- Taper la touche Any");getchar();
@@ -60,7 +59,7 @@ void Canopy::sail_pur(VEC **Cfar,double *Eclt,char* envname){
   
   // Chargement des profils d'eclairement (E+,E-) calcule par SAIL    
   fenv=fopen(envname,"r");
-  if(fenv==NULL){
+  if(fenv==nullptr){
     fflush(stdout);
     Ferr <<"<!> FF.C <init_NFF> Unable to open the file " << envname<<'\n' ;
     exit(4);
@@ -93,7 +92,7 @@ void Canopy::sail_pur(VEC **Cfar,double *Eclt,char* envname){
       diffR->togle_face();
     }
     layer=(G[2]-Tenv(0,2))/dzc;
-    il=(int)layer;
+    il=static_cast<int>(layer);
     layer-=il;
     up=(nz>0)? 0:1;
     down=(up+1)%2;
@@ -126,7 +125,7 @@ void Canopy::sail_pur(VEC **Cfar,double *Eclt,char* envname){
 void colorie_triangle( void *,void *,REELLE **, const Punkt,const Punkt,const Punkt, int,int, double,double, void (*f)(void *, int, int, void*));
 void colorie_capteur(REELLE **Zbuf,Punkt a,Punkt b,Punkt c, int Tx, int Ty,double tx, double ty,int& pB0);
 
-void pt2pkt(Point &, Punkt);
+
 void zproj(void *, int, int, void*);
 void zFF(void *, int, int, void*);
 
@@ -134,7 +133,7 @@ void zFF(void *, int, int, void*);
 
 //+************ zproj()
 void zproj(void * Zprim, int i, int j, void* prim) {
-  ((Diffuseur***) Zprim)[i][j] = (Diffuseur *) prim;
+  static_cast<Diffuseur ***>(Zprim)[i][j] = static_cast<Diffuseur *>(prim);
 }//zproj()
 
 //+************ zFF()
@@ -436,7 +435,7 @@ void Canopy::calc_FF_Bfar(SPMAT *FF,
 
 #define EPSILON 1E-6
 #define NONZERO(A) if ((A<EPSILON)&&(A>-EPSILON)){A= A>0 ? EPSILON: -EPSILON;}
-  double dummy = (double)nb_rec ;
+  double dummy = nb_rec ;
   NONZERO(dummy) ;
   cout<<"\tmean(diff/patch)     = "<<nb_test/dummy<<"\n";
   cout<<"\tmean(diff_proj/patch)= "<<nb_emi/dummy<<"\n";
@@ -728,13 +727,13 @@ void Canopy::projplan(Vecteur &visee,bool infty, double* Bo) {
 	if (A[1]==B[1]) // up 
 	{ i = (A[0] <B[0])?i:j;
 	j = 3-i-k; 
-	up=(A[0]==B[0])?false: true;
+	up=(A[0] != B[0]);
 	}//if up
 	else{
 	  if(B[1] == C[1]){ // down 
 	    k = (B[0] <C[0])?k:j; 
 	    j = 3-i-k;
-	    down =(B[0]==C[0])?false: true;
+	    down =(B[0] != C[0]);
 	  }//if down
 	  else { 
 	    D[1] = B[1];
@@ -785,19 +784,19 @@ void Canopy::projplan(Vecteur &visee,bool infty, double* Bo) {
       roofi[i]=new int[2];
       roof[i]-=SvE;
       roof[i]=roof[i].chgt_base(v,w,u);
-      roofi[i][0] = (int)(roof[i][0]*(Timg)/du);
-      roofi[i][1] = (int)(roof[i][1]*(Timg)/dv);
+      roofi[i][0] = static_cast<int>(roof[i][0] * Timg / du);
+      roofi[i][1] = static_cast<int>(roof[i][1] * Timg / dv);
       }
     cdist=tan(Macos(-visee[2]))*dv/(double)Timg;
     //infinitisation sans duplication des primi (juste ombrage)
-    infinitise((void ***)Zprim,Zbuf,cdist,roofi,Timg,Timg,false);
+    infinitise(reinterpret_cast<void ***>(Zprim),Zbuf,cdist,roofi,Timg,Timg,false);
     for(i=0;i<4;i++)
       delete [] roofi[i];
     delete [] roofi;
   }//if infty
   
 //Valeur d'un pixel 
-  Apix=du*dv/(double)(Timg*Timg)/costeta;
+  Apix=du*dv/static_cast<double>(Timg * Timg)/costeta;
 
 //Ferr <<"==> Traitement des "  << nbcell<<" Capt\n" ;
 
@@ -843,20 +842,20 @@ void Canopy::projplan(Vecteur &visee,bool infty, double* Bo) {
 	    if (A[1]==B[1]) // up 
 	      { i = (A[0] <B[0])?i:j;
 	      j = 3-i-k; 
-	      up=(A[0]==B[0])?false: true;
+	      up=(A[0] != B[0]);
 	      }//if up
 	    else{
 	      if(B[1] == C[1]){ // down 
 		k = (B[0] <C[0])?k:j; 
 		j = 3-i-k;
-		down =(B[0]==C[0])?false: true;
+		down =(B[0] != C[0]);
 	      }//if down
 	      else { 
 		D[1] = B[1];
 		pente=(D[1]-A[1])/(C[1]-A[1]);
 		D[0] = pente*(C[0]-A[0])+A[0];
 		D[2] = pente*(C[2]-A[2])+A[2];
-		up=down=(B[0]==D[0])?false: true;
+		up=down=(B[0] != D[0]);
 		if(D[0]>B[0]) { l=i; i=j; j=3;}
 		else          { l=i; i=3;     }
 	      }//else cas quelconque, ni up , ni down 
@@ -897,16 +896,16 @@ void Canopy::projplan(Vecteur &visee,bool infty, double* Bo) {
   for(i=0;i<Timg;i++)
     for(j=0;j<Timg;j++) {
       pdiff=Zprim[i][j];
-      if(0){
-	cocnomen=(pdiff==NULL)? 0:pdiff->primi().name()/1e7;
-	alt=(pdiff==NULL)? 0: 100*Zbuf[i][j];
+      if (false){
+	cocnomen=(pdiff==nullptr)? 0:pdiff->primi().name()/1e7;
+	alt=(pdiff==nullptr)? 0: 100*Zbuf[i][j];
 	cocmax=(cocnomen>cocmax) ? cocnomen:cocmax;
 	cocmin=(cocnomen<cocmin) ? cocnomen:cocmin;
 	altmax=(alt>altmax) ? alt:altmax;
 	altmin=(alt<altmin) ? alt:altmin;
       }
       //calcul de la visibilite'
-      if(pdiff!=NULL) {
+      if(pdiff!=nullptr) {
 	nummer=pdiff->num();
 	pdiff->active(visee);
         //printf("projplan : img(%d,%d)=%d\n",i,j,pdiff->num());
@@ -1006,7 +1005,7 @@ void colorie_triangle( void * tria,void *Zprim, REELLE **Zbuf,const Punkt a,cons
   vbc = (c[2] - b[2])/(b[1] - a[1]);
   
   //	calcul de grandeurs qui seront incrementes dans la boucle sur les lignes
-  yrel=((((double)deby+0.5)/K[1])-a[1]);
+  yrel=(static_cast<double>(deby)+0.5)/K[1]-a[1];
   xL=penteL*yrel+a[0];
   xR=penteR*yrel+a[0];
   zL= a[2] + yrel*vab + ((c[2]-b[2])/(c[0]-b[0])*0.5/K[0]);
@@ -1036,7 +1035,7 @@ void colorie_triangle( void * tria,void *Zprim, REELLE **Zbuf,const Punkt a,cons
 	//cout <<"Camera [colorie_triangle][i][j] ("<<i<<","<<j<<") z = "<<z<<"- Z = "<<Zbuf[i][j]<<endl;
 	if(z<Zbuf[i][j]){
 	      //cout <<"Camera [colorie_triangle][i][j] ("<<i<<","<<j<<") z = "<<z<<"- Z = "<<Zbuf[i][j]<<endl;
-	  Zbuf[i][j]=(REELLE) z;
+	  Zbuf[i][j]=static_cast<float>(z);
 	  //ndi[i][j]=idif; 
 	  f(Zprim,i,j, tria);
 	  //if(pimg!=NULL)pimg->maj(Tx-1-i,Ty-1-j,pdif->primi().name());
@@ -1089,7 +1088,7 @@ void colorie_triangle( void * tria,void *Zprim, REELLE **Zbuf,const Punkt a,cons
   vab = (b[2] - a[2])/(b[1] - a[1]);
   vbc = (c[2] - b[2])/(b[1] - a[1]);
   //	calcul de grandeurs qui seront incrementes dans la boucle sur les lignes
-  yrel=((((double)deby+0.5)/K[1])-a[1]);
+  yrel=(static_cast<double>(deby)+0.5)/K[1]-a[1];
   xL=penteL*yrel+a[0];
   xR=penteR*yrel+a[0];
   zL= a[2] + yrel*vab + ((c[2]-b[2])/(c[0]-b[0])*0.5/K[0]);
@@ -1164,7 +1163,7 @@ void Canopy::data3d(int tx,int ty,Vecteur &visee,
   for(i=0,pZprim=Zprim;i<imgZ.taille(0);i++,pZprim++) {
     (*pZprim)=new Diffuseur*[imgZ.taille(1)];
     for(j=0;j<imgZ.taille(1);j++,ptZ++)
-    (*pZprim)[j]=NULL;
+    (*pZprim)[j]=nullptr;
   }
 
   //&&&&&& Data3d &&&&&&&&&
@@ -1387,20 +1386,20 @@ void Canopy::data3d(int tx,int ty,Vecteur &visee,
 	i = (Pp[i][1]<Pp[j][1])? i : j; // indice min pour coord y
 	j = 3- i-k;
 	//       cout<<" (i,j,k) = "<<i<<j<<k<<endl;
-	if ((i!=k)&& !((A[0]==B[0])&&(B[0]==C[0]))&& !((A[1]==B[1])&&(B[1]==C[1]))){
+	if (i!=k&& !(A[0]==B[0]&& B[0]==C[0])&& !(A[1]==B[1]&& B[1]==C[1])){
 	  // Pts A,B,Cpas  alignes selon les axes Xou Y
 	  // tri Ok
 	  up=down=false;
 	  if (A[1]==B[1]) // up 
 	  { i = (A[0] <B[0])?i:j;
 	  j = 3-i-k; 
-	  up=(A[0]==B[0])?false: true;
+	  up=(A[0] != B[0]);
 	  }//if up
 	  else{
 	    if(B[1] == C[1]){ // down 
-	      k = (B[0] <C[0])?k:j; 
+	      k = B[0] <C[0]?k:j;
 	      j = 3-i-k;
-	      down =(B[0]==C[0])?false: true;
+	      down = B[0] != C[0];
 	    }//if down
 	    else { 
 	      D[1] = B[1];
@@ -1408,7 +1407,7 @@ void Canopy::data3d(int tx,int ty,Vecteur &visee,
 	      D[0] = pente*(C[0]-A[0])+A[0];
 	      // D[2] = (A[2]*(C[1]-D[1]) + C[2]*(D[1]-A[1]))/(C[1]-A[1]);
 	      D[2] = pente*(C[2]-A[2])+A[2];
-	      up=down=(B[0]==D[0])?false: true;
+	      up=down= B[0] != D[0];
 	      if(D[0]>B[0]) { l=i; i=j; j=3;}
 	      else          { l=i; i=3;     }
 	    }//else cas quelconque, ni up , ni down 
@@ -1453,8 +1452,8 @@ void Canopy::data3d(int tx,int ty,Vecteur &visee,
       roofi[i]=new int[2];
       roof[i]-=SvE;
       roof[i]=roof[i].chgt_base(v,w,u);
-      roofi[i][0] = (int)(roof[i][0]*(imgZ.taille(0))/du);
-      roofi[i][1] = (int)(roof[i][1]*(imgZ.taille(1))/dv);
+      roofi[i][0] = static_cast<int>(roof[i][0] * (imgZ.taille(0)) / du);
+      roofi[i][1] = static_cast<int>(roof[i][1] * (imgZ.taille(1)) / dv);
       }
     /*
       for(i=0;i<4;i++) {
@@ -1465,9 +1464,9 @@ void Canopy::data3d(int tx,int ty,Vecteur &visee,
     }
     printf(" Before inifinitoise\n");
     */
-    cdist=tan(Macos(-visee[2]))*dv/(double)imgZ.taille(1);
+    cdist=tan(Macos(-visee[2]))*dv/static_cast<double>(imgZ.taille(1));
     //cout<<" cdist = " <<cdist;
-    infinitise((void ***)Zprim,Zbuf,cdist,roofi,imgZ.taille(0),imgZ.taille(1),true);
+    infinitise(reinterpret_cast<void ***>(Zprim),Zbuf,cdist,roofi,imgZ.taille(0),imgZ.taille(1),true);
     for(i=0;i<4;i++)
       delete [] roofi[i];
     delete [] roofi;
@@ -1476,9 +1475,9 @@ void Canopy::data3d(int tx,int ty,Vecteur &visee,
   for(i=0;i<imgZ.taille(0);i++)
     for(j=0;j<imgZ.taille(1);j++) {
       pdiff=Zprim[i][j];
-      alt=(pdiff==NULL)? 0: 100*Zbuf[i][j];
+      alt=(pdiff==nullptr)? 0: 100*Zbuf[i][j];
       imgZ.maj(imgZ.taille(0)-1-i,imgZ.taille(1)-1-j,alt);
-      if(pdiff!=NULL) {
+      if(pdiff!=nullptr) {
 	pdiff->active(visee);
 	Zno[i][j]=pdiff->num();
 	pdiff->active(0);
@@ -1503,8 +1502,8 @@ void Canopy::data3d(int tx,int ty,Vecteur &visee,
 
 
  /******* Obsolete et bugue???? *************/ 
-void color_triangle( void * tria,void *Zprim, double **Zbuf,const Punkt a,const Punkt b,const Punkt c, int Tx, int Ty,double tx, double ty,void (*f)(void *, int, int, void*)){
-  double penteL,penteR,xL,xR,zL,yrel,vab,vac,vbc,z,dz; // L Left, R  Right
+void color_triangle( void * tria,void *Zprim, double **Zbuf,const Punkt a,const Punkt b,const Punkt c, const int Tx, const int Ty, const double tx, const double ty,void (*f)(void *, int, int, void*)){
+  double penteL,penteR,xL,xR,zL,yrel,vab,vbc,z,dz; // L Left, R  Right
   int i,j, iR,iL, deby,finy;
   int Ae[2],Be[2],Ce[2];
   signed char sens;
@@ -1525,16 +1524,16 @@ void color_triangle( void * tria,void *Zprim, double **Zbuf,const Punkt a,const 
   Ce[1]=(int)(c[1]*K[1]);
    
   sens   = (Be[1] > Ae[1])? 1 : -1;         
-  penteL = (Be[0] - Ae[0]) / (double)(Be[1] - Ae[1]);   
-  penteR = (Ce[0] - Ae[0]) / (double) (Ce[1] - Ae[1]);  
+  penteL = (Be[0] - Ae[0]) / static_cast<double>(Be[1] - Ae[1]);
+  penteR = (Ce[0] - Ae[0]) / static_cast<double>(Ce[1] - Ae[1]);
     
   if(sens>0){
-    deby   = int(Ae[1]+ 0.5);
-    finy   = int(Be[1]- 0.5);
+    deby   = static_cast<int>(Ae[1] + 0.5);
+    finy   = static_cast<int>(Be[1] - 0.5);
   }
   else{
-    deby   = int(Be[1]+ 0.5);
-    finy   = int(Ae[1]- 0.5);
+    deby   = static_cast<int>(Be[1] + 0.5);
+    finy   = static_cast<int>(Ae[1] - 0.5);
   }
  
   if( finy<0 || deby>=Ty || deby>finy )
@@ -1549,7 +1548,7 @@ void color_triangle( void * tria,void *Zprim, double **Zbuf,const Punkt a,const 
   vbc = (c[2] - b[2])/(Be[1] - Ae[1]);
   
   //	calcul de grandeurs qui seront incrementes dans la boucle sur les lignes
-  yrel=(double)deby-0.5-Ae[1];
+  yrel=static_cast<double>(deby)-0.5-Ae[1];
   xL=penteL*yrel+Ae[0];
   xR=penteR*yrel+Ae[0];
   zL= a[2] + yrel*vab ;//+ ((Ce[2]-Be[2])/(Ce[0]-Be[0])*0.5/K[0]);

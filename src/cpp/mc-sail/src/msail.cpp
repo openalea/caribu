@@ -39,7 +39,7 @@ void msailad(Msailin &msailin){
   REEL cspsi, tanto, tants, t1, btran1, btran2;
   REEL bt1, bt2, bt3, sw1, sw2, sbf;
   REEL bto, sko, bts, sks, rtm, ttl, rtp;
-  double u,v,*fbeta=NULL;//loi beta
+  double u,v,*fbeta=nullptr;//loi beta
  
   /*
     l   : indice foliaire de la couche                                    
@@ -97,13 +97,13 @@ void msailad(Msailin &msailin){
 	  ili = ia*10 + 5;
 	else 
 	  ili = (ia-8)*2 + 81;
-	ttl = (REEL) ili;      
+	ttl = static_cast<REEL>(ili);
       }
       else {
 	// Cas de classes d'angles foliaires mesure'es par s4 
 
 	//msailin.f(ic,ia) *= 100.;//deplacer dans le main a cuase des boucle de direction!
-	ttl = 90./(REEL)msailin.nbang *((REEL)ia+.5);
+	ttl = 90./static_cast<double>(msailin.nbang) *(static_cast<double>(ia)+.5);
       }
       fcum += msailin.f(ic,ia);
       //printf("tm=%4.1lf - f(%d)=%6.3lf - fcum=%7.3lf\n",ttl,ia,msailin.f(ic,ia),fcum);
@@ -213,7 +213,7 @@ void mlayer(Msailin &msailin, Mlayout* Tlayout){
   static int ic;
   static REEL co, do_, cs, ds, ho, dnd, dno, dns, som;
   Mlayout *layout;
-  if(Tlayin==NULL){
+  if(Tlayin==nullptr){
     fprintf(stderr,"<!> mlayer() appelee avant msailad() : Tlayin pas alloue\n");
     exit(-1);
   }
@@ -315,7 +315,7 @@ void distrib(double *fbeta,double u,double v){
       ili=(i-8)*2+81;
       pon = 45;
     }
-    ang = (double) ili;
+    ang = static_cast<double>(ili);
     part1 = gam / pon;
     part2=pow((1-ang/90),(u-1));
     part3=pow((ang/90),(v-1));

@@ -82,7 +82,7 @@ void Camera::init(char * ficname, char * imgname)
 void Camera::capte(Rayon &strahl,Diffuseur *pinter,int nbray)
  {  Vecteur dir;
     Param_Inter oldpar;
-    Diffuseur *pdif=NULL;
+    Diffuseur *pdif= nullptr;
     //   cout<<"Camera[capte]";
     oldpar=strahl.par();
     // oldpar.direct().show();
@@ -127,8 +127,8 @@ void Camera::capte(Rayon &strahl,Diffuseur *pinter,int nbray)
 
          //maj de l'image
          int i,j;
-         i= img->taille(0)-1-(int)fabs(dir.prod_scalaire(u)/taille*(img->taille(0)-1));
-         j=(int)fabs(dir.prod_scalaire(v)/taille*(img->taille(1)-1));
+         i= img->taille(0)-1-static_cast<int>(fabs(dir.prod_scalaire(u) / taille * (img->taille(0) - 1)));
+         j=static_cast<int>(fabs(dir.prod_scalaire(v) / taille * (img->taille(1) - 1)));
          img->inc(i,j, weight ); 
     } 
        
@@ -174,8 +174,8 @@ void Camera::capte_visi(Rayon &strahl,Diffuseur *inter,int nbray)
 
          //maj de l'image
          int i,j;
-         i= img->taille(0)-1-(int)fabs(dir.prod_scalaire(u)/taille*(img->taille(0)-1));
-         j= (int)fabs(dir.prod_scalaire(v)/taille*(img->taille(1)-1));
+         i= img->taille(0)-1-static_cast<int>(fabs(dir.prod_scalaire(u) / taille * (img->taille(0) - 1)));
+         j= static_cast<int>(fabs(dir.prod_scalaire(v) / taille * (img->taille(1) - 1)));
          img->inc(i,j, weight ); 
        } 
     strahl.init(oldpar); 
@@ -208,12 +208,12 @@ void Camera::colorie_triangle(Diffuseur * pdif,Point &a,Point &b,Point &c, Tabdy
 
                                          
    if(sens>0)
-     { deby   = int(a[1]*K[1]+ 0.5);
-       finy   = int(b[1]*K[1]- 0.5);
+     { deby   = static_cast<int>(a[1] * K[1] + 0.5);
+       finy   = static_cast<int>(b[1] * K[1] - 0.5);
      }
     else
-     { deby   = int(b[1]*K[1]+ 0.5);
-       finy   = int(a[1]*K[1]- 0.5);
+     { deby   = static_cast<int>(b[1] * K[1] + 0.5);
+       finy   = static_cast<int>(a[1] * K[1] - 0.5);
      }
  
    if( finy<0 || deby>=img->taille(1) || deby>finy )
@@ -227,7 +227,7 @@ void Camera::colorie_triangle(Diffuseur * pdif,Point &a,Point &b,Point &c, Tabdy
    vbc = (c[2] - b[2])/(b[1] - a[1]);
 
 //	calcul de grandeurs qui seront incrementes dans la boucle sur les lignes
-   yrel=((((double)deby+0.5)/K[1])-a[1]);
+   yrel=(static_cast<double>(deby)+0.5)/K[1]-a[1];
    xL=penteL*yrel+a[0];
    xR=penteR*yrel+a[0];
    zL= a[2] + yrel*vab;
@@ -257,11 +257,11 @@ void Camera::colorie_triangle(Diffuseur * pdif,Point &a,Point &b,Point &c, Tabdy
 	     {
 		 //    cout <<"Camera [colorie_triangle](i,j) ("<<i<<","<<j<<") z = "<<z<<"- Z = "<<Zbuf(i,j)<<endl;
                exdif=Zprim(i,j);
-	       if(exdif!=NULL) {(*exdif)--; }
+	       if(exdif!= nullptr) {(*exdif)--; }
                (*pdif)++;
 	       Zprim(i,j)=pdif; 
                Zbuf(i,j)=z;
-               if(pimg!=NULL)pimg->maj(img->taille(0)-1-i,img->taille(1)-1-j,pdif->primi().name());
+               if(pimg!= nullptr)pimg->maj(img->taille(0)-1-i,img->taille(1)-1-j,pdif->primi().name());
 	     } 
 	    z = z+dz;
 	  }//for i
@@ -302,7 +302,7 @@ void Camera::calc_visi(Liste <Diffuseur*>& Ldiff)
       }
 */
    Zbuf.maj(9.9E20);
-   Zprim.maj(NULL);
+   Zprim.maj(nullptr);
    EvI.formation_vecteur(E,(*prim)[1]);
    EvI=EvI.chgt_base(u,v,w);
    //cout<<"Camera[calc_visi]EvI doit z=0";EvI.show();
@@ -356,13 +356,13 @@ void Camera::calc_visi(Liste <Diffuseur*>& Ldiff)
             if (A[1]==B[1]) // up 
 	       { i = (A[0] <B[0])?i:j;
 	         j = 3-i-k; 
-                 up=(A[0]==B[0])?false: true;
+                 up=(A[0] != B[0]);
 	       }//if up
 	      else
                { if(B[1] == C[1]) // down 
 	          { k = (B[0] <C[0])?k:j; 
 	            j = 3-i-k;
-	            down =(B[0]==C[0])?false: true;
+	            down =(B[0] != C[0]);
                   }//if down
                  else 
 	           {
@@ -390,7 +390,7 @@ void Camera::calc_visi(Liste <Diffuseur*>& Ldiff)
                    delete pprim;
                    cout<<" D = ";Pt1.show();
                    D[2]=Pt1[2];
-                    up=down=(B[0]==D[0])?false: true;
+                    up=down= B[0] != D[0];
                     if(D[0]>B[0]) { l=i; i=j; j=3;}
 	              else        { l=i; i=3;     }
                    }//else cas quelconque, ni up , ni down 
@@ -412,11 +412,10 @@ void Camera::calc_visi(Liste <Diffuseur*>& Ldiff)
 //*************** Camera::calc_stat() *******************************
 
 void Camera::maj_stat()
- { double x;
-
-   for(int i=0;i<img->taille(0);i++)
+ {
+     for(int i=0;i<img->taille(0);i++)
      for(int j=0;j<img->taille(1);j++)
-         { x=img->val(i,j);
+         { double x = img->val(i, j);
            moy->inc(i,j,x);
            x*=x;
            sigma->inc(i,j,x);
@@ -431,13 +430,13 @@ void Camera::maj_stat()
 void Camera::calc_stat(unsigned int niter=0)
  { raus(niter==0,"Capteur[calc_stat] Doit avoir le nb d'iteration en parametre!");
  // calcul de la moyenne et de la variance
-   double x,test1=0, test2=0;
+   double x;
    for(int i=0;i<img->taille(0);i++)
      for(int j=0;j<img->taille(1);j++)
-         { x=moy->val(i,j)/(double)niter;
+         { x=moy->val(i,j)/static_cast<double>(niter);
            moy->maj(i,j,x);
            img->maj(i,j,x);
-           sigma->maj(i,j,(sigma->val(i,j)/(double)niter-x*x)/((double)niter-1.0));
+           sigma->maj(i,j,(sigma->val(i,j)/static_cast<double>(niter)-x*x)/(static_cast<double>(niter)-1.0));
          }           
    img->maxval();
    sigma->maxval();   
