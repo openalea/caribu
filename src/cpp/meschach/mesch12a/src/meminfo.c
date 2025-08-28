@@ -104,11 +104,11 @@ MEM_CONNECT mem_connect[MEM_CONNECT_MAX_LISTS] = {
 
 /* attach a new list of types */
 
-int mem_attach_list(list, ntypes, type_names, free_funcs, info_sum)
-int list,ntypes;         /* number of a list and number of types there */
-char *type_names[];      /* list of names of types */
-int (*free_funcs[])();   /* list of releasing functions */
-MEM_ARRAY info_sum[];    /* local table */
+int mem_attach_list(int list, int ntypes,char* type_names[], int (*free_funcs[])(),MEM_ARRAY info_sum[])
+// int list,ntypes;         /* number of a list and number of types there */
+// char *type_names[];      /* list of names of types */
+// int (*free_funcs[])();   /* list of releasing functions */
+// MEM_ARRAY info_sum[];    /* local table */
 {
    if (list < 0 || list >= MEM_CONNECT_MAX_LISTS)
      return -1;
@@ -130,8 +130,7 @@ MEM_ARRAY info_sum[];    /* local table */
 
 
 /* release a list of types */
-int mem_free_vars(list)
-int list;
+int mem_free_vars(int list)
 {	
    if (list < 0 || list >= MEM_CONNECT_MAX_LISTS)
      return -1;
@@ -148,8 +147,7 @@ int list;
 
 /* check if list is attached */
 
-int mem_is_list_attached(list)
-int list;
+int mem_is_list_attached(int list)
 {
    if ( list < 0 || list >= MEM_CONNECT_MAX_LISTS )
    return FALSE;
@@ -158,14 +156,12 @@ int list;
         mem_connect[list].free_funcs != NULL &&
         mem_connect[list].info_sum != NULL)
      return TRUE;
-   else return FALSE;
+   return FALSE;
 }
 
 /* to print out the contents of mem_connect[list] */
 
-void mem_dump_list(fp,list)
-FILE *fp;
-int list;
+void mem_dump_list(FILE *fp,int list)
 {
    int i;
    MEM_CONNECT *mlist;
@@ -207,8 +203,7 @@ static int	mem_switched_on = MEM_SWITCH_ON_DEF;  /* on/off */
 
 /* switch on/off memory info */
 
-int mem_info_on(sw)
-int sw;
+int mem_info_on(int sw)
 {
    int old = mem_switched_on;
    
@@ -230,8 +225,7 @@ int mem_info_is_on()
 
 /* return the number of allocated bytes for type 'type' */
 
-long mem_info_bytes(type,list)
-int type,list;
+long mem_info_bytes(int type,int list)
 {
    if ( list < 0 || list >= MEM_CONNECT_MAX_LISTS )
      return 0l;
@@ -244,8 +238,7 @@ int type,list;
 }
 
 /* return the number of allocated variables for type 'type' */
-int mem_info_numvar(type,list)
-int type,list;
+int mem_info_numvar(int type,int list)
 {
    if ( list < 0 || list >= MEM_CONNECT_MAX_LISTS )
      return 0l;
@@ -260,9 +253,7 @@ int type,list;
 
 
 /* print out memory info to the file fp */
-void mem_info_file(fp,list)
-FILE *fp;
-int list;
+void mem_info_file(FILE *fp,int list)
 {
    unsigned int type;
    long t = 0l, d;
@@ -310,9 +301,7 @@ int list;
    */
 
 
-void mem_bytes_list(type,old_size,new_size,list)
-int type,list;
-int old_size,new_size;
+void mem_bytes_list(int type,int old_size,int new_size,int list)
 {
    MEM_CONNECT *mlist;
    
@@ -357,8 +346,7 @@ int old_size,new_size;
    */
 
 
-void mem_numvar_list(type,num,list)
-int type,list,num;
+void mem_numvar_list(int type,int num,int list)
 {
    MEM_CONNECT *mlist;
    
@@ -388,4 +376,3 @@ int type,list,num;
       }
    }
 }
-

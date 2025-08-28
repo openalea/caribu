@@ -284,8 +284,6 @@ int	px_sign(PERM* px)
 /* px_cols -- permute columns of matrix A; out = A.px'
 	-- May NOT be in situ */
 MAT	*px_cols(PERM* px,MAT* A,MAT* out)
-PERM	*px;
-MAT	*A, *out;
 {
 	int	i, j, m, n, px_j;
 	Real	**A_me, **out_me;
