@@ -11,7 +11,7 @@ if run_test and False:
     def test_caribu():
         """ Test Tutorial LIE """
 
-        res = run(('alinea.caribu.demos', 'Tutorial'),
+        res = run(('openalea.caribu.demos', 'Tutorial'),
                   inputs={}, vtx_id=11)
         efficiency = res[0]
         if efficiency:

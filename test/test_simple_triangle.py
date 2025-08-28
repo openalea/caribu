@@ -1,7 +1,7 @@
 from math import sqrt
 from tools import assert_almost_equal
 
-from alinea.caribu.caribu import (mixed_radiosity, radiosity,
+from openalea.caribu.caribu import (mixed_radiosity, radiosity,
                                   raycasting)
 
 

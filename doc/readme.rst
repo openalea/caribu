@@ -15,7 +15,7 @@ Simple usage:
 
 .. code-block:: python
 
-    from alinea.caribu import *
+    from openalea.caribu import *
 
 
 Contribute

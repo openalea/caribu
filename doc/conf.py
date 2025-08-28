@@ -55,7 +55,7 @@ author = "Christian Fournier et al."
 #
 # find version number in /src/$pkg_pth/version.py
 pkgver = {}
-with open("../src/alinea/caribu/version.py") as fp:
+with open("../src/openalea/caribu/version.py") as fp:
     exec(fp.read(), pkgver)
 # The short X.Y version.
 version = pkgver["__version__"]
@@ -134,7 +134,7 @@ latex_documents = [
 # -- Options for manual page output ---------------------------------------
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "alinea.caribu", "Caribu Documentation", [author], 1)]
+man_pages = [(master_doc, "openalea.caribu", "Caribu Documentation", [author], 1)]
 
 # -- Options for Texinfo output -------------------------------------------
 # Grouping the document tree into Texinfo files. List of tuples

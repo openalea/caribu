@@ -1,10 +1,10 @@
 # {# pkglts, coverage
 [html]
-title = alinea.caribu's coverage
+title = openalea.caribu's coverage
 directory = build/htmlcov
 
 [run]
-source = alinea.caribu
+source = openalea.caribu
 
 [report]
 exclude_lines =

@@ -10,7 +10,7 @@ version_scheme = "guess-next-dev"
 local_scheme = "no-local-version"
 
 [project]
-name = "alinea.caribu"
+name = "openalea.caribu"
 authors = [
   { name = "Christian Fournier"},
   { name = "Michaël Chelle"},
@@ -51,7 +51,7 @@ Discussions = "https://github.com/openalea-incubator/caribu/discussions"
 Changelog = "https://github.com/openalea-incubator/caribu/releases"
 
 [project.entry-points."wralea"]
-"alinea.caribu" = "alinea.caribu_wralea"
+"openalea.caribu" = "openalea.caribu_wralea"
 
 [tool.scikit-build]
 build-dir = "./build/{wheel_tag}"
@@ -64,7 +64,7 @@ readme = {file = ["README.rst"]}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["alinea.*"]
+include = ["openalea.*"]
 
 [tool.scikit-build.cmake]
 build-type = "Release"
