@@ -12,11 +12,11 @@ def test_unresolved_faces():
     # reflectance == transmittance
     materials = [(0.05, 0.05)]
     res = raycasting(triangles, materials, lights)
-    # assert_almost_equal(res['area'][0], 1, 3)
-    # assert_almost_equal(res['Eabs'][0], 90, 0)
-    # assert_almost_equal(res['Ei'][0], 100, 0)
-    # assert_almost_equal(res['Ei_sup'][0], -1, 0)
-    # assert_almost_equal(res['Ei_inf'][0], -1, 0)
+    assert_almost_equal(res['area'][0], 1, 3)
+    assert_almost_equal(res['Eabs'][0], 90, 0)
+    assert_almost_equal(res['Ei'][0], 100, 0)
+    assert_almost_equal(res['Ei_sup'][0], -1, 0)
+    assert_almost_equal(res['Ei_inf'][0], -1, 0)
 
     # reflectance_product == transmittance_product
     materials = [(0.05, 0.01, 0.01, 0.05)]
