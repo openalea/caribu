@@ -113,7 +113,7 @@ using namespace std ;
 #include <cstdio>
 #include <cstdlib>
 
-#include <ctype.h>
+#include <cctype>
 
 
 #include <cmath>
@@ -132,7 +132,7 @@ using namespace std ;
 #include <windows.h>	// Mem partag�e via CerateFileMapping/MapViewOfFile
 #endif
 
-#include <assert.h>
+#include <cassert>
 
 #define NattMax 10
 #define LevelMax 6 //4:3,6
@@ -173,7 +173,7 @@ short je;
 int njx,njy,njz;
 //int jp[3][3];
 double dx, dy, proscal_to_surf;
-double *dz = NULL,*bz = NULL;
+double *dz = nullptr,*bz = nullptr;
 int i,j,k,po,npo=0;
 Tabdyn<double,4>   xladia; //je, jz, theta, phi
 Tabdyn<double,4> xpo;//je,jz,po,(Rf,Tf)
@@ -204,25 +204,24 @@ bool segpar=false,genopt=false;
 ferrlog Ferr((char*)"s2v.log") ;
 
 int s2v(int argc, char **argv){
-  //int main(int argc, char **argv){
-  int nja,nji,nje, nje_reel=-1, cptr=0;
+  int nja,nji,nje, nje_reel=-1;
   char ntype,optname[200];
   signed  char test;
   int natt,nsom;
-  int jx,jy,jz,il;
+  int jz,il;
   double xl,yl,dxdy,zl;
   double di,da,xymaille;
-  Patch *Ts = NULL;
+  Patch *Ts = nullptr;
   Patch T;			// def. Transf.h
   long i_att[NattMax];
-  FILE *fpar=NULL, *fmlsail=NULL, *fsail=NULL, 
-    *ftri=NULL, *fsurf=NULL ;
+  FILE *fpar=nullptr, *fmlsail= nullptr, *fsail= nullptr,
+    *ftri= nullptr, *fsurf= nullptr;
   Tabdyn<double,2> xlad;// je, jz
   Tabdyn<double,3> xladi;//jz, jz, ji
   Tabdyn<double ,2> disti;
   Tabdyn<double ,2> dista;
-  double *xlai = NULL;
-  double *surft = NULL, *volume = NULL;
+  double *xlai = nullptr;
+  double *surft = nullptr, *volume = nullptr;
   int Nt,it=0, clef;
   bool gencan=true;
   double id;
@@ -260,7 +259,7 @@ int s2v(int argc, char **argv){
       segpar=true;
 #ifndef WIN32
       shmid=shmget((key_t)clef,SEGSIZE*sizeof(Patch) ,IPC_CREAT|0666);
-      Ts=(Patch *)shmat(shmid,0,0); // NULL
+      Ts=static_cast<Patch *>(shmat(shmid, nullptr, 0)); // NULL
 #else
       sprintf ( clef_alphanum, "%d", clef) ;
       assert ((hSharedSeg = OpenFileMapping (
@@ -281,7 +280,7 @@ int s2v(int argc, char **argv){
       segpar=false;
       Ferr<<"Scene coming through the file "<<argv[1]<<'\n';
       ftri=fopen(argv[1],"r");
-      if(ftri==NULL){
+      if(ftri==nullptr){
 	Ferr<<"<!> Ouverture de "<<argv[1]<<" achoppee..."<<'\n';
 	return -2;
       }
@@ -293,7 +292,7 @@ int s2v(int argc, char **argv){
     volume=new double[njz];
     dz=new double[njz];
     bz=new double[njz];
-    zl/=(double) njz;
+    zl/=static_cast<double>(njz);
     for(i=njz-1;i>=0;i--){
       dz[i]=zl;
       if(i==njz-1)
@@ -307,7 +306,7 @@ int s2v(int argc, char **argv){
 
     // file.8
     fpar=fopen(argv[4],"r");
-    if (fpar==NULL){
+    if (fpar==nullptr){
       Ferr<<"<!> Ouverture de "<<argv[4]<<" impossible..."<<'\n';
       return -1;
     }
@@ -342,7 +341,7 @@ int s2v(int argc, char **argv){
   else{// by file si argc == 1 
     fpar=stdin;
     ftri=fopen("fort.51","r");
-    if(ftri==NULL){
+    if(ftri==nullptr){
       Ferr<<"<!> Ouverture de fort.51 achoppee..."<<'\n';
       return -2;
     }// if ftri
@@ -383,8 +382,8 @@ int s2v(int argc, char **argv){
   xladi.alloue(nje,njz,nji); xladi.maj(0);
   xladia.alloue(nje,njz,nji,nja); xladia.maj(0);
   //calcul des var globales
-  di = 90.0/(double)nji;
-  da = 360.0/(double)nja;
+  di = 90.0/static_cast<double>(nji);
+  da = 360.0/static_cast<double>(nja);
   dxdy = dx*dy;
   xymaille = (xl*yl)/(njx*njy*dx*dy);
   
@@ -392,7 +391,7 @@ int s2v(int argc, char **argv){
      Si besoin estn subsidvison recursive du T en cas d'a cheval
   */
  
-  FILE *fcan = NULL;
+  FILE *fcan = nullptr;
   double sT;
   int nbtri=0;
   // bug mc 2011?  nje=0;
@@ -417,7 +416,7 @@ int s2v(int argc, char **argv){
       else
 	i_att[0]=0; //Opak: Tige
       if(T.t==0) test=-1;
-      je=fabs(double(T.t))-1;
+      je=fabs(static_cast<double>(T.t))-1;
       if(je+1>nje_reel)nje_reel=je+1;
       //printf("it=%d/%d :: T.t=%d, je=%d\n",it,Nt,T.t,je);
       it++;
@@ -429,7 +428,7 @@ int s2v(int argc, char **argv){
         long opak;
 	nbtri++;
 	//i_att[0] = label1/1000
-	je=(i_att[0]/100000000)-1; //je : de 0 � nje (indice tableau C)
+	je=i_att[0]/100000000-1; //je : de 0 � nje (indice tableau C)
 	if(je+1>nje_reel)nje_reel=je+1;
 	// Bug MC09 T.t=je+1;
 	T.t= - je+1; // default OPak
@@ -464,8 +463,8 @@ int s2v(int argc, char **argv){
       // for(i=0;i<3;i++)for(j=0;j<3;j++) printf("T(%d,%d) = %lf\n",i,j,T[i][j]);
 
       normal(T,incl,azi); 
-      ji = (int)(incl/di);
-      ja = (int)(azi/da);
+      ji = static_cast<int>(incl / di);
+      ja = static_cast<int>(azi / da);
       //ji = min(nji-1,max(0,ji));
       //ja = min(nja-1,max(0,ja));
       ji = min(nji-1, ji);
@@ -481,7 +480,7 @@ int s2v(int argc, char **argv){
       }
       if(gencan){
 	if(segpar) {
-	  id=(int)T.t;
+	  id=static_cast<int>(T.t);
 	}
 	sT=area(T);
 	fprintf(fsurf,"%.0lf\t %d\t %g\n",id,il,sT);
@@ -515,7 +514,7 @@ int s2v(int argc, char **argv){
 
   if(segpar){
 #ifndef WIN32
-    shmdt((void*)(size_t)shmid); //ShMDetach
+    shmdt(reinterpret_cast<void *>((size_t) shmid)); //ShMDetach
 #else
     UnmapViewOfFile(lpSharedSeg) ; // invalidation du ptr sur mem partagee
     // Ts = NULL ;		   // Tester avant
@@ -730,27 +729,27 @@ int s2v(int argc, char **argv){
   Sfclose(&fsail,__LINE__);
   Sfclose(&fmlsail,__LINE__);
 
-  if (xlai!=NULL) 
+  if (xlai!=nullptr)
     delete [] xlai ;
   else 
     Ferr <<__LINE__<<" : ptr Null"<<'\n';
 
-  if ( surft != NULL)
+  if ( surft != nullptr)
     delete [] surft;
   else
     Ferr <<__LINE__<<" : ptr Null"<<'\n';
       
-  if (dz != NULL)
+  if (dz != nullptr)
     delete [] dz;
   else
     Ferr <<__LINE__<<" : ptr Null"<<'\n';
 
-  if (volume != NULL)
+  if (volume != nullptr)
     delete [] volume;
   else
     Ferr <<__LINE__<<" : ptr Null"<<'\n';
 
-  if (bz != NULL)
+  if (bz != nullptr)
     delete [] bz;
   else
     Ferr <<__LINE__<<" : ptr Null"<<'\n';
@@ -784,7 +783,7 @@ double  lectri(signed char &test,char &ntype,int &natt,long i_att[],int &nsom,Pa
   fscanf(fichier, "%d", &natt);
   for (i=0; i<natt; i++) {
     fscanf(fichier, "%lf", &it);
-    i_att[i]=(long)(it/1000);
+    i_att[i]=static_cast<long>(it / 1000);
     if(i==0) {
       lab=it;
       if(lab<0){ test=-10;  return -1;}
@@ -801,7 +800,7 @@ double  lectri(signed char &test,char &ntype,int &natt,long i_att[],int &nsom,Pa
     fscanf(fichier, "%c", &fin);
   } while(fin!='p' && !feof(fichier));
   if(!feof(fichier)) {
-    fseek(fichier,-(long)sizeof(char),SEEK_CUR);
+    fseek(fichier,-static_cast<long>(sizeof(char)),SEEK_CUR);
     //fputc(fin, fichier);
   } // if
 
@@ -864,8 +863,8 @@ int repart(Patch T,char level, int je){
       for(i=0;i<3;i++)
 	G[i]=(exT.P[0][i]+exT.P[1][i]+exT.P[2][i])/3.;
       if(G[2]>=0){ 
-	jp[0][0]=(int)(G[0] / dx);
-	jp[0][1]=(int)(G[1] / dy);
+	jp[0][0]=static_cast<int>(G[0] / dx);
+	jp[0][1]=static_cast<int>(G[1] / dy);
 	classe(G[2], jp[0][2]);
 	affect(exT,jp[0],je);
 	il=jp[0][2];
@@ -931,13 +930,13 @@ void calcjp(Patch T, int jp[3][3], char &acv){
   //  Ferr<<"** calcjp() : Debut"<<'\n';
   //Ferr << "dx= "<<dx<<" dy= "<<dy<<'\n';
   for(i=0;i<3;i++){
-    jp[i][0]=(int)(T.P[i][0]/dx);
-    jp[i][1]=(int)(T.P[i][1]/dy);
+    jp[i][0]=static_cast<int>(T.P[i][0] / dx);
+    jp[i][1]=static_cast<int>(T.P[i][1] / dy);
     classe(T.P[i][2], jp[i][2]);
   }
   for(i=0;i<3;i++){
-    itest12 += fabs(double(jp[0][i]-jp[1][i]));
-    itest13 += fabs(double(jp[0][i]-jp[2][i]));
+    itest12 += fabs(static_cast<double>(jp[0][i] - jp[1][i]));
+    itest13 += fabs(static_cast<double>(jp[0][i] - jp[2][i]));
     //  printf("calcjp:  i=%d, t12=%d, t13=%d\n",i,abs(jp[0][i]-jp[1][i]),fabs(jp[0][i]-jp[2][i]));
   }
   acv = itest12 + itest13;
@@ -983,7 +982,7 @@ void  classe(double z, int &jz){
 void affect(Patch T,int *jp, int je){ 
   
   double a[3], b[3], c[3];
-  int  jx, jy, jz,po;
+  int  jz,po;
   double  surftri;
 
   /*  mise a jour du tableau xladia avec un triangle dont les 3 sommets appar tiennent a une meme cellule
@@ -1028,12 +1027,11 @@ void affect(Patch T,int *jp, int je){
 
 /***********************************/
 double proscal(double *a, double *b){
-  double ret_val;
-  ret_val = 0;
-  for (i = 0; i < 3; i++) {
+    double ret_val = 0;
+    for (i = 0; i < 3; i++) {
       ret_val += a[i]*b[i];
-  }
-  return ret_val;
+    }
+    return ret_val;
 }// proscal()
 
 /********************************************/
@@ -1206,13 +1204,12 @@ int isid(char *name){
 }//isid()
 
 void Sfclose(FILE ** fic, int line) {
-  if (*fic == NULL){
+  if (*fic == nullptr){
     Ferr << "Sfclose appele ligne "<<line<<" : fic == NULL"<<'\n';
   } else {
     //Ferr << "Sfclose appele ligne "<<line<<" : Ok "<<'\n';
     fflush (*fic);
     fclose (*fic);
   }
-  return ;
 }
 // Sfclose()
