@@ -42,8 +42,8 @@ Note: A permutation is often interpreted as a matrix
 
 /* px_inv -- invert permutation -- in situ
 	-- taken from ACM Collected Algorithms #250 */
-PERM	*px_inv(px,out)
-PERM	*px, *out;
+PERM	*px_inv(PERM* px,PERM* out)
+// PERM	*px, *out;
 {
     int	i, j, k, n, *p;
     
@@ -72,8 +72,8 @@ PERM	*px, *out;
 }
 
 /* px_mlt -- permutation multiplication (composition) */
-PERM	*px_mlt(px1,px2,out)
-PERM	*px1,*px2,*out;
+PERM	*px_mlt(PERM* px1,PERM *px2,PERM *out)
+// PERM	*px1,*px2,*out;
 {
     u_int	i,size;
     
@@ -97,9 +97,9 @@ PERM	*px1,*px2,*out;
 }
 
 /* px_vec -- permute vector */
-VEC	*px_vec(px,vector,out)
-PERM	*px;
-VEC	*vector,*out;
+VEC	*px_vec(PERM* px,VEC* vector,VEC* out)
+//PERM	*px;
+//VEC	*vector,*out;
 {
     u_int	old_i, i, size, start;
     Real	tmp;
@@ -164,9 +164,9 @@ VEC	*vector,*out;
 }
 
 /* pxinv_vec -- apply the inverse of px to x, returning the result in out */
-VEC	*pxinv_vec(px,x,out)
-PERM	*px;
-VEC	*x, *out;
+VEC	*pxinv_vec(PERM* px,VEC* x,VEC* out)
+//PERM	*px;
+//VEC	*x, *out;
 {
     u_int	i, size;
     
@@ -204,9 +204,9 @@ VEC	*x, *out;
 
 /* px_transp -- transpose elements of permutation
 		-- Really multiplying a permutation by a transposition */
-PERM	*px_transp(px,i1,i2)
-PERM	*px;		/* permutation to transpose */
-u_int	i1,i2;		/* elements to transpose */
+PERM	*px_transp(PERM* px,u_int i1,u_int i2)
+//PERM	*px;		/* permutation to transpose */
+//u_int	i1,i2;		/* elements to transpose */
 {
 	u_int	temp;
 
@@ -225,8 +225,8 @@ u_int	i1,i2;		/* elements to transpose */
 
 /* myqsort -- a cheap implementation of Quicksort on integers
 		-- returns number of swaps */
-static int myqsort(a,num)
-int	*a, num;
+static int myqsort(int *a,int num)
+// int	*a, num;
 {
 	int	i, j, tmp, v;
 	int	numswaps;
@@ -265,8 +265,8 @@ int	*a, num;
 
 /* px_sign -- compute the ``sign'' of a permutation = +/-1 where
 		px is the product of an even/odd # transpositions */
-int	px_sign(px)
-PERM	*px;
+int	px_sign(PERM* px)
+//PERM	*px;
 {
 	int	numtransp;
 	PERM	*px2;
@@ -283,7 +283,7 @@ PERM	*px;
 
 /* px_cols -- permute columns of matrix A; out = A.px'
 	-- May NOT be in situ */
-MAT	*px_cols(px,A,out)
+MAT	*px_cols(PERM* px,MAT* A,MAT* out)
 PERM	*px;
 MAT	*A, *out;
 {
@@ -320,9 +320,9 @@ MAT	*A, *out;
 
 /* px_rows -- permute columns of matrix A; out = px.A
 	-- May NOT be in situ */
-MAT	*px_rows(px,A,out)
-PERM	*px;
-MAT	*A, *out;
+MAT	*px_rows(PERM* px,MAT* A,MAT* out)
+//PERM	*px;
+//MAT	*A, *out;
 {
 	int	i, j, m, n, px_i;
 	Real	**A_me, **out_me;
