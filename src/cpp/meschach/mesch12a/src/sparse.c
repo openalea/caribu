@@ -249,7 +249,6 @@ SPMAT	*sp_get(int m,int n,int maxlen)
 
 /* sp_free -- frees up the memory for a sparse matrix */
 int	sp_free(SPMAT* A)
-SPMAT	*A;
 {
    SPROW	*r;
    int	i;
