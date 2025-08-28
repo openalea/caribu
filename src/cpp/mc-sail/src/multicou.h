@@ -23,7 +23,7 @@ using namespace std ;
 // Type declarations (ex fortran common)
 
 struct Msailin{
-  REEL *l, *ttl, *roo, *tau, *bmu, *bnu;/* tableau de n couches */
+  REEL *l{}, *ttl{}, *roo{}, *tau{}, *bmu{}, *bnu{};/* tableau de n couches */
   REEL tts, tto, psi; 
   int nbang;
   Tabdyn<REEL,2> f;	/* was [n][45] */
