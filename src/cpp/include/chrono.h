@@ -22,11 +22,11 @@ public:
   ~Chrono();
   
   void Start();
-  void Stop();
-  double Seconds();
+  void Stop() const;
+  double Seconds() const;
     
-  ostream& PrintOn(ostream &s) ;
-  ferrlog& PrintOn(ferrlog &s) ;
+  ostream& PrintOn(ostream &s) const;
+  ferrlog& PrintOn(ferrlog &s) const;
   static char* Name() { return (char*)"Chrono"; }
 private:
   ChronoData *data;

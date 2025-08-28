@@ -62,7 +62,7 @@ double ChronoData::Seconds() const {
 
 //  ANSI C version of the ChronoData class
 
-#include <time.h>
+#include <ctime>
 
 #ifndef _CLOCK_T
 #define _CLOCK_T
@@ -72,11 +72,10 @@ typedef long int             clock_t;
 
 class ChronoData {
     friend class Chrono;
-private:
     ChronoData() {}
     void Start();
     void Stop();
-    double Seconds();
+    double Seconds() const;
     clock_t tO;
     clock_t t;
 };
@@ -89,7 +88,7 @@ void ChronoData::Stop() {
     t = clock();
 }
 
-double ChronoData::Seconds()  {
+double ChronoData::Seconds() const {
     return (double)(t-tO) / CLOCKS_PER_SEC;
 }
 
@@ -110,21 +109,21 @@ void Chrono::Start() {
     data->Start();
 }
 
-void Chrono::Stop() {
+void Chrono::Stop() const {
     data->Stop();
 }
-double Chrono::Seconds(){
+double Chrono::Seconds() const {
      return data->Seconds();
 }
   
-ostream& Chrono::PrintOn(ostream &s) {
+ostream& Chrono::PrintOn(ostream &s) const {
     double tmp = data->Seconds();
     s << tmp << " cpu seconds (";
     s << int(tmp)/60 << "' " << int(tmp)%60 << "'') ";
     return s;
 }
 
-ferrlog& Chrono::PrintOn(ferrlog &s) {
+ferrlog& Chrono::PrintOn(ferrlog &s) const {
     double tmp = data->Seconds();
     s << tmp << " cpu seconds (";
     s << int(tmp)/60 << "' " << int(tmp)%60 << "'') ";
