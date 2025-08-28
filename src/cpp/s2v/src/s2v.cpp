@@ -546,7 +546,7 @@ int s2v(int argc, char **argv){
        especes confondues - MC98 */
     int ii=0;
     // bug mai 2011
-    jx=jy=0; // jy n'avait pas l'air d'etre init et il n'y a pas de bocle sur x et y
+    // jx=jy=0; // jy n'avait pas l'air d'etre init et il n'y a pas de bocle sur x et y
     for (jz=0; jz<njz; jz++) {
       for (je=0; je <nje; je++) {
 	for (ji=0; ji<nji; ji++) {
