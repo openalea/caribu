@@ -11,8 +11,8 @@
 
 /** Nom du fichier de sortie
  *
- * création du nom du fichier de sortie 
- * recherche de la dernière occurence of .png (pcInName could be 
+ * crï¿½ation du nom du fichier de sortie 
+ * recherche de la derniï¿½re occurence of .png (pcInName could be 
  * ./files.png/file.png
  * so we must get first the generic filename 
  * Images are created as png exclusively for now.

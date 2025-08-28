@@ -32,7 +32,6 @@ static Tabdyn<char,2> tabnc;//nb de contact
 //dimension Buffer
 unsigned int NB=128; //plus simple si multiple de 4
 static  unsigned int MB=128;
-static  unsigned int SPEED_INC=25;
 //Prototype et declaration de variable en static pour opti
 /*
 typedef struct {

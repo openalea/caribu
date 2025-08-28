@@ -8,7 +8,7 @@ using namespace std ;
 void raus(bool cond, const char *msg)
  { if(cond)
    { Ferr<<msg<< '\n' ;
-      //Ferr.flush(); // '\n' --> endl l'a déjà fait
+      //Ferr.flush(); // '\n' --> endl l'a dï¿½jï¿½ fait
       exit(22);
     }
  }//raus()

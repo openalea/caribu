@@ -1,12 +1,9 @@
 #ifndef CANOPY
 #define CANOPY
 
-#include <iostream>
 using namespace std;
 
 #include <cstdlib> // pour exit
-#include <fstream>
-#include <iomanip>
 
 #include "diffuseur.h"
 // Canopy : contient les caracteristiques de la scene

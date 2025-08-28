@@ -1,7 +1,9 @@
 #include "primitive.h"
 #include "Mmath.h"
 
-#include <ctype.h>
+#include <cctype>
+#include <cassert>
+#include <utility>
 
 
 
@@ -9,7 +11,7 @@
 // PRIMITIVE
 
 Primitive :: Primitive(Point p){
-	pt_intersection=p;
+	pt_intersection=std::move(p);
 }
 Primitive :: Primitive(Primitive &frere){
   // cout<<"*** Primitive(Primitive &frere)"<<endl;
@@ -31,7 +33,6 @@ void Polygone::init(Liste<Point>& liste_sommet,double name=0){
 
   nb_sommets=i;
   sommet=new Point[i];
-  assert(sommet);
   liste_sommet.debut();
 //        qui();
   for (i=0; i<nb_sommets; i++){
@@ -49,7 +50,6 @@ Polygone::Polygone(Polygone& frere):Primitive(frere){
   // cout<<"*** Polygone(Polygone& frere)"<<endl;
   nb_sommets=i=frere.nb_sommet();
   sommet=new Point[i];
-  assert(sommet);
   for (i=0; i<nb_sommets; i++)
     sommet[i]=frere.sommets(i);
   calcul_normale_cst_equ(sommet[0],sommet [1],sommet[2]);
@@ -97,7 +97,6 @@ Polygone::Polygone(char* line,double name,reel*mini,reel*maxi){
   ch=next_nonumber(ch);
   nb_sommets=i=ii;
   sommet=new Point[i];
-  assert(sommet);
   // qui();
   for (i=0; i<nb_sommets; i++){
     for(j=0;j<3;j++){
@@ -174,7 +173,6 @@ Polygone::Polygone(float(*T)[3],double name,reel*mini,reel*maxi){
   nom=name;
   nb_sommets=i=3;
   sommet=new Point[i];
-  assert(sommet);
   // qui();
   for (i=0; i<nb_sommets; i++){
     for(j=0;j<3;j++){

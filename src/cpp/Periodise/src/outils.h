@@ -3,7 +3,6 @@
 //#include "matlib.h"
 #include <cstdio>
 #include <cstdlib>
-#include <ctime>
 using namespace std;
 #ifndef _OSF_SOURCE
 /*
@@ -37,26 +36,25 @@ inline void STOP(int i)
 //-******** T_MAX
 template <class Type>
 inline   Type T_max(Type v1, Type v2)
- {return((v1>=v2) ? v1 : v2);}
+ {return v1>=v2 ? v1 : v2;}
 
 //-******** T_MIN
 template <class Type>
 inline   Type T_min(Type v1, Type v2)
- {return((v1<v2) ? v1 : v2);}
+ {return v1<v2 ? v1 : v2;}
 
 //-******** T_imax : gaffe au depassement
 template <class Type>
 inline  int T_imax(Type tab, int i, int j)
- {return((tab[i]<tab[j]) ? j : i);}
+ {return tab[i]<tab[j] ? j : i;}
 
 //-******** T_imin : gaffe au depassement
 template <class Type>
 inline  int T_imin(Type tab, int i, int j)
- {return((tab[i]<tab[j]) ? i : j);}
+ {return tab[i]<tab[j] ? i : j;}
 
 // PARAMETRES d'INTERSECTION
 class Param_Inter{
-private:
   Point origine;
   Vecteur direction;
   double poids;
@@ -68,7 +66,7 @@ public:
   inline Param_Inter&   operator = (Param_Inter&);
   inline Point  & origin();
   inline Vecteur &direct();
-  inline double  poid();
+  inline double  poid() const;
   inline void    change_origine( Point&);
   inline void    change_direction( Vecteur&);
   inline void    change_poids(const double&);
@@ -78,13 +76,12 @@ public:
  
 // Alea : permet de tirer des nombres aleatoires
 class Alea{
-private:
-  double unif(){return (drand48());}
+  static double unif(){return (drand48());}
 public:
   Alea() { srand48(0); }
-  double  tirage() { return unif(); }
-  double  operator()() { return unif(); }
-  ~Alea(){ }; 
+  static double  tirage() { return unif(); }
+  double  operator()() const { return unif(); }
+  ~Alea()= default;
 };
 
 /***********************************************************
@@ -112,7 +109,7 @@ Vecteur &Param_Inter :: direct(){
   return direction;
 }
 
-inline double Param_Inter::poid(){
+inline double Param_Inter::poid() const {
   return poids;
 }
 

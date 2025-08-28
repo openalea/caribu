@@ -27,7 +27,7 @@ public:
     
   ostream& PrintOn(ostream &s) ;
   ferrlog& PrintOn(ferrlog &s) ;
-  char* Name() const { return (char*)"Chrono"; }
+  static char* Name() { return (char*)"Chrono"; }
 private:
   ChronoData *data;
   friend ostream & operator <<(ostream&,Chrono&); 
