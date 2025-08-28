@@ -112,7 +112,7 @@ inline char * endline(ifstream & fin){
   char *tmp1 = new char[LONG_LIGNE_CAN],
     *pline = new char[LONG_LIGNE_CAN] ;
   strcpy (pline,"");
-  if ((tmp1 != NULL) && (pline != NULL)) {
+  if ((tmp1 != nullptr) && (pline != nullptr)) {
     while (isTmp.good() ){
       isTmp >> tmp1 ;
       strcat (pline, " ");
@@ -168,7 +168,7 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
       if(ii==0) syntax_error(nopti);
       //Ferr <<"Canopy[parse_can]ficoptik : sol lu\n";
       tabopaque(nbopt) = lectop(fopti, opak); 
-      raus(tabopaque(nbopt)==NULL,"Canopy[parse_can] allocation tabopaque impossible!");  
+      raus(tabopaque(nbopt)==nullptr,"Canopy[parse_can] allocation tabopaque impossible!");
       nbopt++;
       fopti.getline(line,256);
       break;
@@ -176,11 +176,11 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
       if(ii==0) syntax_error(nopti);
       //Ferr <<"Canopy[parse_can]ficoptik : espece no "<<nbopt<<'\n' ;//endl;
       tabopaque(nbopt) =  lectop(fopti, opak); 
-      raus(tabopaque(nbopt)==NULL,"Canopy[parse_can] allocation tabopaque impossible!");
+      raus(tabopaque(nbopt)==nullptr,"Canopy[parse_can] allocation tabopaque impossible!");
       tabtransp(nbopt-1,0)= lectop(fopti); 
-      raus(tabtransp(nbopt-1,0)==NULL,"Canopy[parse_can] allocation tabtransp_sup impossible!");
+      raus(tabtransp(nbopt-1,0)==nullptr,"Canopy[parse_can] allocation tabtransp_sup impossible!");
       tabtransp(nbopt-1,1)= lectop(fopti); //face inf
-      raus(tabtransp(nbopt-1,1)==NULL,"Canopy[parse_can] allocation tabtransp_inf impossible!");      
+      raus(tabtransp(nbopt-1,1)==nullptr,"Canopy[parse_can] allocation tabtransp_inf impossible!");      
       nbopt++;
       fopti.getline(line,256);
       break; 
@@ -195,7 +195,7 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
 	Ferr<<"-_-_-_-_-_  Proprietes optiques chargees\n";
   
   //cas infini
-  if(name8!=NULL) {
+  if(name8!=nullptr) {
     ifstream finf(name8,ios::in);
     finf>>bornemin[0]>>bornemin[1];
     finf>>bornemax[0]>>bornemax[1];
@@ -210,7 +210,7 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
   // lecture des primitives geometriques (fichier '.can')
   //-*****************  Parser de fichier .can *************  
   Primitive* prim;
-  char T,*pch=NULL;
+  char T,*pch=nullptr;
   int nbid,nl=0;
   Tabdyn<double, 1> tabid;//long ==> double
   long int idb=0;
@@ -264,9 +264,9 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
       // MC Avril 98 : Pb sur sun de division de tabid(0)/1e11 !!!!
       //               => Creation de la var. double espid=1e11
       // specie=(short)(tabid(0)/100000000000);
-      specie=(short)(tabid(0)/espid);
+      specie=static_cast<short>(tabid(0) / espid);
       
-      opak=((long)(tabid(0)/1000)%1000 ==0)? true : false;
+      opak=static_cast<long>(tabid(0) / 1000)%1000 ==0;
       // MCjune08: nom=tabid(0)/1000;
       nom=tabid(0);
 /* debug ?
@@ -286,7 +286,7 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
       }//switch T
       //delete pch;
       acv=0;
-      assert (prim != 0);
+      assert (prim != nullptr);
       rejet=false;
       if(min[0]>max[0]){ //primitive rejete
 	//Ferr <<" *****  Primitive rejete : libelle = "<<nom<<'\n' ;//endl;
@@ -338,7 +338,7 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
 	  diff=new DiffO(prim, tabopaque(specie));
 	else
 	  diff=new DiffT(prim, tabtransp(specie-1,0),tabtransp(specie-1,1) );   
-	assert (diff != 0);
+	assert (diff != nullptr);
 	//cout<<"numero = "<<diff->num()<<'\n' ;//endl;
 	diff->acv=acv;
 	Ldiff.ajoute(diff);
@@ -358,15 +358,15 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
     reel dx,dy,p[2];
     int nbs;
     
-    nbs=(int)(sqrt((bornemax[0]-bornemin[0])*(bornemax[1]-bornemin[1])/4/smax))+1;
+    nbs=static_cast<int>(sqrt((bornemax[0] - bornemin[0]) * (bornemax[1] - bornemin[1]) / 4 / smax))+1;
     printf("* surface-based number of soil triangles = %d\n", nbs*nbs*2);
     if(sol>0 && sol< nbs*nbs*2){
-      nbs=(int)sqrt(sol/2.);
+      nbs=static_cast<int>(sqrt(sol / 2.));
       printf("<!>The mesh of soil use the real threshold value (%d T <= %d)\n", 
 	     sol, nbs*nbs*2 );	
     }
-    dx=(bornemax[0]-bornemin[0])/(reel)nbs;
-    dy=(bornemax[1]-bornemin[1])/(reel)nbs;
+    dx=(bornemax[0]-bornemin[0])/static_cast<reel>(nbs);
+    dy=(bornemax[1]-bornemin[1])/static_cast<reel>(nbs);
     p[0]=bornemin[0];
     p[1]=bornemin[1];
     for(i=0;i<nbs;i++) {
@@ -388,7 +388,7 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
 
 	  //  ajout du sol 1 a la liste 
 	  diff=new DiffO(new Polygone(sTmp,0,min,max),tabopaque(0));
-	  assert (diff != 0);
+	  assert (diff != nullptr);
 	  Ldiff.ajoute(diff);
 	  nbp++;
 	 
@@ -422,7 +422,7 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
 	  pch= (char *) sTmp.c_str();
 	  diff=new DiffO(new Polygone(pch,0,min,max),tabopaque(0));
 	  //90CM
-	  assert (diff != 0);
+	  assert (diff != nullptr);
 	  Ldiff.ajoute(diff);
 	  nbp++;
 	  //delete pch;
@@ -447,7 +447,7 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
   nbprim=Ldiff.card();
 
   //Ajout des capteurs virtuels
-  if(nsolem!=NULL){
+  if(nsolem!=nullptr){
     ifstream fgeom(nsolem,ios::in);
     //if (!fgeom) 
     if (!fgeom.good()) {
@@ -498,7 +498,7 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
 	}//switch T
 	//  Ajout du sol 1 a la liste 
 	diff=new DiffP(prim);
-	assert (diff != 0);
+	assert (diff != nullptr);
 	Ldiff.ajoute(diff);
 	delete pch;
       }
@@ -509,7 +509,7 @@ long int Canopy::parse_can(char *ngeom,char *nopti,char * name8,reel *bornemin,r
   else {
     nbcell=0;
   }
-  radim=diff->idx;
+  radim=Diffuseur::idx;
   if(verbose>1) cout<<"Canopy [parse_can] nbre de faces visibles = "<<radim<<'\n' ;//endl;
   if(verbose)   cout<<"Canopy [parse_can] nbre de primitives = "<<Ldiff.card()<<'\n' ;//endl;
  
@@ -549,11 +549,9 @@ long int Canopy::read_shm(
   Diffuseur* diff;
   ifstream fopti(nopti,ios::in);
   char c, line[256];
-  double popt[4];
   int nbopt=0,ii=0;
   Tabdyn<Actop*,1> tabopaque;
   Tabdyn<Actop*,2> tabtransp;
-  Actop *testopt; 
   Patch *Ts;
 
  
@@ -577,7 +575,7 @@ long int Canopy::read_shm(
 	 <<" impossible =>exit" << "\n" ;
     exit(12);
   }
-  Ts=(Patch *)shmat(shmid,0,int(NULL));
+  Ts=(Patch *)shmat(shmid,nullptr,int(NULL));
 #else
   // Win NT
      char clef_seg_in[12] ;	//  version char* de la clef numerique
@@ -588,7 +586,7 @@ long int Canopy::read_shm(
       assert ((hSharedSegIn = OpenFileMapping (
 	FILE_MAP_ALL_ACCESS,
 	FALSE,
-	clef_seg_in)) != NULL ) ;
+	clef_seg_in)) != nullptr ) ;
 
       lpSharedSegIn = MapViewOfFile (
 	hSharedSegIn,
@@ -596,7 +594,7 @@ long int Canopy::read_shm(
 	0,
 	0,
 	SEGSIZE*sizeof(Patch) ) ;
-      assert ( lpSharedSegIn != NULL ) ;
+      assert ( lpSharedSegIn != nullptr ) ;
       Ts = (Patch *)lpSharedSegIn ;
 #endif
       if(true||verbose) 
@@ -622,7 +620,7 @@ long int Canopy::read_shm(
       if(ii==0) syntax_error(nopti);
       //Ferr <<"Canopy[read_shm]ficoptik : sol lu\n";
       tabopaque(nbopt) = lectop(fopti, opak); 
-      raus(tabopaque(nbopt)==NULL,"Canopy[read_shm] allocation tabopaque impossible!");  
+      raus(tabopaque(nbopt)==nullptr,"Canopy[read_shm] allocation tabopaque impossible!");  
       nbopt++;
       fopti.getline(line,256);
       break;
@@ -631,11 +629,11 @@ long int Canopy::read_shm(
 	syntax_error(nopti);
       //Ferr <<"Canopy[read_shm]ficoptik : espece no "<<nbopt<<'\n' ;//endl;
       tabopaque(nbopt) =  lectop(fopti, opak); 
-      raus(tabopaque(nbopt)==NULL,"Canopy[read_shm] allocation tabopaque impossible!");
+      raus(tabopaque(nbopt)==nullptr,"Canopy[read_shm] allocation tabopaque impossible!");
       tabtransp(nbopt-1,0)= lectop(fopti); 
-      raus(tabtransp(nbopt-1,0)==NULL,"Canopy[read_shm] allocation tabtransp_sup impossible!");
+      raus(tabtransp(nbopt-1,0)==nullptr,"Canopy[read_shm] allocation tabtransp_sup impossible!");
       tabtransp(nbopt-1,1)= lectop(fopti); //face inf
-      raus(tabtransp(nbopt-1,1)==NULL,"Canopy[read_shm] allocation tabtransp_inf impossible!");      
+      raus(tabtransp(nbopt-1,1)==nullptr,"Canopy[read_shm] allocation tabtransp_inf impossible!");      
       nbopt++;
       fopti.getline(line,256);
       break; 
@@ -650,7 +648,7 @@ long int Canopy::read_shm(
 	Ferr<<"-_-_-_-_-_  Proprietes optiques chargees\n";
   
   //cas infini
-  if(name8!=NULL) {
+  if(name8!=nullptr) {
     ifstream finf(name8,ios::in);
     finf>>bornemin[0]>>bornemin[1];
     finf>>bornemax[0]>>bornemax[1];
@@ -664,7 +662,7 @@ long int Canopy::read_shm(
   else
     infty=false;
   // lecture des primitives geometriques (shm clef)
-  char *pch=NULL;  
+  char *pch=nullptr;  
   Primitive* prim;
   double nom;
   bool valid;
@@ -677,16 +675,16 @@ long int Canopy::read_shm(
   for(it=0;it<Nt;it++){
     //identifiants
     //format label : -i opaque, 0 sol, i transparent de l'esp i
-    specie=(short)(fabs(double(Ts[it].t))); // HA cast double 11 2003
+    specie=static_cast<short>(fabs(static_cast<double>(Ts[it].t))); // HA cast double 11 2003
     opak=(Ts[it].t<=0)? true : false;
-    nom=(double)(Ts[it].t);
+    nom=static_cast<double>(Ts[it].t);
     //-** saisie de la geometrie
     prim=new Polygone(Ts[it].P,nom,min,max);
 
     //Ferr <<"=>  it="  << it<<", prim="  << (long)prim<<"\n" ;
 
     acv=0;
-    assert (prim != 0);
+    assert (prim != nullptr);
     rejet=false;
     if(min[0]>max[0]){ //primitive rejete
       Ferr <<" *****  Primitive rejete car min>max!?: libelle = "<<nom<<" - No="<<it<<'\n' ;
@@ -697,14 +695,15 @@ long int Canopy::read_shm(
     else {
       if(infty) {
 	Point G;
-	char bps[3],cpts;//Bon Pour le Service
+	char cpts;//Bon Pour le Service
 	rejet=true;
 	G=prim->centre();
 
 
 	if(   G[0]>bornemin[0]  && G[1]>bornemin[1]
 	   && G[0]<=bornemax[0] && G[1]<=bornemax[1]){
-	  //centroide (G) dans le cube
+		char bps[3];
+		//centroide (G) dans le cube
 	  rejet=false;
 	  cpts=prim->nb_sommet();
 	  for (i=0; i<2; i++) {
@@ -755,11 +754,11 @@ long int Canopy::read_shm(
   //liberation du shm
 #ifndef WIN32
   // Unix
-  shmdt((void*)(size_t)shmid);
+  shmdt(reinterpret_cast<void *>((size_t) shmid));
 #else
   // Win NT
     UnmapViewOfFile(lpSharedSegIn) ; // invalidation du ptr sur mem partagee
-    // Ts = NULL ;		   // tester avant ...
+    // Ts = nullptr ;		   // tester avant ...
     CloseHandle(hSharedSegIn) ;	   // Fermeture du fichier mapp�
 #endif
 
@@ -854,7 +853,7 @@ long int Canopy::read_shm(
   nbprim=Ldiff.card();
 
   //Ajout des capteirs virtuels
-  if(nsolem!=NULL){
+  if(nsolem!=nullptr){
     ifstream fgeom(nsolem,ios::in);
     char T;
     int nbid; 
@@ -904,7 +903,7 @@ long int Canopy::read_shm(
 	}//switch T
 	//  Ajout du sol 1 a la liste 
 	diff=new DiffP(prim);
-	assert (diff != 0);
+	assert (diff != nullptr);
 	Ldiff.ajoute(diff);
 	delete pch;
       }
@@ -916,7 +915,7 @@ long int Canopy::read_shm(
     nbcell=0;
   }
 
-  radim=diff->idx;
+  radim=Diffuseur::idx;
   if(verbose>1) cout<<"nbre de faces visibles = "<<radim;
   if(verbose)  {
     cout<<"\nCanopy [read_shm] nbre de primitives = "
