@@ -896,7 +896,7 @@ void Canopy::projplan(Vecteur &visee,bool infty, double* Bo) {
   for(i=0;i<Timg;i++)
     for(j=0;j<Timg;j++) {
       pdiff=Zprim[i][j];
-      if (false){
+      if constexpr (false){
 	cocnomen=(pdiff==nullptr)? 0:pdiff->primi().name()/1e7;
 	alt=(pdiff==nullptr)? 0: 100*Zbuf[i][j];
 	cocmax=(cocnomen>cocmax) ? cocnomen:cocmax;
