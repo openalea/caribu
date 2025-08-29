@@ -49,7 +49,7 @@
 #include <stdio.h>
 #include <math.h>
 #include "matrix.h"
-#include "sparse.h"
+#include "sparse2.h"
 
 static char rcsid[] = "$Id: conjgrad.c,v 1.4 1994/01/13 05:36:45 des Exp $";
 
