@@ -102,7 +102,7 @@ MAT	*arnoldi(AFunc A,void *A_param,VEC *x0,int m,Real *h_rem,MAT *Q,MAT* H)
 
 /* sp_arnoldi -- uses arnoldi() with an explicit representation of A */
 MAT	*sp_arnoldi(SPMAT *A,VEC* x0,int m, Real *h_rem, MAT* Q,MAT* H)
-{	return arnoldi(sp_mv_mlt,A,x0,m,h_rem,Q,H);	}
+{	return arnoldi((AFunc)sp_mv_mlt, (void *)A,x0,m,h_rem,Q,H);	}
 
 /* gmres -- generalised minimum residual algorithm of Saad & Schultz
 		SIAM J. Sci. Stat. Comp. v.7, pp.856--869 (1986)
