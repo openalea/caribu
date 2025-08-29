@@ -34,9 +34,10 @@
 #include	"sparse.h"
 
 static char rcsid[] = "$Id: arnoldi.c,v 1.3 1994/01/13 05:45:40 des Exp $";
+typedef VEC *(*AFunc)(void *A_param, VEC *v, VEC *u);
 
 /* arnoldi -- an implementation of the Arnoldi method */
-MAT	*arnoldi(VEC	*(*A)(),void *A_param,VEC *x0,int m,Real *h_rem,MAT *Q,MAT* H)
+MAT	*arnoldi(AFunc A,void *A_param,VEC *x0,int m,Real *h_rem,MAT *Q,MAT* H)
 {
 	static VEC	*v=VNULL, *u=VNULL, *r=VNULL, *s=VNULL, *tmp=VNULL;
 	int	i;
@@ -106,7 +107,7 @@ MAT	*sp_arnoldi(SPMAT *A,VEC* x0,int m, Real *h_rem, MAT* Q,MAT* H)
 /* gmres -- generalised minimum residual algorithm of Saad & Schultz
 		SIAM J. Sci. Stat. Comp. v.7, pp.856--869 (1986)
 	-- y is overwritten with the solution */
-VEC	*gmres(VEC	*(*A)(),void *A_param,int m,MAT* Q,MAT* R,VEC* b, double tol,VEC* x)
+VEC	*gmres(AFunc A,void *A_param,int m,MAT* Q,MAT* R,VEC* b, double tol,VEC* x)
 {
     static VEC	*v=VNULL, *u=VNULL, *r=VNULL, *tmp=VNULL, *rhs=VNULL;
     static VEC	*diag=VNULL, *beta=VNULL;
