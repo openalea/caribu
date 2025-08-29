@@ -35,18 +35,12 @@
 #include        <stdio.h>
 #include        "matrix.h"
 #include        "matrix2.h"
-#include	"sparse.h"
+#include	    "sparse.h"
+#include	    "sparse2.h"
 #include        "iter.h"
 #include	<math.h>
 
 static char rcsid[] = "$Id: iternsym.c,v 1.6 1995/01/30 14:53:01 des Exp $";
-
-
-#ifdef ANSI_C
-VEC	*spCHsolve(SPMAT *,VEC *,VEC *);
-#else
-VEC	*spCHsolve();
-#endif
 
 
 /* 

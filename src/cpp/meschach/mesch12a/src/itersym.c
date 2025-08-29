@@ -34,23 +34,14 @@
 
 #include        <stdio.h>
 #include        "machine.h"
-
 #include        "matrix.h"
 #include        "matrix2.h"
-#include	"sparse.h"
+#include	    "sparse.h"
+#include	    "sparse2.h"
 #include        "iter.h"
 #include	<math.h>
 
 static char rcsid[] = "$Id: itersym.c,v 1.2 1995/01/30 14:55:54 des Exp $";
-
-
-#ifdef ANSI_C
-VEC	*spCHsolve(SPMAT *,VEC *,VEC *);
-VEC	*trieig(VEC *,VEC *,MAT *);
-#else
-VEC	*spCHsolve();
-VEC	*trieig();
-#endif
 
 
 
