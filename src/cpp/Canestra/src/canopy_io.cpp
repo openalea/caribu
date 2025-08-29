@@ -6,7 +6,6 @@
 ********************************************************************/
 
 #include <iostream>	// pour user namespace (compile mieux)
-#include <sys/shm.h>
 using namespace std ;
 
 #ifdef WIN32

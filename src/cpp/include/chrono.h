@@ -22,12 +22,12 @@ public:
   ~Chrono();
   
   void Start();
-  void Stop() const;
-  double Seconds() const;
+  void Stop();
+  double Seconds();
     
-  ostream& PrintOn(ostream &s) const;
-  ferrlog& PrintOn(ferrlog &s) const;
-  static char* Name() { return (char*)"Chrono"; }
+  ostream& PrintOn(ostream &s) ;
+  ferrlog& PrintOn(ferrlog &s) ;
+  char* Name() const { return (char*)"Chrono"; }
 private:
   ChronoData *data;
   friend ostream & operator <<(ostream&,Chrono&); 

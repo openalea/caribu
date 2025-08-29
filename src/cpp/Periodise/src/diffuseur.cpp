@@ -435,6 +435,7 @@ Diff8::Diff8(Diffuseur * pdif,Vecteur & delta) {
   
   diff=pdif;
   prim=new Polygone(*((Polygone*)&(diff->primi())));
+  assert(prim);
   for (i=0; i<prim->nb_sommet(); i++){
     prim->sommets(i)+=delta;
     //prim->sommets(i).show();
@@ -473,6 +474,8 @@ Param_Inter DiffP::interact(Param_Inter &parag,bool inside,int ordres){
   // Vecteur & delta=parag.direct();
   double delta[3];
 
+  inside=inside;
+  ordres=ordres;
 
   delta[0]=parag.direct()[0];
   delta[1]=parag.direct()[1];
@@ -553,6 +556,9 @@ DiffP2::~DiffP2(){
 
 Param_Inter DiffP2::interact(Param_Inter &parag,bool inside,int ordres){
   double weight,scal;
+
+  inside=inside;
+  ordres=ordres;
   
   scal=parag.direct().prod_scalaire(prim->normal());
   weight=parag.poid();

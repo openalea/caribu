@@ -12,8 +12,6 @@ protected:
   Primitive *prim;
   Actop *opti;
 public:
-  virtual ~Diffuseur() = default;
-
   static unsigned int idx;
   signed char acv;// A Cheval
   Diffuseur(){ //cout<<"Diffuseur [constructeur] Warning : no parameters!\n";
@@ -21,17 +19,15 @@ public:
   Diffuseur (Primitive *pprim,Actop *actop) : prim(pprim),opti(actop) {}
   Primitive& primi() { return *prim; }
   virtual  Vecteur normal() {return prim->normal();}
-  Point centre() const {return prim->centre();}
-  double surface() const {return prim->surface();}
-  double name() const {return prim->name();}
-  Vecteur azi0() const {return prim->azi();}//azimuth zero
+  Point centre() {return prim->centre();}
+  double surface() {return prim->surface();}
+  double name() {return prim->name();}
+  Vecteur azi0(){return prim->azi();}//azimuth zero
   virtual bool isopaque()=0;
   virtual bool isreal()=0;
-
-  virtual double intersect(Param_Inter parag,Point *I)
-  {return prim->intersect(parag,I);}
-  void  show(const char *texte=(char *)"",ostream& out=cout) const
-  // montre!
+  double intersect(Param_Inter parag,Point *I)
+  {return (prim->intersect(parag,I));}
+  void  show(char *texte=(char *)"",ostream& out=cout) // montre!
   { prim->show(texte,out);  }
   virtual  unsigned int num()=0;
   virtual  void togle_face()=0;
@@ -46,43 +42,45 @@ public:
   // renvoie -1 si E1>E2, 0 si E1=E2, 1 si E1<E2 (Ei delta energie du difuseur i
   friend ostream& operator << (ostream& out,Diffuseur & diff);
   // cas du patch voir si on fait une hierachie double (class Patch)
-  static int nb_patch() {return 1;}
+  void select_patch(int p) {};
+  int nb_patch() {return 1;}
 };//Diffuseur
 
 
 class DiffO :public Diffuseur{
 protected:
-  unsigned int no{};
+  unsigned int no;
 public:
-  DiffO() = default;
+  DiffO() {}
   DiffO(Primitive *p,Actop *actop): Diffuseur(p,actop) { no=idx++; }
-  bool isopaque() override {return true;}
-  bool isreal() override {return true;}
-  double rho() override {return  opti->rho();}
-  double tau() override {return opti->tau();}
-  unsigned int num() override {return no;}
-  void togle_face() override {}
-  void active(Vecteur &dir) override {}
-  void active(unsigned char cefa) override {}
-  void activ_num(unsigned int nummer) override {}
-  unsigned char face() override { return 0;}
+  bool isopaque() {return true;}
+  bool isreal()   {return true;}
+  double rho() {return  opti->rho();}
+  double tau() {return opti->tau();} 
+  unsigned int num() {return no;}
+  void togle_face() {}
+  void active(Vecteur &dir) {}
+  void active(unsigned char cefa) {}
+  void activ_num(unsigned int nummer) {}
+  unsigned char face() { return 0;}
 };//DiffO
 
 class DiffP :public DiffO{ //Capteur virtuel
 
 public:
   DiffP(Primitive *p,Actop *actop): DiffO(p,actop){ }
-  explicit DiffP(Primitive *p) {Actop *actop; actop=new Lambert(); prim=p; opti=actop;no=idx++;}
-  bool isreal() override{return false;}
+  DiffP(Primitive *p) {Actop *actop; actop=new Lambert(); prim=p; opti=actop;no=idx++;} 
+  bool isreal(){return false;}
 };//DiffP
 
 
 class DiffT :public Diffuseur{
 private:
   Face actif; // 0 : face sup - 1 : face inf
-  unsigned int no[2]{};
+  unsigned int no[2];
   Actop * optback;
-  Actop *popt(Face side) const {return side==sup? opti:optback;}
+  Actop *popt(Face side)
+  {return (side==sup)? opti:optback;}
 public:
   DiffT(Primitive *p,Actop *actop, Actop * backopt): Diffuseur(p,actop){
     optback=backopt;
@@ -90,27 +88,27 @@ public:
     no[1]=idx++;
     actif=sup;//default comme ca!
   }
-  bool isopaque() override {return false;}
-  bool isreal() override {return true;}
-  Vecteur normal() override {
+  bool isopaque() {return false;}
+  bool isreal()   {return true;}
+  Vecteur normal(){
     if(actif==sup) return prim->normal();
     else           return prim->normal()*-1.0;
   }
  
-  double rho() override {return  popt(actif)->rho();}
-  double tau() override {return popt(actif)->tau();}
+  double rho() {return  popt(actif)->rho();}
+  double tau() {return popt(actif)->tau();} 
  
-  unsigned int num() override {return no[actif];}
-  void togle_face() override {actif =1-actif;}
-  void active(Vecteur &dir) override {
+  unsigned int num() {return no[actif];}
+  void togle_face() {actif =1-actif;}
+  void active(Vecteur &dir) {
     if(  dir.prod_scalaire(prim->normal())<0)
       actif=sup;
     else actif = inf;
   }
-  void active(unsigned char cefa) override {
-    actif=cefa==1?inf : sup;
+  void active(unsigned char cefa) {
+    actif=(cefa==1)?inf : sup;
   }
-  void activ_num(unsigned int nummer) override {
+  void activ_num(unsigned int nummer) {
     if(nummer!=num()){
       togle_face();
       if(nummer!=num()) {
@@ -118,6 +116,8 @@ public:
 	exit(30);}
     }
   }//activ_num()
-  unsigned char face() override {return actif;}
+  unsigned char face() {return actif;}
 };//DiffT
 #endif
+
+

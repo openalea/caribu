@@ -357,7 +357,7 @@ int Polygone::nb_in(reel& amin,reel& amax, const int& axe) {
   bool info=false;
   for (i=0; i<nb_sommets; i++) {
     if(sommet[i][axe]>amax) {
-      if(nbp<0) { 
+      if(nbp<0) {
 	Ferr<<" (!) Pb Polygone::nb_in : primitive no. "<<nom<<" plus grande que les bornes \n";
 	info=true;
       }	  
@@ -382,9 +382,8 @@ int Polygone::nb_in(reel& amin,reel& amax, const int& axe) {
 }//Polygone::nb_in()
 
 void Polygone::calcul_normale_cst_equ(Point& p1, Point& p2, Point& p3){
-  Vecteur v1, v2;
-  const Vecteur v0(0,0,0);
-
+  Vecteur v1, v2,v0(0,0,0);
+  
   /* calcul de la normale au plan */
   v1.formation_vecteur(p1, p2);
   v2.formation_vecteur(p1, p3);
@@ -567,11 +566,12 @@ double Polygone::surface(){
 
 //-***************************   Triangle::surface()   ************************
 double Triangle::surface(){
+  double x;
   Vecteur AB(sommet[0],sommet[1]), AC(sommet[0],sommet[2]);   
 
   AB.normalise();
   AC.normalise();
-  double x = Macos(AB.prod_scalaire(AC));
+  x=Macos(AB.prod_scalaire(AC));
   //   cout <<"@@@@@@@@@@ M_PI_2 = "<< M_PI_2<<" - alpha = "<<x<<endl;
   x=sommet[0].dist(sommet[1])*sommet[0].dist(sommet[2])*sin(x)/2.0;
   raus(x<0.0,"Triangle[surface] surface < 0.0 !!??");
@@ -597,7 +597,7 @@ double Polygone::distance2_point(Point &C) {
   double t,scal,alpha,pvec,d2=-1;
   Point I,G=centre(),OO;
   Vecteur O,u,v;
-  bool signG[3];
+  bool sign,signG[3];
   int i,j,k,inc,ii=0,idx[2];
   //char verbeux=0;
 
@@ -695,7 +695,7 @@ bool Polygone::appart_sphere(Point & O, double R){
   
   d = isob.dist(O) - dGS;
   // printf("appart_sphere()  d=%g (dOG=%g, dGS=%g)\n",d,isob.dist(O),dGS);//I.show();
- return d<R;
+ return (d<R)? true: false;
 }//Polygone::appart_sphere()
 
 

@@ -3,11 +3,12 @@
 using namespace std ;
 
 #include <outils.h>
+#include <arbo.h>
 //raus() : si cond vraie alors affiche msg et ciao
 void raus(bool cond, const char *msg)
  { if(cond)
    { Ferr<<msg<< '\n' ;
-      //Ferr.flush(); // '\n' --> endl l'a dï¿½jï¿½ fait
+      //Ferr.flush(); // '\n' --> endl l'a déjà fait
       exit(22);
     }
  }//raus()

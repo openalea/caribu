@@ -2,7 +2,15 @@
 #ifndef __TRANSF_H__
 #define __TRANSF_H__
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <time.h>
+
+#include <sys/types.h>
 #ifndef WIN32
+#include <sys/ipc.h>
+#include <sys/shm.h>
 #endif
 	  
 #ifndef __GNUG__

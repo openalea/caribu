@@ -12,11 +12,13 @@ using namespace std ;
 #include <ferrlog.h>
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <cmath>
 #ifndef WIN32
 #include <unistd.h>
 #endif
+#include <malloc.h>
 #ifdef _SGI
 #include <ctype.h>
 #endif

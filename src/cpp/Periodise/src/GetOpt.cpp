@@ -26,7 +26,7 @@ using namespace std;
 
 #include "GetOpt.h"
 
-char* GetOpt::nextchar = nullptr;
+char* GetOpt::nextchar = 0;
 int GetOpt::first_nonopt = 0;
 int GetOpt::last_nonopt = 0;
 
@@ -52,7 +52,8 @@ GetOpt::GetOpt (int argc, char **argv, const char *optstring)
 }
 
 void
-GetOpt::exchange (char **argv) const {
+GetOpt::exchange (char **argv)
+{
   int nonopts_size
     = (last_nonopt - first_nonopt) * sizeof (char *);
   char **temp = (char **) malloc (nonopts_size);
@@ -190,7 +191,7 @@ GetOpt::operator () (void)
     if (*nextchar == 0)
       optind++;
 
-    if (temp == nullptr || c == ':')
+    if (temp == 0 || c == ':')
       {
         if (opterr != 0)
           {
@@ -214,8 +215,8 @@ GetOpt::operator () (void)
                 optind++;
               }
             else
-              optarg = nullptr;
-            nextchar = nullptr;
+              optarg = 0;
+            nextchar = 0;
           }
         else
           {
@@ -238,7 +239,7 @@ GetOpt::operator () (void)
               /* We already incremented `optind' once;
                  increment it again when taking next ARGV-elt as argument.  */
               optarg = nargv[optind++];
-            nextchar = nullptr;
+            nextchar = 0;
           }
       }
     return c;

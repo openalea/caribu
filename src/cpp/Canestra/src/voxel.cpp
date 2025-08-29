@@ -153,6 +153,7 @@ void  Voxel::division(char  axe, unsigned char * niveau_sub_max,BSP* B){
 void  Voxel::creation(reel* bornemin, reel* bornemax,int* nb_vox, ListeD<Diffuseur *>& Ldiff){
   // Ferr << "Voxel[creation] DEBUT\n"; cerr.flush();
   BSP *B;
+  int i, j;
   unsigned char subdiv_max[3]= {0,0,0};
   enum {axeX,axeY,axeZ};
   B=new BSP;
