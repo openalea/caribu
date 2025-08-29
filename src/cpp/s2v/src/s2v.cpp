@@ -114,8 +114,6 @@ using namespace std ;
 #include <cstdlib>
 
 #include <cctype>
-#include <sys/ipc.h>
-#include <sys/shm.h>
 
 
 #include <cmath>

@@ -14,7 +14,7 @@ struct primitive_type {
   int  num_items;
   float data[NUM_FLOATS]; 
 };
-typedef primitive_type primitive_type;
+typedef struct primitive_type primitive_type;
 
 
 

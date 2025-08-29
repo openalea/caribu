@@ -68,7 +68,7 @@ void pave(Image &pict,double x,double y, double dx, double dy, int col) {
  cord[1]=ori[1];
  dir[0]=dirold[0];
  dir[1]=dirold[1];
- while ((int) cord[0]==i &&(int) cord[1]==j) {
+ while (((int) cord[0]==i) &&((int) cord[1]==j)) {
   cord[0]+=dir[0];
   cord[1]+=dir[1];
  }

@@ -3,7 +3,8 @@
 #ifndef _ACTOP
 #define _ACTOP
 
-#include <cstdio>
+#include <math.h>
+#include <stdio.h>
 
 //#include "outils.h"
 
@@ -31,12 +32,10 @@ class Actop{
 protected:
   //  Alea rand;
 public:
-  virtual ~Actop() = default;
-
-  Actop()= default;
+  Actop(){}
   virtual double rho()=0;
   virtual double tau()=0; 
-  static void show()
+  void show()
   {printf("Actop[show]\n");}    
 };// Actop
 
@@ -55,10 +54,9 @@ public:
   
   Lambert(double refl,double transmi)
   { reflectance=refl;  transmit=transmi;}
-  double rho() override {return  reflectance;}
-  double tau() override { return transmit;}
-
-  virtual void show()
+  double rho() {return  reflectance;}
+  double tau() { return transmit;}
+  void show()
   {printf("Lambert[show]\n");}  
 protected:
   //  inline void lambert(double &teta, double &phi);

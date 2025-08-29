@@ -13,14 +13,15 @@ using namespace std ;
 #endif
 
 #include "transf.h"
-// modif Liste -> liste chainee double - pr QuickSort - Mike 95
+// modif Liste -> liste chainee double - pr QuickSort - Mike 95 
 
 //-************* Tableau Dynamique *** Mike 94 *******************
 //typedef __gnuc_va_list va_list;
-#include <cstdarg>
+#include <stdarg.h>
 //#include "/usr/local/sparc/lib/gcc-lib/sparc-sun-solaris2.5.1/2.7.2.2.f.2/include/stdarg.h"
 //#include "/usr/include/stdarg.h"
-#include <cstring>
+#include <stdio.h>
+#include <string.h>
 /*****************************************************************
            Attention Vorsicht Warning Attenzione 
     L'utilisation des macros de <stdarg.h> empeche le compilateur
@@ -38,22 +39,18 @@ class Tabdyn{
   Type *tab;
    bool trie;
 public:
-  Tabdyn() : taille(0), max{} {
-    trie = false;
-    tab = nullptr;
-  }
-
-  explicit Tabdyn(int first,...);
+  Tabdyn()
+    { trie=false; tab=NULL;}
+  Tabdyn(int first,...);
   ~Tabdyn(){delete [] tab;}
   void alloue(int first,...);
-  void free(){if (tab != nullptr) {delete [] tab ;}  tab=nullptr;}
+  void free(){if (tab != NULL) {delete [] tab ;}  tab=NULL;}
   Type& operator()(int first);
   Type& operator()(int first,int second);
   Type& operator()(int first,int second,int third,...);
-  Tabdyn& operator =(Tabdyn& rval);
+  Tabdyn<Type,D>& operator =(Tabdyn<Type,D>& rval);
   void maj(Type val);
-
-  static unsigned int dim(){return D;}
+  unsigned int dim(){return D;}
   unsigned int * maxi(){return max;}
   //Vorsicht : implemente only for 1D - MC
   void  quicksort(int (*clef)(Type *x, Type *y))
@@ -74,7 +71,7 @@ private:  // fonction privee
 };
 
 //************ operator = *****************
-template <class Type, unsigned int D>
+template <class Type, unsigned int D>   
 inline Tabdyn<Type,D>& Tabdyn<Type,D>::operator =(Tabdyn<Type,D>& rval){
   for(unsigned char i=0;i<D ;i++)
     if(max[i]!=rval.max[i]){
@@ -90,7 +87,7 @@ inline Tabdyn<Type,D>& Tabdyn<Type,D>::operator =(Tabdyn<Type,D>& rval){
 //************ maj() *****************
 template <class Type, unsigned int D>   
 void Tabdyn<Type,D>::maj(Type val){
-  if(tab==nullptr) {
+  if(tab==NULL) {
     Ferr<<"\nTabdyn [maj()]: Tableau dynamique pas alloue: acces impossible!";
     Ferr<<'\n';
     exit(36);
@@ -98,14 +95,14 @@ void Tabdyn<Type,D>::maj(Type val){
   unsigned long i;
   Type *pt;
   trie=false;
-  for(i=0,pt=tab;i<taille;i++,++pt) *pt=val;
+  for(i=0,pt=tab;i<taille;i++,pt++) *pt=val;
 }// maj()
 //*********** bonind() *****************
 template <class Type, unsigned int D>
 inline  int  Tabdyn<Type,D>::bonind(int  ind,unsigned  char indmax){
   if(ind<0 || ind>=max[indmax]){
     Ferr<<"\n Tabdyn[operator()]: indice no "<<ind<<" hors-borne!"<<'\n';
-    ind=static_cast<int>(1 / sin(0.0));
+    ind=(int)  (1/sin(0.0));
     exit(37);
     return ind; // pour eviter les warning verbeux de SGI
   }
@@ -132,7 +129,7 @@ inline void  Tabdyn<Type,D>::lectarg ( int &first,va_list & ptarg ){
     // cout<<"taille"<< taille<<"\n";
   }   
   tab=new Type[taille];
-  if(tab== nullptr) {
+  if(tab==NULL) {
     Ferr<<"Plus de mem pour alloc dyn!"<<'\n';
     exit(39);
   }
@@ -144,14 +141,14 @@ template <class Type, unsigned int D>
 Tabdyn<Type,D>::Tabdyn(int first,... ){
   va_list ptarg;
   va_start(ptarg,first);
-  tab=nullptr; trie=false; 
+  tab=NULL; trie=false; 
   lectarg (first,ptarg);        
 }//Tabdyn(x1,...)
 
 //-*********** alloue() *****************
 template <class Type, unsigned int D>
 void Tabdyn<Type,D>::alloue( int  first,... ){
-  if(tab!= nullptr) {
+  if(tab!=NULL) {
     Ferr<< "\nTabdyn [alloue()]: Tableau dynamique deja alloue a la declaration!"<<'\n';
     exit(40);
   }
@@ -164,7 +161,7 @@ void Tabdyn<Type,D>::alloue( int  first,... ){
 template <class Type,unsigned  int D>
 Type & Tabdyn<Type,D>::operator()(int first){
   if(D==1)
-    return tab[first];
+    return(tab[first]);
   else {
     Ferr <<"Tabdyn<Type,D>::operator()(int first) incompatbile avec D=";
     Ferr  << D<<'\n' ;
@@ -187,7 +184,7 @@ Type & Tabdyn<Type,D>::operator()(int first, int second){
 //*********** operator (1,2,3,...) *****************
 template <class Type,unsigned  int D>
 Type & Tabdyn<Type,D>::operator()(int first, int second, int third,...){
-  /*  if(tab==nullptr) {
+  /*  if(tab==NULL) {
     Ferr<< "Tabdyn [operator()]: Tableau dynamique pas alloue : acces impossible!"<<'\n';
     exit(43);
   }
@@ -206,7 +203,7 @@ Type & Tabdyn<Type,D>::operator()(int first, int second, int third,...){
     indice+=coeff*va_arg(ptarg,int);
   }   
   va_end(ptarg);
-  return tab[indice];
+  return(tab[indice]);
 }//operator ()
 //*******FIN****ENDE****FINO****END**** Tabdyn****---
 
@@ -217,38 +214,38 @@ enum Booleen {FAUX, VRAI};
 template <class Type>
 class Noeud{
   Type donnee;
-  Noeud *suivant;
+  Noeud<Type> *suivant;
   
 public:
-  //Noeud (Type d=0,Noeud<Type>*n=nullptr);
-  Noeud (Type d,Noeud*n);
-  explicit Noeud (Type d);
+  //Noeud (Type d=0,Noeud<Type>*n=NULL);
+  Noeud (Type d,Noeud<Type>*n);
+  Noeud (Type d);
   Noeud ();
   Type& donne(); // renvoie la donnee du noeud
   void donne(Type d); // initialise la donnee du noeud a la valeur d
-  inline Noeud* next(); // renvoie le pointeur sur suivant du noeud
+  inline Noeud<Type>* next(); // renvoie le pointeur sur suivant du noeud
   inline void next(Noeud<Type>* n); //initialise le pointeur sur suivant du noeud a la valeur n
   //show(){cout<<"Noued="<<donnee<<endl;}
 };
 
 template <class Type>
 class Liste{
+private:
   Noeud<Type> *premier;
   Noeud<Type> *courant;
   unsigned int nbe;
   
 public:
   Liste() {
-    premier=nullptr; courant=nullptr;  nbe=0;}
-
-  explicit Liste(char a) {
-   premier=nullptr; courant=nullptr;  nbe=0;} 
+    premier=NULL; courant=NULL;  nbe=0;}
+  Liste(char a) {
+   premier=NULL; courant=NULL;  nbe=0;} 
   ~Liste();     
   void ajoute (Type); // ajoute un element dans la liste
   void init_liste (Type); // initialise la liste
   void ajout_elem (Type); // ajoute un element dans la liste initialisee
   inline Booleen est_fin(); // indique si c'est la fin de la liste
-  inline Booleen finito(); // indique si courant=nullptr
+  inline Booleen finito(); // indique si courant=NULL
   inline Booleen est_vide(); // indique si la liste est vide
   inline void debut(); // met le pointeur courant au debut de la liste
   inline void fin(); // met le pointeur courant a la fin de la liste
@@ -270,17 +267,17 @@ public:
 template <class Type>
 class NoeudD{
   Type donnee;
-  NoeudD *suivant;
-  NoeudD *prec; //precedent
+  NoeudD<Type> *suivant;
+  NoeudD<Type> *prec; //precedent
 public:
   NoeudD (Type d);
-  NoeudD (Type d,NoeudD*n);  
+  NoeudD (Type d,NoeudD<Type>*n);  
   Type& donne(); // renvoie la donnee du NoeudD
   void donne(Type d); // initialise la donnee du NoeudD a la valeur d
-  inline NoeudD* next(); // renvoie le pointeur sur suivant du noeud
-  inline void next(NoeudD* n); //initialise le pointeur sur suivant du noeud a la valeur n
-  inline NoeudD* back(); // renvoie le pointeur sur prec du noeud
-  inline void back(NoeudD* n); //initialise le pointeur sur prec du noeud a la valeur n 
+  inline NoeudD<Type>* next(); // renvoie le pointeur sur suivant du noeud
+  inline void next(NoeudD<Type>* n); //initialise le pointeur sur suivant du noeud a la valeur n
+  inline NoeudD<Type>* back(); // renvoie le pointeur sur prec du noeud
+  inline void back(NoeudD<Type>* n); //initialise le pointeur sur prec du noeud a la valeur n 
   inline NoeudD& operator =(NoeudD &);
 }; //NoeudD
 
@@ -298,8 +295,8 @@ public:
   void init_liste (Type); // initialise la liste
   void ajout_elem (Type); // ajoute un element dans la liste initialisee
   inline bool est_fin(); // indique si c'est la fin de la liste
-  inline bool finito(); // indique si courant=nullptr
-  inline bool debuto(); // indique si courant=nullptr
+  inline bool finito(); // indique si courant=NULL
+  inline bool debuto(); // indique si courant=NULL
   inline bool est_debut(); // indique si courant=premier
   inline bool est_vide(); // indique si la liste est vide
   inline void debut(); // met le pointeur courant au debut de la liste
@@ -313,8 +310,7 @@ public:
   inline void detruire_droite(); // detruit l'element a droite de l'element courant
   inline void free_liste(); // libere la liste
   void QuickSort(int (*)(Type,Type));// tri rapide de la liste
-  unsigned int card() const
-  // donne le nbre d'elements (cardinal) 
+  unsigned int card() // donne le nbre d'elements (cardinal) 
   {return nbe;}
 private:
   void qsort( NoeudD<Type> *, NoeudD<Type> *,int (*)(Type,Type)); // Fonction recursive utilisee par Quicksort
@@ -332,7 +328,7 @@ inline void detruire_contenu(ListeD<Type *>&);
 // Noeud
 
 template <class Type>
-//Noeud<Type> :: Noeud (Type d,Noeud<Type>*n=nullptr)
+//Noeud<Type> :: Noeud (Type d,Noeud<Type>*n=NULL)
 Noeud<Type> :: Noeud (Type d,Noeud<Type>*n){
 	donnee=d;
 	suivant=n;
@@ -340,12 +336,12 @@ Noeud<Type> :: Noeud (Type d,Noeud<Type>*n){
 template <class Type>
 Noeud<Type> :: Noeud (Type d){
 	donnee=d;
-	suivant=nullptr;
+	suivant=NULL;
 }
 template <class Type>
 Noeud<Type> :: Noeud (){
 	donnee=0;
-	suivant=nullptr;
+	suivant=NULL;
 }
 
 template <class Type>
@@ -377,8 +373,8 @@ inline void Noeud<Type> :: next(Noeud<Type>* n)
 /*
 template <class Type>
 Liste<Type>::Liste(){
-  premier=nullptr;
-  courant=nullptr;
+  premier=NULL;
+  courant=NULL;
   nbe=0;
 }
 */
@@ -401,7 +397,7 @@ inline void Liste<Type> :: init_liste (Type contenu)
 	premier=new Noeud<Type>(contenu);
 //	premier=new Noeud<Type>;
 //	premier->donne(contenu);
-//	premier->next(nullptr);
+//	premier->next(NULL);
 	courant=premier;
     nbe++;
 }
@@ -419,23 +415,23 @@ inline void Liste<Type> :: ajout_elem (Type contenu)
 template <class Type>
 inline Booleen Liste<Type> :: est_fin()
 {
-  if (courant->next() == nullptr)
-	  return VRAI;
-  return FAUX;
+  if (courant->next() == NULL)
+	return VRAI;
+    else  return FAUX;
 }
 template <class Type>
 inline Booleen Liste<Type> :: finito()
 {
-    return courant==nullptr?VRAI:FAUX;
+    return((Booleen)(courant==NULL?VRAI:FAUX));
 }
 
 
 template <class Type>
 inline Booleen Liste<Type> :: est_vide()
 {
-   if (premier == nullptr) 
+   if (premier == NULL) 
          return VRAI;
-   return FAUX;
+    else return FAUX;
 }
 
 template <class Type>
@@ -464,7 +460,7 @@ inline void Liste<Type> :: suivant()
 template <class Type>
 inline Type& Liste<Type> :: contenu()
 {
-	return courant->donne();
+	return (courant->donne());
 }
 
 template <class Type>
@@ -561,7 +557,7 @@ inline void detruire_contenu(Liste<Type*>& liste)
 // NoeudD
 
 template <class Type>
-NoeudD<Type>::NoeudD (Type d,NoeudD*n)
+NoeudD<Type>::NoeudD (Type d,NoeudD<Type>*n)
 {
 	donnee=d;
 	suivant=n->next();
@@ -571,8 +567,8 @@ template <class Type>
 NoeudD<Type>::NoeudD (Type d)
 {
 	donnee=d;
-	suivant=nullptr;
-	prec=nullptr;
+	suivant=NULL;
+	prec=NULL;
 }
 template <class Type>
 inline Type& NoeudD<Type>::donne()
@@ -592,7 +588,7 @@ inline NoeudD<Type>* NoeudD<Type>::next()
 }
 
 template <class Type>
-inline void NoeudD<Type>::next(NoeudD* n)
+inline void NoeudD<Type>::next(NoeudD<Type>* n)
 {
 	suivant=n;
 }
@@ -604,19 +600,25 @@ inline NoeudD<Type>* NoeudD<Type>::back()
 }
 
 template <class Type>
-inline void NoeudD<Type>::back(NoeudD* n)
+inline void NoeudD<Type>::back(NoeudD<Type>* n)
 {
 	prec=n;
 }
 template <class Type>
-inline NoeudD<Type>& NoeudD<Type>::operator =(NoeudD<Type> & rval)= default;
+inline NoeudD<Type>& NoeudD<Type>::operator =(NoeudD<Type> & rval){
+  donnee=rval.donnee;
+  suivant=rval.suivant;
+  prec=rval.prec;
+  
+  return *this; 
+}
 // ListeD
 
 template <class Type>
 ListeD<Type>::ListeD()
 {
-	premier=nullptr;
-	courant=nullptr;
+	premier=NULL;
+	courant=NULL;
         nbe=0;
 }
 
@@ -630,7 +632,8 @@ template <class Type>
 inline void ListeD<Type>::ajoute (Type contenu)
  { if (est_vide() == true)
       init_liste(contenu);
-    ajout_elem(contenu);
+    else
+      ajout_elem(contenu);
 }
 template <class Type>
 inline void ListeD<Type>::init_liste (Type contenu)
@@ -644,7 +647,7 @@ template <class Type>
 inline void ListeD<Type>::ajout_elem (Type contenu)
 {
   NoeudD<Type>* p=new NoeudD<Type>(contenu, courant);
-  if(courant->next()!=nullptr)
+  if(courant->next()!=NULL)
     (courant->next())->back(p);
   courant->next(p);
   courant=p;
@@ -654,7 +657,7 @@ inline void ListeD<Type>::ajout_elem (Type contenu)
 template <class Type>
 inline bool ListeD<Type>::est_fin()
 {
-  if (courant->next() == nullptr)
+  if (courant->next() == NULL)
     return true;
   else
     return false;
@@ -663,24 +666,25 @@ inline bool ListeD<Type>::est_fin()
 template <class Type>
 inline  bool ListeD<Type>::finito()
 {
-    return courant==nullptr ?true:false;
+    return( (courant==NULL) ?true:false);
 }
 template <class Type>
 inline bool ListeD<Type>::est_debut()
 {
-    return courant==premier;
+    return( (courant==premier));
 }
 template <class Type>
 inline bool ListeD<Type>::debuto()
 {
-    return courant==nullptr;
+    return( (courant==NULL));
 }
 template <class Type>
 inline bool ListeD<Type>::est_vide()
 {
-  if (premier == nullptr) 
+  if (premier == NULL) 
     return true;
-  return false;
+  else
+    return false;
 }
 
 template <class Type>
@@ -723,7 +727,7 @@ inline void ListeD<Type>::detruire(){
       else {
 	NoeudD <Type>* prec=courant->back();
 	prec->next(courant->next());
-	courant->next()->back(prec);
+	(courant->next())->back(prec);
 	delete courant;
 	courant=prec;
 	nbe--;

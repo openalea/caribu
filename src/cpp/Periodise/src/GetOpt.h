@@ -78,7 +78,7 @@ private:
   static int first_nonopt;
   static int last_nonopt;
   
-  void exchange (char **argv) const;
+  void exchange (char **argv);
 public:
   /* For communication from `getopt' to the caller.
      When `getopt' finds an option that takes an argument,

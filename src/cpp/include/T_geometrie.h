@@ -5,7 +5,7 @@
 //		creation de deux [] distincts, cf ligne 26 Vs 27
 //    29 4 98 : mise en comm de copycons et op= superflus
 
-#include<iostream>
+#include<iostream> //.h>
 using namespace std ;
 
 // flux d'erreur
@@ -19,9 +19,10 @@ using namespace std ;
 #endif
 
 extern "C" {
+#include <stdlib.h>
 #include <assert.h>
 }
-#include <cmath>
+#include <math.h>
 
 
 

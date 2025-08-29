@@ -14,7 +14,8 @@ using namespace std ;
 #endif
 
 //#include "matlib.h"
-#include <cstdio>
+#include <stdio.h>
+#include <time.h>
 #ifndef _OSF_SOURCE
 /*
  *      Useful mathmatical constants:
@@ -46,43 +47,44 @@ inline void STOP(int i)
 // Si la condition est remplie, on sort en faute en signalant
 // le fichier et la ligne ou la faute s'est produite. 
 // Le nom du fichier de log permet de retrouver le programme fautif.
-void Dehors(bool cond, const char *msg, int ligne);
+void Dehors(bool cond, const char *msg, const int ligne);
 
 // Si  condition est remplie, on sort en faute en signalant
-// un manque de mï¿½moire, le fichier et la ligne ou la faute 
+// un manque de mémoire, le fichier et la ligne ou la faute 
 // s'est produite, et on conseille de rebooter.
 // Le nom du fichier de log permet de retrouver le programme fautif.
-void TestMemoire(bool cond, const char *msg, int ligne) ;
+void TestMemoire(bool cond, const char *msg, const int ligne) ;
 
 //-******** T_MAX
 template <class Type>
 inline   Type T_max(Type v1, Type v2)
- {return v1>=v2 ? v1 : v2;}
+ {return((v1>=v2) ? v1 : v2);}
 
 //-******** T_MIN
 template <class Type>
 inline   Type T_min(Type v1, Type v2)
- {return v1<v2 ? v1 : v2;}
+ {return((v1<v2) ? v1 : v2);}
 
 //-******** T_imax : gaffe au depassement
 template <class Type>
 inline  int T_imax(Type tab, int i, int j)
- {return tab[i]<tab[j] ? j : i;}
+ {return((tab[i]<tab[j]) ? j : i);}
 
 //-******** T_imin : gaffe au depassement
 template <class Type>
 inline  int T_imin(Type tab, int i, int j)
- {return tab[i]<tab[j] ? i : j;}
+ {return((tab[i]<tab[j]) ? i : j);}
 
 // PARAMETRES d'INTERSECTION
 class Param_Inter{
+private:
   Point origine;
   Vecteur direction;
   double poids;
 public:
   int ordre;
   inline Param_Inter(Point, Vecteur, double);
-  Param_Inter() = default;
+  inline Param_Inter() {}
   inline Param_Inter&   operator = (Param_Inter&);
   inline Point   origin();
   inline Vecteur direct();
@@ -90,7 +92,7 @@ public:
   inline void    change_origine( Point&);
   inline void    change_direction( Vecteur&);
   inline void    change_poids(const double&);
-  void show() const {
+  void show(){
     cout <<"paraminter : Origine";origine.show();cout<<"\ndirection ";direction.show();cout<<"\npoids = "<<poids<<" - ordre = "<<ordre<<endl;}
 };//Class Param_Intetr 
  

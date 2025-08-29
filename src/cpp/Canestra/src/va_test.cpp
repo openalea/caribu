@@ -3,6 +3,7 @@
 using namespace std;
 
 #include <cstdarg>
+#include <cstring>
 
 int f(int first, int second, int third,...){
   va_list ptarg;

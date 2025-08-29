@@ -42,7 +42,7 @@ void Canopy::gencan(char *fname){
       else
 	label=8;
       nbs= prim->nb_sommet();
-      fprintf(fic,"p 2 %.0f %d   %d  ",prim->name()*1000,label,nbs);
+      fprintf(fic,"p 2 %.0f %d   %d  ",(double)prim->name()*1000,label,nbs);
       for (i=0; i<nbs; i++){
 	fprintf(fic," %f %f %f ",(double)prim->sommets(i)[0],(double)prim->sommets(i)[1],(double)prim->sommets(i)[2]);
       }
@@ -68,7 +68,7 @@ const bool opak=true;
 //lectopt() : lit les proprietes optiques (fonction locale)
 Actop* lectop(ifstream &fopti, bool opac=false){
   double popt[9]={0, 0, 0, 0, 0, 0, 0, 0, 0};
-  Actop *actop=nullptr;
+  Actop *actop=NULL;
   char c;
   
   fopti>>c; //cerr<<c;
@@ -148,8 +148,9 @@ void syntax_error(char * nomfic){
 bool fexists(const char *filename) {
   if (ifstream(filename)) {
     return true;
+  } else {
+	return false;
   }
-  return false;
 }
 
 //-********************   Canopy::parse_can()    ***********************
@@ -190,23 +191,24 @@ void Canopy::parse_can(char *ngeom,char *nopti,reel *bornemin,reel*bornemax,bool
   
   ifstream fgeom; 
 
-  if (ngeom == nullptr) {
+  if (ngeom == NULL) {
     cerr << "ERREUR - Pas de nom de maquette : ";
     cerr << "Je quitte" <<endl; 
     cerr.flush();
     exit (1);
-  }
-  if(access(ngeom,R_OK )){
-	  cerr << "ERREUR - Impossible d'ouvrir la maquette ";
-	  cerr <<ngeom<<endl;
-	  cerr << "Je quitte" <<endl;
-	  cerr.flush();
-	  exit (1);
+  } else {
+    if(access(ngeom,R_OK )){
+      cerr << "ERREUR - Impossible d'ouvrir la maquette ";
+      cerr <<ngeom<<endl;
+      cerr << "Je quitte" <<endl; 
+      cerr.flush();
+      exit (1);
+    }
   }
   // Ok
   fgeom.open(ngeom,ios::in);
 
-  bool nopti_is_null = nopti == nullptr;
+  bool nopti_is_null = (nopti == NULL);
   bool file_exists = fexists(nopti);
 
   if (!nopti_is_null && file_exists) {
@@ -232,7 +234,7 @@ void Canopy::parse_can(char *ngeom,char *nopti,reel *bornemin,reel*bornemax,bool
 			  cout<<"p.o. sol lues\n";
 			  //cerr<<"Canopy[parse_can]ficoptik : sol lu\n";
 			  tabopaque(nbopt) = lectop(fopti, opak);
-			  raus(tabopaque(nbopt)==nullptr,"Canopy[parse_can] allocation tabopaque impossible!");
+			  raus(tabopaque(nbopt)==NULL,"Canopy[parse_can] allocation tabopaque impossible!");
 			  nbopt++;
 			  fopti.getline(line,256);
 			  break;
@@ -240,11 +242,11 @@ void Canopy::parse_can(char *ngeom,char *nopti,reel *bornemin,reel*bornemax,bool
 			  if(ii==0) syntax_error(nopti);
 			  //cerr<<"Canopy[parse_can]ficoptik : espece no "<<nbopt<<endl;
 			  tabopaque(nbopt) =  lectop(fopti, opak);
-			  raus(tabopaque(nbopt)==nullptr,"Canopy[parse_can] allocation tabopaque impossible!");
+			  raus(tabopaque(nbopt)==NULL,"Canopy[parse_can] allocation tabopaque impossible!");
 			  tabtransp(nbopt-1,0)= lectop(fopti);
-			  raus(tabtransp(nbopt-1,0)==nullptr,"Canopy[parse_can] allocation tabtransp_sup impossible!");
+			  raus(tabtransp(nbopt-1,0)==NULL,"Canopy[parse_can] allocation tabtransp_sup impossible!");
 			  tabtransp(nbopt-1,1)= lectop(fopti); //face inf
-			  raus(tabtransp(nbopt-1,1)==nullptr,"Canopy[parse_can] allocation tabtransp_inf impossible!");
+			  raus(tabtransp(nbopt-1,1)==NULL,"Canopy[parse_can] allocation tabtransp_inf impossible!");
 			  nbopt++;
 			  fopti.getline(line,256);
 			  break;
@@ -279,7 +281,7 @@ void Canopy::parse_can(char *ngeom,char *nopti,reel *bornemin,reel*bornemax,bool
   
   // lecture des primitives geometriques (fichier '.can')
   //-*****************  Parser de fichier .can *************  
-  Primitive* prim = nullptr;
+  Primitive* prim = NULL;
   char T,*pch;
   int nbid;
   //Tabdyn<long int, 1> tabid; :ne marche que sur l'alpha : 64bits
@@ -336,8 +338,8 @@ void Canopy::parse_can(char *ngeom,char *nopti,reel *bornemin,reel*bornemax,bool
       // MC Avril 98 : Pb sur sun de division de tabid(0)/1e11 !!!!
       //               => Creation de la var. double espid=1e11
       // specie=(short)(tabid(0)/100000000000);
-      specie=static_cast<unsigned char>(tabid(0) / espid);
-      opak=static_cast<long>(tabid(0) / 1000)%1000 ==0? true : false;
+      specie=(unsigned char)(tabid(0)/espid);
+      opak=((long)(tabid(0)/1000)%1000 ==0)? true : false;
       nom=tabid(0);
       //printf(" tabdid(0)=%g,nom=%.0f, specie=%d, opak=%d \n ",tabid(0),nom,(int)specie,opak?0:1);
       //-** saisie de la geometrie
@@ -354,7 +356,7 @@ void Canopy::parse_can(char *ngeom,char *nopti,reel *bornemin,reel*bornemax,bool
 	cerr <<" *****  Primitive rejete : libelle = "<<nom<<endl;
 	//rejet=true; - MC09
 	delete prim;
-	prim= nullptr;
+	prim= NULL;
       }
       else{
 	for (i=0; i<3; i++){
@@ -379,7 +381,7 @@ void Canopy::parse_can(char *ngeom,char *nopti,reel *bornemin,reel*bornemax,bool
     cout <<"Canopy[parse_can] *************  Segment(s) rejete(s) *******\n";
   cout << "Canopy [parse_can] nbre de primitives = "<<nbp<<endl;
   
-  if(name8==nullptr)
+  if(name8==NULL)
   infty=false;
   else{
     infty=true;
