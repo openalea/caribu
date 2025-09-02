@@ -5,6 +5,10 @@ build:
   tools:
     python: "mambaforge-22.9"
 
+  jobs:
+    pre_install:
+      - export PREFIX=$CONDA_PREFIX
+
 conda:
   environment: doc/environment.yml
 
