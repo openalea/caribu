@@ -17,4 +17,4 @@ add_subdirectory("src/cpp/s2v/src")
 add_subdirectory("src/cpp/Canestra/src")
 
 install(TARGETS mcsail periodise s2v canestrad
-        DESTINATION "$ENV{CONDA_PREFIX}/bin")
+        DESTINATION "$ENV{PREFIX}/bin")
