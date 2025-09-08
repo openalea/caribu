@@ -75,11 +75,11 @@ typedef struct Iter_data {
    Fun_Ax  Bx; /* function computing y = B*x; B - preconditioner */
    void *B_par;         /* parameters for Bx */
 
-   void (*info)(Iter_data *ip,double nres,VEC *res,VEC *Bres);
+   void (*info)(struct Iter_data *ip,double nres,VEC *res,VEC *Bres);
             /* function giving some information for a user;
 	       nres - a norm of a residual res */
    
-   int (*stop_crit)(Iter_data *ip,double nres,VEC *res,VEC *Bres);
+   int (*stop_crit)(struct Iter_data *ip,double nres,VEC *res,VEC *Bres);
            /* stopping criterion:
 	      nres - a norm of res;
 	      res - residual;
