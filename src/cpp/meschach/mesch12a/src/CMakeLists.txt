@@ -10,7 +10,10 @@ if (WIN32)
 endif()
 
 # Force old C standard (gnu89) for meschach sources only
-set_source_files_properties(${SRC_FILES} PROPERTIES COMPILE_FLAGS "-std=gnu89")
+set_target_properties(meschach PROPERTIES
+    C_STANDARD 90
+    C_EXTENSIONS ON   # this gives gnu89 instead of c90
+)
 
 # Make sure the compiler treats it as C
 set_target_properties(meschach PROPERTIES LINKER_LANGUAGE C)
