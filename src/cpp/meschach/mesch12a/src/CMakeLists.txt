@@ -1,12 +1,22 @@
-file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/cpp/meschach/mesch12a/src/*.c)
+# Collect all C source files in this directory
+file(GLOB SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
 
-
+# Build meschach as a static library
 add_library(meschach STATIC ${SRC_FILES})
 
+# Windows-specific defines
 if (WIN32)
-    target_compile_definitions(meschach PUBLIC MINGW)
-    target_compile_definitions(meschach PUBLIC WIN32)
+    target_compile_definitions(meschach PUBLIC MINGW WIN32)
 endif()
 
+# Make sure the compiler treats it as C
 set_target_properties(meschach PROPERTIES LINKER_LANGUAGE C)
-target_include_directories(meschach PUBLIC ${PROJECT_SOURCE_DIR}/src/cpp/meschach/mesch12a/include)
+
+# Public include path (existing headers in meschach/include)
+target_include_directories(meschach
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/src/cpp/meschach/mesch12a/include
+    PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}         # so machine.h is visible
+        ${CMAKE_BINARY_DIR}                 # root-level binary dir where machine.h lives
+)
