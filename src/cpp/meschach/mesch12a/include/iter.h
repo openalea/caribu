@@ -75,35 +75,16 @@ typedef struct Iter_data {
    Fun_Ax  Bx; /* function computing y = B*x; B - preconditioner */
    void *B_par;         /* parameters for Bx */
 
-#ifdef ANSI_C
-
-#ifdef PROTOTYPES_IN_STRUCT
-   void (*info)(struct Iter_data *, double, VEC *,VEC *);
+   void (*info)(Iter_data *ip,double nres,VEC *res,VEC *Bres);
             /* function giving some information for a user;
 	       nres - a norm of a residual res */
    
-   int (*stop_crit)(struct Iter_data *, double, VEC *,VEC *);
+   int (*stop_crit)(Iter_data *ip,double nres,VEC *res,VEC *Bres);
            /* stopping criterion:
 	      nres - a norm of res;
 	      res - residual;
 	    if returned value == TRUE then stop;
 	    if returned value == FALSE then continue; */
-#else
-   void (*info)();
-   int  (*stop_crit)();
-#endif /* PROTOTYPES_IN_STRUCT */
-
-#else
-
-   void (*info)();
-            /* function giving some information for a user */
-   
-   int (*stop_crit)();
-           /* stopping criterion:
-	    if returned value == TRUE then stop;
-	    if returned value == FALSE then continue; */
-
-#endif /* ANSI_C */
 
    Real init_res;   /* the norm of the initial residual */
 
