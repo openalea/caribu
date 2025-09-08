@@ -53,15 +53,15 @@ VEC *hd_mv_mlt(SPMAT* A,VEC *x,VEC* out) {
   fread(&nd,sizeof(int),1,fic);
   fread(&dff,sizeof(double),1,fic);
   if ( ! A || ! x )
-    error(E_NULL,(char*)"hd_mv_mlt");
+    error(E_NULL, "hd_mv_mlt");
   if ( x->dim != n ){
     Ferr <<"in "  << pcDgName<<" A=" << n<<"^2 but x.dim="<<x->dim<<" !\n" ;
-    error(E_SIZES,(char*)"hd_mv_mlt");
+    error(E_SIZES, "hd_mv_mlt");
   }
   if ( ! out || out->dim < n )
     out = v_resize(out,n);
   if ( out == x )
-    error(E_INSITU,(char*)"hd_mv_mlt");
+    error(E_INSITU,"hd_mv_mlt");
   x_ve = x->ve;
   //chargement des indices de la diago
   diag=new int[nd+1];//nd= nb prim + 1
@@ -161,15 +161,15 @@ void hd_mgcr(VEC *x,VEC *b, Diffuseur **TabDiff,double tol,int krylov,int limit,
   int dim;       /* dimension of the problem */
    
   /* ip cannot be NULL */
-  if (ip == INULL) error(E_NULL,(char*)"hd_mgcr");
+  if (ip == INULL) error(E_NULL, "hd_mgcr");
   /* Ax, b and stopping criterion must be given */
   if (! ip->Ax || ! ip->b || ! ip->stop_crit) 
-    error(E_NULL,(const char*)"hd_mgcr");
+    error(E_NULL, "hd_mgcr");
   /* at least one direction vector must exist */
-  if ( ip->k <= 0) error(E_BOUNDS,(const char*)"mgcr");
+  if ( ip->k <= 0) error(E_BOUNDS, "mgcr");
   /* if the vector x is given then b and x must have the same dimension */
   if ( ip->x && ip->x->dim != ip->b->dim)
-    error(E_SIZES,(const char*)"hd_mgcr");
+    error(E_SIZES, "hd_mgcr");
   if (ip->eps <= 0.0) ip->eps = MACHEPS;
    
   dim = ip->b->dim;
