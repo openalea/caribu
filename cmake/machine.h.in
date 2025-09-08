@@ -161,5 +161,17 @@ typedef unsigned int u_int;
 #include <float.h>
 #endif
 
+/* isatty(), fileno() etc. */
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#else
+  /* Windows compatibility */
+  #if defined(_WIN32) || defined(_WIN64)
+    #include <io.h>
+    #define isatty _isatty
+    #define fileno _fileno
+  #endif
+#endif
+
 #endif /* _MACHINE_H */
 
