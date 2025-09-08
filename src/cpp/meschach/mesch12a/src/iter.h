@@ -78,11 +78,11 @@ typedef struct Iter_data {
 #ifdef ANSI_C
 
 #ifdef PROTOTYPES_IN_STRUCT
-   void (*info)(ITER *ip,double nres,VEC *res,VEC *Bres);
+   void (*info)(Iter_data *ip,double nres,VEC *res,VEC *Bres);
             /* function giving some information for a user;
 	       nres - a norm of a residual res */
    
-   int (*stop_crit)(ITER *ip, double nres, VEC *res,VEC *Bres);
+   int (*stop_crit)(Iter_data *ip, double nres, VEC *res,VEC *Bres);
            /* stopping criterion:
 	      nres - a norm of res;
 	      res - residual;
@@ -114,14 +114,14 @@ typedef struct Iter_data {
 
 /* type Fun_info */
 #ifdef ANSI_C
-typedef void (*Fun_info)(ITER *, double, VEC *,VEC *);
+typedef void (*Fun_info)(ITER *ip, double nres, VEC *res,VEC *Bres);
 #else
 typedef void (*Fun_info)();
 #endif
 
 /* type Fun_stp_crt */
 #ifdef ANSI_C
-typedef int (*Fun_stp_crt)(ITER *, double, VEC *,VEC *);
+typedef int (*Fun_stp_crt)(ITER *ip, double nres, VEC *res,VEC *Bres);
 #else
 typedef int (*Fun_stp_crt)();
 #endif
