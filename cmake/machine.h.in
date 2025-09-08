@@ -156,6 +156,7 @@ typedef unsigned int u_int;
    Standard headers (when ANSI_C)
    --------------------------------------------------- */
 #ifdef ANSI_C
+#include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <float.h>
