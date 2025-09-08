@@ -42,6 +42,37 @@
 
 static char rcsid[] = "$Id: iternsym.c,v 1.6 1995/01/30 14:53:01 des Exp $";
 
+// --- Patch: ANSI prototypes for old K&R functions ---
+// Suppresses deprecated-non-prototype warnings on modern compilers
+
+VEC     *iter_cgs(ITER *ip, VEC *r0);
+VEC     *iter_spcgs(MAT *A, MAT *B, VEC *b, VEC *r0, double tol, VEC *x, int limit, int steps);
+VEC     *iter_lsqr(ITER *ip);
+VEC     *iter_splsqr(MAT *A, VEC *b, double tol, VEC *x, int limit, int steps);
+MAT     *iter_arnoldi_iref(ITER *ip, MAT *h_rem, MAT *Q, MAT *H);
+MAT     *iter_arnoldi(ITER *ip, MAT *h_rem, MAT *Q, MAT *H);
+MAT     *iter_sparnoldi(MAT *A, VEC *x0, int m, MAT *h_rem, MAT *Q, MAT *H);
+static void test_gmres(ITER *ip, int i, MAT *Q, MAT *R, double *givc, double *givs, double *h_val);
+VEC     *iter_gmres(ITER *ip);
+VEC     *iter_spgmres(MAT *A, MAT *B, VEC *b, double tol, VEC *x, int k, int limit, int steps);
+static void test_mgcr(ITER *ip, int i, MAT *Q, MAT *R);
+VEC     *iter_mgcr(ITER *ip);
+VEC     *iter_spmgcr(MAT *A, MAT *B, VEC *b, double tol, VEC *x, int k, int limit, int steps);
+VEC     *iter_cgne(ITER *ip);
+VEC     *iter_spcgne(MAT *A, MAT *B, VEC *b, double eps, VEC *x, int limit, int steps);
+VEC     *iter_cgs(ITER *ip, VEC *r0);  // duplicate in logs, harmless
+VEC     *iter_spcgs(MAT *A, MAT *B, VEC *b, VEC *r0, double tol, VEC *x, int limit, int steps);
+VEC     *iter_lsqr(ITER *ip);
+VEC     *iter_splsqr(MAT *A, VEC *b, double tol, VEC *x, int limit, int steps);
+MAT     *iter_arnoldi_iref(ITER *ip, MAT *h_rem, MAT *Q, MAT *H);
+MAT     *iter_arnoldi(ITER *ip, MAT *h_rem, MAT *Q, MAT *H);
+MAT     *iter_sparnoldi(MAT *A, VEC *x0, int m, MAT *h_rem, MAT *Q, MAT *H);
+static void test_gmres(ITER *ip, int i, MAT *Q, MAT *R, double *givc, double *givs, double *h_val);
+VEC     *iter_gmres(ITER *ip);
+VEC     *iter_spgmres(MAT *A, MAT *B, VEC *b, double tol, VEC *x, int k, int limit, int steps);
+VEC     *iter_mgcr(ITER *ip);
+VEC     *iter_cgne(ITER *ip);
+VEC     *iter_spcgne(MAT *A, MAT *B, VEC *b, double eps, VEC *x, int limit, int steps);
 
 /* 
   iter_cgs -- uses CGS to compute a solution x to A.x=b
