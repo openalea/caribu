@@ -43,7 +43,6 @@ PERM *ipx_finput(FILE *fp, PERM *px);
 PERM *bpx_finput(FILE *fp, PERM *px);
 VEC *ifin_vec(FILE *fp, VEC *vec);
 VEC *bfin_vec(FILE *fp, VEC *vec);
-char *setformat(f_string str);
 
 /**************************************************************************
   Input routines
@@ -368,10 +367,9 @@ VEC     *bfin_vec(FILE *fp, VEC *vec)
 /**************************************************************************
   Output routines
   **************************************************************************/
-static char    *format = "%14.9g ";
+static char *format = "%14.9g ";
 
-char	*setformat(f_string)
-char    *f_string;
+char *setformat(char *f_string)
 {
     char	*old_f_string;
     old_f_string = format;
