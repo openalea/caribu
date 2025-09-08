@@ -63,6 +63,17 @@ check_c_source_compiles("
   int main() { return 0; }
 " HAVE_PROTOTYPES_IN_STRUCT)
 
+# -------------------------------------------------------
+# Define ANSI_C for modern compilers
+# -------------------------------------------------------
+check_c_source_compiles("
+  int main(void) { return 0; }
+" HAVE_STANDARD_C)
+
+if(HAVE_STANDARD_C)
+  add_definitions(-DANSI_C)
+endif()
+
 # Endianness
 test_big_endian(WORDS_BIGENDIAN)
 
