@@ -16,7 +16,6 @@ set_target_properties(meschach PROPERTIES LINKER_LANGUAGE C)
 target_include_directories(meschach
     PUBLIC
         ${PROJECT_SOURCE_DIR}/src/cpp/meschach/mesch12a/include
-    PRIVATE
-        ${CMAKE_CURRENT_BINARY_DIR}         # so machine.h is visible
-        ${CMAKE_BINARY_DIR}                 # root-level binary dir where machine.h lives
+        ${CMAKE_CURRENT_BINARY_DIR}   # machine.h generated here
+        ${CMAKE_BINARY_DIR}           # root-level binary dir
 )
