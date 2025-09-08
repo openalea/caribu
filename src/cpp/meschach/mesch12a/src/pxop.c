@@ -223,45 +223,47 @@ PERM	*px_transp(PERM* px,u_int i1,u_int i2)
 	return px;
 }
 
-/* myqsort -- a cheap implementation of Quicksort on integers
-		-- returns number of swaps */
-static int myqsort(int *a,int num)
-// int	*a, num;
+/* myqsort -- a cheap implementation of Quicksort on unsigned integers
+   -- returns number of swaps */
+static int myqsort(u_int *a, int num)
 {
-	int	i, j, tmp, v;
-	int	numswaps;
+    int i, j;
+    u_int tmp, v;
+    int numswaps;
 
-	numswaps = 0;
-	if ( num <= 1 )
-		return 0;
+    numswaps = 0;
+    if (num <= 1)
+        return 0;
 
-	i = 0;	j = num;	v = a[0];
-	for ( ; ; )
-	{
-		while ( a[++i] < v )
-			;
-		while ( a[--j] > v )
-			;
-		if ( i >= j )	break;
+    i = 0;
+    j = num;
+    v = a[0];
 
-		tmp = a[i];
-		a[i] = a[j];
-		a[j] = tmp;
-		numswaps++;
-	}
+    for (;;)
+    {
+        while (a[++i] < v)
+            ;
+        while (a[--j] > v)
+            ;
+        if (i >= j) break;
 
-	tmp = a[0];
-	a[0] = a[j];
-	a[j] = tmp;
-	if ( j != 0 )
-		numswaps++;
+        tmp = a[i];
+        a[i] = a[j];
+        a[j] = tmp;
+        numswaps++;
+    }
 
-	numswaps += myqsort(&a[0],j);
-	numswaps += myqsort(&a[j+1],num-(j+1));
+    tmp = a[0];
+    a[0] = a[j];
+    a[j] = tmp;
+    if (j != 0)
+        numswaps++;
 
-	return numswaps;
+    numswaps += myqsort(&a[0], j);
+    numswaps += myqsort(&a[j + 1], num - (j + 1));
+
+    return numswaps;
 }
-
 
 /* px_sign -- compute the ``sign'' of a permutation = +/-1 where
 		px is the product of an even/odd # transpositions */
