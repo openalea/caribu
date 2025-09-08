@@ -9,6 +9,9 @@ if (WIN32)
     target_compile_definitions(meschach PUBLIC MINGW WIN32)
 endif()
 
+# Force old C standard (gnu89) for meschach sources only
+set_source_files_properties(${SRC_FILES} PROPERTIES COMPILE_FLAGS "-std=gnu89")
+
 # Make sure the compiler treats it as C
 set_target_properties(meschach PROPERTIES LINKER_LANGUAGE C)
 
