@@ -26,6 +26,7 @@ check_include_file("malloc.h"   HAVE_MALLOC_H)
 check_include_file("complex.h"  HAVE_COMPLEX_H)
 check_include_file("varargs.h"  HAVE_VARARGS_H)
 check_include_file("unistd.h"   HAVE_UNISTD_H)
+check_include_file("sys/types.h" HAVE_SYS_TYPES_H)
 
 # Functions
 check_function_exists(bcopy HAVE_BCOPY)
@@ -38,12 +39,19 @@ check_type_size("long" SIZEOF_LONG)
 check_type_size("double" SIZEOF_DOUBLE)
 check_type_size("size_t" SIZEOF_SIZE_T)
 
-# u_int typedef check
+# Check if u_int exists (then requires sys/types.h if available)
+set(CMAKE_REQUIRED_INCLUDES ${CMAKE_REQUIRED_INCLUDES})
+if(HAVE_SYS_TYPES_H)
+  list(APPEND CMAKE_REQUIRED_INCLUDES "sys/types.h")
+endif()
+
 check_c_source_compiles("
-  #include <stdio.h>
-  #include <stdlib.h>
-  int main() { u_int i = 1; return 0; }
-" U_INT_DEF)
+  #include <sys/types.h>
+  int main(void) {
+      u_int i = 1;
+      return (int)i;
+  }
+" HAVE_U_INT)
 
 # const keyword
 check_c_source_compiles("
