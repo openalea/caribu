@@ -250,9 +250,6 @@ void    iter_splanczos(SPMAT *A, int m, VEC *x0, VEC *a, VEC *b, Real *beta2, MA
 }
 
 
-
-extern	double	frexp(), ldexp();
-
 /* product -- returns the product of a long list of numbers
    -- answer stored in mant (mantissa) and expt (exponent) */
 static	double	product(VEC *a, double offset, int *expt)

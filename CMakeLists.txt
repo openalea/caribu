@@ -105,6 +105,7 @@ if(WITH_DOUBLE)
 endif()
 
 # Special constants
+# Write a small C program to compute constants
 file(WRITE ${CMAKE_BINARY_DIR}/check_constants.c "
 #include <stdio.h>
 #include <float.h>
@@ -117,12 +118,15 @@ int main(void) {
 }
 ")
 
+# Compile and run it
 try_run(RUN_RESULT COMPILE_RESULT
-    ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}/check_constants.c
+    ${CMAKE_BINARY_DIR}        # run directory
+    ${CMAKE_BINARY_DIR}/check_constants.c
+    COMPILE_OUTPUT_VARIABLE COMPILE_OUT
+    RUN_OUTPUT_VARIABLE OUTPUT_STR
 )
 
 if(COMPILE_RESULT AND RUN_RESULT EQUAL 0)
-    file(READ ${CMAKE_BINARY_DIR}/check_constants.c_run OUTPUT_STR)
     string(REGEX MATCH "D_MACHEPS=([0-9.e+-]+)" _match "${OUTPUT_STR}")
     set(D_MACHEPS "${CMAKE_MATCH_1}")
     string(REGEX MATCH "F_MACHEPS=([0-9.e+-]+F)" _match "${OUTPUT_STR}")
@@ -130,8 +134,9 @@ if(COMPILE_RESULT AND RUN_RESULT EQUAL 0)
     string(REGEX MATCH "M_MAX_INT=([0-9]+)" _match "${OUTPUT_STR}")
     set(M_MAX_INT "${CMAKE_MATCH_1}")
 else()
-    message(FATAL_ERROR "Could not compute machine constants")
+    message(FATAL_ERROR "Could not compute machine constants: ${COMPILE_OUT}")
 endif()
+
 
 # Generate machine.h in build dir
 configure_file(
