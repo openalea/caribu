@@ -9,7 +9,9 @@ set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include_directories("src/cpp/")
-
+if (APPLE)
+    add_compile_options(-ffp-contract=off -fno-fast-math)
+endif()
 # -------------------------------------------------------
 # === Meschach compatibility checks ===
 # These replicate what the old configure.in used to do
