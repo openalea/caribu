@@ -104,10 +104,34 @@ if(WITH_DOUBLE)
   add_compile_definitions(REAL_DBL)
 endif()
 
-# Special constants (hardcoded IEEE defaults for now)
-set(D_MACHEPS "2.220446049250313e-16")
-set(F_MACHEPS "1.19209290e-07F")
-set(M_MAX_INT "2147483647")
+# Special constants
+file(WRITE ${CMAKE_BINARY_DIR}/check_constants.c "
+#include <stdio.h>
+#include <float.h>
+#include <limits.h>
+int main(void) {
+    printf(\"D_MACHEPS=%.20g\\n\", DBL_EPSILON);
+    printf(\"F_MACHEPS=%.9gF\\n\", FLT_EPSILON);
+    printf(\"M_MAX_INT=%d\\n\", INT_MAX);
+    return 0;
+}
+")
+
+try_run(RUN_RESULT COMPILE_RESULT
+    ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}/check_constants.c
+)
+
+if(COMPILE_RESULT AND RUN_RESULT EQUAL 0)
+    file(READ ${CMAKE_BINARY_DIR}/check_constants.c_run OUTPUT_STR)
+    string(REGEX MATCH "D_MACHEPS=([0-9.e+-]+)" _match "${OUTPUT_STR}")
+    set(D_MACHEPS "${CMAKE_MATCH_1}")
+    string(REGEX MATCH "F_MACHEPS=([0-9.e+-]+F)" _match "${OUTPUT_STR}")
+    set(F_MACHEPS "${CMAKE_MATCH_1}")
+    string(REGEX MATCH "M_MAX_INT=([0-9]+)" _match "${OUTPUT_STR}")
+    set(M_MAX_INT "${CMAKE_MATCH_1}")
+else()
+    message(FATAL_ERROR "Could not compute machine constants")
+endif()
 
 # Generate machine.h in build dir
 configure_file(
