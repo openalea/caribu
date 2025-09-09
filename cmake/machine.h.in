@@ -15,6 +15,7 @@
 #cmakedefine HAVE_COMPLEX_H 1
 #cmakedefine HAVE_VARARGS_H 1
 #cmakedefine HAVE_UNISTD_H 1
+#cmakedefine HAVE_SYS_TYPES_H 1
 
 /* ---------------------------------------------------
    Functions
@@ -50,9 +51,13 @@
 #cmakedefine SIZEOF_LONG @SIZEOF_LONG@
 #cmakedefine SIZEOF_DOUBLE @SIZEOF_DOUBLE@
 #cmakedefine SIZEOF_SIZE_T @SIZEOF_SIZE_T@
-#cmakedefine U_INT_DEF 1
+#cmakedefine HAVE_U_INT 1
 
-#ifndef U_INT_DEF
+#ifdef HAVE_SYS_TYPES_H
+#  include <sys/types.h>
+#endif
+
+#ifndef HAVE_U_INT
 typedef unsigned int u_int;
 #endif
 
