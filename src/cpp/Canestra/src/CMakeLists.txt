@@ -30,8 +30,3 @@ target_compile_definitions(canestrad PUBLIC
 )
 
 target_link_libraries(canestrad PUBLIC meschach bibliotek)
-
-# Needed for Macosx-latest numerical stability
-if (APPLE)
-    add_compile_options(-ffp-contract=off)
-endif()
