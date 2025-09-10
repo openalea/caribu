@@ -16,7 +16,4 @@ if (WIN32)
     target_compile_definitions(meschach PUBLIC WIN32)
 endif()
 
-target_include_directories(canestrad PUBLIC ${PROJECT_SOURCE_DIR}/src/cpp/include)
-target_include_directories(canestrad PUBLIC ${PROJECT_SOURCE_DIR}/src/cpp/meschach/mesch12a/include)
-
 target_link_libraries(canestrad PUBLIC meschach bibliotek)
