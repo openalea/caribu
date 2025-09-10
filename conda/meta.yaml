@@ -25,10 +25,9 @@ build:
     - CMAKE_GENERATOR=MinGW Makefiles # [win]
     - CXX=g++ # [win]
     - CC=gcc # [win]
-  ignore_run_exports_from:
-    # caribu executables are independant from python.On win, Avoid m2w64 conflictual exports
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
+  ignore_run_exports:
+    - m2w64-gcc-libs
+    - m2w64-gcc-libs-core
   script:
     - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
