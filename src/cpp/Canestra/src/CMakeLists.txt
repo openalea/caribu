@@ -17,6 +17,16 @@ if (WIN32)
 endif()
 
 target_include_directories(canestrad PUBLIC ${PROJECT_SOURCE_DIR}/src/cpp/include)
-target_include_directories(canestrad PUBLIC ${PROJECT_SOURCE_DIR}/src/cpp/meschach/mesch12a/include)
+# Add include directories from meschach
+target_include_directories(canestrad
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/src/cpp/meschach/mesch12a/include  # original headers
+        ${CMAKE_BINARY_DIR}/src/cpp/meschach/mesch12a/src        # generated machine.h
+)
+
+# Propagate compile definitions from meschach
+target_compile_definitions(canestrad PUBLIC
+    $<TARGET_PROPERTY:meschach,COMPILE_DEFINITIONS>
+)
 
 target_link_libraries(canestrad PUBLIC meschach bibliotek)

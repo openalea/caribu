@@ -20,10 +20,9 @@ struct Coeff{
 void mprofil(Limit& limit,Profout* Tprof,Mlayout* Tlay){
   int ic;
   Coeff *T,*o;
-  Mlayout l;
+  Mlayout l{};
   
   printf("profil.C::mprofil() : ~debut\n");   fflush(stdout);fflush(stderr);
-  T=NULL;
   T=new Coeff[N+1];
   //sources
   // CF 2016 : seems not to be used anymore. Skip allocation
@@ -33,7 +32,7 @@ void mprofil(Limit& limit,Profout* Tprof,Mlayout* Tlay){
   // ETu[0]=ETu[0]=0;
 
   printf("profil.C::mprofil() : ~debut\n");   fflush(stdout);fflush(stderr);
-  if(T==NULL){
+  if(T==nullptr){
     fprintf(stderr,"mprofil() : T=new Coeff[N+1] no success\n");
   }
   // limite inferieure = sol nu  (reflectance)
@@ -52,7 +51,7 @@ void mprofil(Limit& limit,Profout* Tprof,Mlayout* Tlay){
   Tprof[N].transdif= limit.ed;
   //  Matrices de reflectance et de transmittance  de chaque couche
   // Rajout de sources ETu, ETd - MC1201
-  o=&(T[1]);
+  o=&T[1];
   for (ic =1; ic <N+1; ic++,o++) {
     l=Tlay[ic];
     o->den = 1.-T[ic-1].RMdd*l.rdd;

@@ -5,7 +5,7 @@
 
 
 extern void hdmat_init(char*,char*);
-extern void hdmat_majname(char*,char*);
+extern void hdmat_majname(char*, const char*);
 extern void hd_calc_Bfar(VEC *,char *,Diffuseur **,double);
 
 /* exportation depuis bzh.cpp */

@@ -73,9 +73,9 @@ int main(int argc, char **argv){
     // => CROPCHAR
     fpar=fopen("cropchar","r") ; 
     //BUG Scons: MC08 : -DNDEBUG Supprime la fonction assert() donc les fichiers n'�taient pas ouvert
-    assert (fpar != NULL ); 
+    assert (fpar != nullptr );
     fgets(line,200,fpar);
-    sscanf(line,"%d",&(msailin.nbang));
+    sscanf(line,"%d",&msailin.nbang);
     fgets(line,200,fpar);
     sscanf(line,"%d %lf",&N,&dz);
     fprintf(stderr,"CROPCHAR : N=%d, nbang=%d, dz=%lf\n",N,msailin.nbang,dz);
@@ -199,9 +199,9 @@ int main(int argc, char **argv){
       fout=fopen("profout","w") ; //unit=2
       fenv=fopen("mlsail.env","w") ;//unit=15
       fpvf=fopen("proflux.dat","w"); ;//unit=16
-      assert (fout != NULL ) ; //unit=2
-      assert (fenv != NULL ) ;//unit=15
-      assert (fpvf != NULL ) ;//unit=16
+      assert (fout != nullptr ) ; //unit=2
+      assert (fenv != nullptr ) ;//unit=15
+      assert (fpvf != nullptr ) ;//unit=16
       
       fprintf(fenv,"%d  %lf\n",N-1,dz);
       printf("ic  alti  clai   l(ic)  pene   Fdown  Fup  Rf   Tf\n");fflush(stdout);

@@ -31,6 +31,8 @@
 
 #define	MATLAB_DEF
 
+#include "machine.h"
+
 /* structure required by MATLAB */
 typedef struct {
 	long    type;   /* matrix type */

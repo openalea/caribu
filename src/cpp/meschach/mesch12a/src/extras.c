@@ -92,10 +92,7 @@ static char	rcsid[] = "$Id: extras.c,v 1.3 1994/01/13 05:45:36 des Exp $";
 /* mblar-1 routines */
 
 /* Mscale -- sets x <- alpha.x */
-void	Mscale(len,alpha,x)
-int	len;
-double	alpha;
-Real	*x;
+void	Mscale(int len,double alpha,Real* x)
 {
     int	i;
 
@@ -104,9 +101,7 @@ Real	*x;
 }
 
 /* Mswap -- swaps x and y */
-void	Mswap(len,x,y)
-int	len;
-Real	*x, *y;
+void	Mswap(int len,Real* x,Real* y)
 {
     int	i;
     Real	tmp;
@@ -120,9 +115,7 @@ Real	*x, *y;
 }
 
 /* Mcopy -- copies x to y */
-void	Mcopy(len,x,y)
-int	len;
-Real	*x, *y;
+void	Mcopy(int len,Real* x,Real* y)
 {
     int	i;
 
@@ -131,10 +124,7 @@ Real	*x, *y;
 }
 
 /* Maxpy -- y <- y + alpha.x */
-void	Maxpy(len,alpha,x,y)
-int	len;
-double	alpha;
-Real	*x, *y;
+void	Maxpy(int len,double alpha,Real* x,Real* y)
 {
     int	i, len4;
 
@@ -160,9 +150,7 @@ Real	*x, *y;
 }
 
 /* Mdot -- returns x'.y */
-double	Mdot(len,x,y)
-int	len;
-Real	*x, *y;
+double	Mdot(int len,Real* x,Real* y)
 {
     int	i, len4;
     Real	sum;
@@ -201,9 +189,7 @@ Real	*x, *y;
 #endif
 
 /* Mnorminf -- returns ||x||_inf */
-double	Mnorminf(len,x)
-int	len;
-Real	*x;
+double	Mnorminf(int len,Real* x)
 {
     int	i;
     Real	tmp, max_val;
@@ -220,9 +206,7 @@ Real	*x;
 }
 
 /* Mnorm1 -- returns ||x||_1 */
-double	Mnorm1(len,x)
-int	len;
-Real	*x;
+double	Mnorm1(int len,Real* x)
 {
     int	i;
     Real	sum;
@@ -235,9 +219,7 @@ Real	*x;
 }
 
 /* Mnorm2 -- returns ||x||_2 */
-double	Mnorm2(len,x)
-int	len;
-Real	*x;
+double	Mnorm2(int len,Real* x)
 {
     int	i;
     Real	norm, invnorm, sum, tmp;
@@ -259,10 +241,7 @@ Real	*x;
 /* mblar-2 routines */
 
 /* Mmv -- y <- alpha.A.x + beta.y */
-void	Mmv(m,n,alpha,A,j0,x,beta,y)
-int	m, n, j0;
-double	alpha, beta;
-Real	**A, *x, *y;
+void	Mmv(int m,int n,double alpha,Real **A,int j0,Real* x,double beta,Real* y)
 {
     int	i, j, m4, n4;
     Real	sum0, sum1, sum2, sum3, tmp0, tmp1, tmp2, tmp3;
@@ -323,10 +302,7 @@ Real	**A, *x, *y;
 }
 
 /* Mvm -- y <- alpha.A^T.x + beta.y */
-void	Mvm(m,n,alpha,A,j0,x,beta,y)
-int	m, n, j0;
-double	alpha, beta;
-Real	**A, *x, *y;
+void	Mvm(int m,int n,double alpha,Real **A,int j0,Real* x,double beta,Real* y)
 {
     int	i, j, m4, n2;
     Real	*Aref;
@@ -393,10 +369,7 @@ Real	**A, *x, *y;
 }
 
 /* Mupdate -- A <- A + alpha.x.y^T */
-void	Mupdate(m,n,alpha,x,y,A,j0)
-int	m, n, j0;
-double	alpha;
-Real	**A, *x, *y;
+void	Mupdate(int m,int n,double alpha,Real* x,Real* y,Real** A,int j0)
 {
     int	i, j, n4;
     Real	*Aref;
@@ -429,11 +402,7 @@ Real	**A, *x, *y;
 /* mblar-3 routines */
 
 /* Mmm -- C <- C + alpha.A.B */
-void	Mmm(m,n,p,alpha,A,Aj0,B,Bj0,C,Cj0)
-int	m, n, p;	/* C is m x n */
-double  alpha;
-Real	**A, **B, **C;
-int	Aj0, Bj0, Cj0;
+void	Mmm(int m,int n,int p,double alpha,Real** A,int Aj0,Real** B,int Bj0,Real** C,int Cj0)
 {
     int	i, j, k;
     /* Real	tmp, sum; */
@@ -448,11 +417,7 @@ int	Aj0, Bj0, Cj0;
 }
 
 /* Mmtrm -- C <- C + alpha.A^T.B */
-void	Mmtrm(m,n,p,alpha,A,Aj0,B,Bj0,C,Cj0)
-int	m, n, p;	/* C is m x n */
-double  alpha;
-Real	**A, **B, **C;
-int	Aj0, Bj0, Cj0;
+void	Mmtrm(int m,int n,int p,double alpha,Real** A,int Aj0,Real** B,int Bj0,Real** C,int Cj0)
 {
     int	i, j, k;
 
@@ -467,11 +432,7 @@ int	Aj0, Bj0, Cj0;
 
 
 /* Mmtrmtr -- C <- C + alpha.A^T.B^T */
-void	Mmtrmtr(m,n,p,alpha,A,Aj0,B,Bj0,C,Cj0)
-int	m, n, p;	/* C is m x n */
-double  alpha;
-Real	**A, **B, **C;
-int	Aj0, Bj0, Cj0;
+void	Mmtrmtr(int m,int n,int p,double alpha,Real** A,int Aj0,Real** B, int Bj0,Real** C,int Cj0)
 {
     int	i, j, k;
 

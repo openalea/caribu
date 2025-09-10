@@ -31,9 +31,7 @@ static	char	rcsid[] = "$Id: copy.c,v 1.2 1994/01/13 05:37:14 des Exp $";
 
 
 /* _m_copy -- copies matrix into new area */
-MAT	*_m_copy(in,out,i0,j0)
-MAT	*in,*out;
-u_int	i0,j0;
+MAT	*_m_copy(MAT	*in,MAT	*out,u_int i0,u_int j0)
 {
 	u_int	i /* ,j */;
 
@@ -54,9 +52,7 @@ u_int	i0,j0;
 }
 
 /* _v_copy -- copies vector into new area */
-VEC	*_v_copy(in,out,i0)
-VEC	*in,*out;
-u_int	i0;
+VEC	*_v_copy(VEC* in,VEC* out,u_int i0)
 {
 	/* u_int	i,j; */
 
@@ -75,8 +71,7 @@ u_int	i0;
 }
 
 /* px_copy -- copies permutation 'in' to 'out' */
-PERM	*px_copy(in,out)
-PERM	*in,*out;
+PERM	*px_copy(PERM	*in,PERM	*out)
 {
 	/* int	i; */
 
@@ -105,9 +100,7 @@ PERM	*in,*out;
 	   to the corresponding submatrix of out with top-left co-ordinates
 	   (i1,j1)
 	-- out is resized (& created) if necessary */
-MAT	*m_move(in,i0,j0,m0,n0,out,i1,j1)
-MAT	*in, *out;
-int	i0, j0, m0, n0, i1, j1;
+MAT	*m_move(MAT	*in,int i0,int j0,int m0,int n0,MAT	*out,int i1,int j1)
 {
     int		i;
 
@@ -133,9 +126,7 @@ int	i0, j0, m0, n0, i1, j1;
 	-- moves the length dim0 subvector with initial index i0
 	   to the corresponding subvector of out with initial index i1
 	-- out is resized if necessary */
-VEC	*v_move(in,i0,dim0,out,i1)
-VEC	*in, *out;
-int	i0, dim0, i1;
+VEC	*v_move(VEC	*in,int	i0,int	dim0,VEC	*out,int	i1)
 {
     if ( ! in )
 	error(E_NULL,"v_move");
@@ -156,10 +147,7 @@ int	i0, dim0, i1;
 	   the subvector with initial index i1 (and length m0*n0)
 	-- rows are copied contiguously
 	-- out is resized if necessary */
-VEC	*mv_move(in,i0,j0,m0,n0,out,i1)
-MAT	*in;
-VEC	*out;
-int	i0, j0, m0, n0, i1;
+VEC	*mv_move(MAT *in,int	i0,int	j0,int m0,int n0,VEC *out,int i1)
 {
     int		dim1, i;
 
@@ -184,12 +172,9 @@ int	i0, j0, m0, n0, i1;
 	   the m1 x n1 submatrix with top-left co-ordinate (i1,j1)
         -- copying is done by rows
 	-- out is resized if necessary */
-MAT	*vm_move(in,i0,out,i1,j1,m1,n1)
-VEC	*in;
-MAT	*out;
-int	i0, i1, j1, m1, n1;
+MAT	*vm_move(VEC *in,int i0,MAT	*out,int i1,int j1,int m1,int n1)
 {
-    int		dim0, i;
+    int i;
 
     if ( ! in )
 	error(E_NULL,"vm_move");
@@ -202,7 +187,6 @@ int	i0, i1, j1, m1, n1;
     else
 	out = m_resize(out,max(i1+m1,out->m),max(j1+n1,out->n));
 
-    dim0 = m1*n1;
     for ( i = 0; i < m1; i++ )
 	MEM_COPY(&(in->ve[i0+i*n1]),&(out->me[i1+i][j1]),n1*sizeof(Real));
 

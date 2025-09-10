@@ -35,27 +35,19 @@
 #include        <stdio.h>
 #include        "matrix.h"
 #include        "matrix2.h"
-#include	"sparse.h"
+#include	    "sparse.h"
+#include	    "sparse2.h"
 #include        "iter.h"
 #include	<math.h>
 
 static char rcsid[] = "$Id: iternsym.c,v 1.6 1995/01/30 14:53:01 des Exp $";
 
 
-#ifdef ANSI_C
-VEC	*spCHsolve(SPMAT *,VEC *,VEC *);
-#else
-VEC	*spCHsolve();
-#endif
-
-
 /* 
   iter_cgs -- uses CGS to compute a solution x to A.x=b
 */
 
-VEC	*iter_cgs(ip,r0)
-ITER *ip;
-VEC *r0;
+VEC *iter_cgs(ITER *ip, VEC *r0)
 {
    static VEC  *p = VNULL, *q = VNULL, *r = VNULL, *u = VNULL;
    static VEC  *v = VNULL, *z = VNULL;
@@ -170,11 +162,7 @@ VEC *r0;
    In the second case the solution vector is created.  
    If B is not NULL then it is a preconditioner. 
 */
-VEC	*iter_spcgs(A,B,b,r0,tol,x,limit,steps)
-SPMAT	*A, *B;
-VEC	*b, *r0, *x;
-double	tol;
-int     *steps,limit;
+VEC *iter_spcgs(SPMAT *A, SPMAT *B, VEC *b, VEC *r0, double tol, VEC *x, int limit, int *steps)
 {	
    ITER *ip;
    
@@ -213,8 +201,7 @@ int     *steps,limit;
 /* lsqr -- sparse CG-like least squares routine:
    -- finds min_x ||A.x-b||_2 using A defined through A & AT
    -- returns x (if x != NULL) */
-VEC	*iter_lsqr(ip)
-ITER *ip;
+VEC *iter_lsqr(ITER *ip)
 {
    static VEC	*u = VNULL, *v = VNULL, *w = VNULL, *tmp = VNULL;
    Real	alpha, beta, phi, phi_bar;
@@ -310,11 +297,7 @@ ITER *ip;
 }
 
 /* iter_splsqr -- simple interface for SPMAT data structures */
-VEC	*iter_splsqr(A,b,tol,x,limit,steps)
-SPMAT	*A;
-VEC	*b, *x;
-double	tol;
-int *steps,limit;
+VEC *iter_splsqr(SPMAT *A, VEC *b, double tol, VEC *x, int limit, int *steps)
 {
    ITER *ip;
    
@@ -344,10 +327,7 @@ int *steps,limit;
 /* iter_arnoldi -- an implementation of the Arnoldi method;
    iterative refinement is applied.
 */
-MAT	*iter_arnoldi_iref(ip,h_rem,Q,H)
-ITER  *ip;
-Real  *h_rem;
-MAT   *Q, *H;
+MAT *iter_arnoldi_iref(ITER *ip, Real *h_rem, MAT *Q, MAT *H)
 {
    static VEC *u=VNULL, *r=VNULL, *s=VNULL, *tmp=VNULL;
    VEC v;     /* auxiliary vector */
@@ -441,10 +421,7 @@ MAT   *Q, *H;
 /* iter_arnoldi -- an implementation of the Arnoldi method;
    modified Gram-Schmidt algorithm
 */
-MAT	*iter_arnoldi(ip,h_rem,Q,H)
-ITER  *ip;
-Real  *h_rem;
-MAT   *Q, *H;
+MAT *iter_arnoldi(ITER *ip, Real *h_rem, MAT *Q, MAT *H)
 {
    static VEC *u=VNULL, *r=VNULL;
    VEC v;     /* auxiliary vector */
@@ -515,12 +492,7 @@ MAT   *Q, *H;
 
 
 /* iter_sparnoldi -- uses arnoldi() with an explicit representation of A */
-MAT	*iter_sparnoldi(A,x0,m,h_rem,Q,H)
-SPMAT	*A;
-VEC	*x0;
-int	m;
-Real	*h_rem;
-MAT	*Q, *H;
+MAT *iter_sparnoldi(SPMAT *A, VEC *x0, int m, Real *h_rem, MAT *Q, MAT *H)
 {
    ITER *ip;
    
@@ -537,12 +509,7 @@ MAT	*Q, *H;
 
 
 /* for testing gmres */
-static void test_gmres(ip,i,Q,R,givc,givs,h_val)
-ITER *ip;
-int i;
-MAT *Q, *R;
-VEC *givc, *givs;
-double h_val;
+static void test_gmres(ITER *ip, int i, MAT *Q, MAT *R, VEC *givc, VEC *givs, double h_val)
 {
    VEC vt, vt1;
    static MAT *Q1, *R1;
@@ -595,8 +562,7 @@ double h_val;
 /* gmres -- generalised minimum residual algorithm of Saad & Schultz
    SIAM J. Sci. Stat. Comp. v.7, pp.856--869 (1986)
 */
-VEC	*iter_gmres(ip)
-ITER *ip;
+VEC	*iter_gmres(ITER *ip)
 {
    static VEC *u=VNULL, *r=VNULL, *rhs = VNULL;
    static VEC *givs=VNULL, *givc=VNULL, *z = VNULL;
@@ -787,11 +753,7 @@ ITER *ip;
 
 /* iter_spgmres - a simple interface to iter_gmres */
 
-VEC	*iter_spgmres(A,B,b,tol,x,k,limit,steps)
-SPMAT	*A, *B;
-VEC	*b, *x;
-double	tol;
-int *steps,k,limit;
+VEC	*iter_spgmres(SPMAT	*A, SPMAT *B, VEC *b, double tol,VEC *x, int k, int limit,int *steps)
 {
    ITER *ip;
    
@@ -822,10 +784,7 @@ int *steps,k,limit;
 
 
 /* for testing mgcr */
-static void test_mgcr(ip,i,Q,R)
-ITER *ip;
-int i;
-MAT *Q, *R;
+static void test_mgcr(ITER *ip, int i, MAT *Q, MAT *R)
 {
    VEC vt, vt1;
    static MAT *R1;
@@ -887,8 +846,7 @@ MAT *Q, *R;
   iter_mgcr -- modified generalized conjugate residual algorithm;
   fast version of GCR;
 */
-VEC *iter_mgcr(ip)
-ITER *ip;
+VEC *iter_mgcr(ITER *ip)
 {
    static VEC *As, *beta, *alpha, *z;
    static MAT *N, *H;
@@ -1110,11 +1068,7 @@ ITER *ip;
 
 /* iter_spmgcr - a simple interface to iter_mgcr */
 /* no preconditioner */
-VEC	*iter_spmgcr(A,B,b,tol,x,k,limit,steps)
-SPMAT	*A, *B;
-VEC	*b, *x;
-double	tol;
-int *steps,k,limit;
+VEC	*iter_spmgcr(SPMAT *A, SPMAT *B, VEC *b, double tol, VEC *x, int k, int limit,int *steps)
 {
    ITER *ip;
    
@@ -1150,8 +1104,7 @@ int *steps,k,limit;
   Conjugate gradients method for a normal equation
   a preconditioner B must be symmetric !!
 */
-VEC  *iter_cgne(ip)
-ITER *ip;
+VEC *iter_cgne(ITER *ip)
 {
    static VEC *r = VNULL, *p = VNULL, *q = VNULL, *z = VNULL;
    Real	alpha, beta, inner, old_inner, nres;
@@ -1253,11 +1206,7 @@ ITER *ip;
       x = iter_spcgne(A,B,b,eps,VNULL,limit,steps);
    In the second case the solution vector is created.
 */
-VEC  *iter_spcgne(A,B,b,eps,x,limit,steps)
-SPMAT	*A, *B;
-VEC	*b, *x;
-double	eps;
-int *steps, limit;
+VEC  *iter_spcgne(SPMAT *A, SPMAT *B, VEC *b,double eps, VEC *x, int limit,int *steps)
 {	
    ITER *ip;
    

@@ -2,12 +2,9 @@
 
 #ifndef _Image
 #define _Image
- 
-#include <math.h>
-#include <stdlib.h> // pour exit
+
 #include <iostream> //
 #include <fstream>  //
-#include <iomanip>  //
 
 #include "T_utilitaires.h"
 #include "outils.h"
