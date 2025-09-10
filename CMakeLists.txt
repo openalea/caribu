@@ -10,7 +10,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include_directories("src/cpp/")
 if (APPLE)
-    add_compile_options(-ffp-contract=off -fno-fast-math)
+    add_compile_options(-ffp-contract=off)
 endif()
 # -------------------------------------------------------
 # === Meschach compatibility checks ===
