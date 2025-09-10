@@ -26,8 +26,9 @@ build:
     - CXX=g++ # [win]
     - CC=gcc # [win]
   ignore_run_exports_from:
-    # do not propagate m2w64-toolchain run exports: caribu executables are called outside python
-    - m2w64-toolchain   # [win]
+    # caribu executables are independant from python.On win, Avoid m2w64 conflictual exports
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
   script:
     - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
