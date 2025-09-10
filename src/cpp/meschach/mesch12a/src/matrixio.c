@@ -37,13 +37,19 @@ static char rcsid[] = "$Id: matrixio.c,v 1.4 1994/01/13 05:31:10 des Exp $";
 /* local variables */
 static char line[MAXLINE];
 
+MAT *im_finput(FILE *fp, MAT *mat);
+MAT *bm_finput(FILE *fp, MAT *mat);
+PERM *ipx_finput(FILE *fp, PERM *px);
+PERM *bpx_finput(FILE *fp, PERM *px);
+VEC *ifin_vec(FILE *fp, VEC *vec);
+VEC *bfin_vec(FILE *fp, VEC *vec);
 
 /**************************************************************************
   Input routines
   **************************************************************************/
 /* skipjunk -- skips white spaces and strings of the form #....\n
    Here .... is a comment string */
-int     skipjunk(FILE *fp)
+int skipjunk(FILE *fp)
 {
      int        c;
      
@@ -361,10 +367,9 @@ VEC     *bfin_vec(FILE *fp, VEC *vec)
 /**************************************************************************
   Output routines
   **************************************************************************/
-static char    *format = "%14.9g ";
+static char *format = "%14.9g ";
 
-char	*setformat(f_string)
-char    *f_string;
+char *setformat(char *f_string)
 {
     char	*old_f_string;
     old_f_string = format;

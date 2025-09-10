@@ -1,4 +1,3 @@
-/* machine.h.  Generated automatically by configure.  */
 /* Any machine specific stuff goes here */
 /* Add details necessary for your own installation here! */
 
@@ -12,31 +11,25 @@
 			MALLOCDECL (declared if malloc() etc have
 					been declared) */
 
-
 #ifndef _MACHINE_H
 #define _MACHINE_H 1
 
-//MC08 pour scons
-#define SPARSE 1
-#undef COMPLEXE  
+#undef const
+
+#undef MALLOCDECL
+#undef NOT_SEGMENTED
+#undef HAVE_MEMORY_H
 #undef HAVE_COMPLEX_H
-
-/* #undef const */
-
-/* #undef MALLOCDECL */
-#define NOT_SEGMENTED 1
-#define HAVE_MEMORY_H 1
-#define HAVE_COMPLEX_H 1
-/* #undef HAVE_MALLOC_H */
-#define STDC_HEADERS 1
-#define HAVE_BCOPY 1
-#define HAVE_BZERO 1
-#define CHAR0ISDBL0 1
-/* #undef WORDS_BIGENDIAN */
-/* #undef U_INT_DEF */
-/* #undef VARARGS */
-#define HAVE_PROTOTYPES 1
-/* #undef HAVE_PROTOTYPES_IN_STRUCT */
+#undef HAVE_MALLOC_H
+#undef STDC_HEADERS
+#undef HAVE_BCOPY
+#undef HAVE_BZERO
+#undef CHAR0ISDBL0
+#undef WORDS_BIGENDIAN
+#undef U_INT_DEF
+#undef VARARGS
+#undef HAVE_PROTOTYPES
+#undef HAVE_PROTOTYPES_IN_STRUCT
 
 /* for inclusion into C++ files */
 #ifdef __cplusplus
@@ -63,12 +56,12 @@
 #endif /* HAVE_PROTOTYPES_IN_STRUCT */
 
 /* for basic or larger versions */
-/* #undef COMPLEX */
-/* #undef SPARSE */
+#undef COMPLEX
+#undef SPARSE
 
 /* for loop unrolling */
-/* #undef VUNROLL */
-/* #undef MUNROLL */
+#undef VUNROLL
+#undef MUNROLL
 
 /* for segmented memory */
 #ifndef NOT_SEGMENTED
@@ -124,10 +117,8 @@
 #endif
 
 /* if the system has complex.h */
-//MC08 Scons
-#undef  HAVE_COMPLEX_H
 #ifdef HAVE_COMPLEX_H
-// #include	<complex.h>
+#include	<complex.h>
 #endif
 
 /* If prototypes are available & ANSI_C not yet defined, then define it,
@@ -147,8 +138,8 @@
 #define DOUBLE 		2
 #define LONG_DOUBLE 	3
 
-/* #undef REAL_FLT */
-/* #undef REAL_DBL */
+#undef REAL_FLT
+#undef REAL_DBL
 
 /* if nothing is defined, choose double precision */
 #ifndef REAL_DBL
@@ -186,8 +177,8 @@
 #endif
 #endif
 
-#define F_MACHEPS 1.19209e-07
-#define D_MACHEPS 2.22045e-16
+#undef F_MACHEPS
+#undef D_MACHEPS
 
 #ifndef MACHEPS
 #if REAL == DOUBLE
@@ -199,7 +190,7 @@
 #endif
 #endif
 
-/* #undef M_MACHEPS */
+#undef M_MACHEPS
 
 /********************
 #ifdef DBL_EPSILON
@@ -212,7 +203,7 @@
 #endif
 ********************/
 
-#define	M_MAX_INT 2147483647
+#undef	M_MAX_INT
 #ifdef	M_MAX_INT
 #ifndef MAX_RAND
 #define	MAX_RAND ((double)(M_MAX_INT))
@@ -228,12 +219,6 @@
 #endif
 #endif
 
-//MC08 :  bug scons Win$
-#ifndef HUGE
-// #define HUGE (0x1.0p2047)
-#define HUGE  3.40282e+38
-#define HUGE_VAL HUGE
-#endif
 
 #ifdef ANSI_C
 extern	int	isatty(int);

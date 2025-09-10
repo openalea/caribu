@@ -43,9 +43,7 @@ static	char	rcsid[] = "$Id: givens.c,v 1.3 1995/03/27 15:41:15 des Exp $";
 
 /* givens -- returns c,s parameters for Givens rotation to
 		eliminate y in the vector [ x y ]' */
-void	givens(x,y,c,s)
-double  x,y;
-Real	*c,*s;
+void	givens(double x,double y,Real *c,Real *s)
 {
 	Real	norm;
 
@@ -57,10 +55,7 @@ Real	*c,*s;
 }
 
 /* rot_vec -- apply Givens rotation to x's i & k components */
-VEC	*rot_vec(x,i,k,c,s,out)
-VEC	*x,*out;
-u_int	i,k;
-double	c,s;
+VEC	*rot_vec(VEC* x,u_int i,u_int k,double c,double s,VEC* out)
 {
 	Real	temp;
 
@@ -81,10 +76,7 @@ double	c,s;
 }
 
 /* rot_rows -- premultiply mat by givens rotation described by c,s */
-MAT	*rot_rows(mat,i,k,c,s,out)
-MAT	*mat,*out;
-u_int	i,k;
-double	c,s;
+MAT	*rot_rows(MAT* mat,u_int i,u_int k,double c,double s,MAT *out)
 {
 	u_int	j;
 	Real	temp;
@@ -110,10 +102,7 @@ double	c,s;
 }
 
 /* rot_cols -- postmultiply mat by givens rotation described by c,s */
-MAT	*rot_cols(mat,i,k,c,s,out)
-MAT	*mat,*out;
-u_int	i,k;
-double	c,s;
+MAT	*rot_cols(MAT* mat,u_int i,u_int k,double c,double s,MAT *out)
 {
 	u_int	j;
 	Real	temp;

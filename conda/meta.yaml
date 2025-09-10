@@ -35,11 +35,12 @@ requirements:
     - scikit-build-core
     - setuptools
     - wheel
-    - cmake
-    - ninja
+
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
+    - cmake
+    - ninja
   run:
     - python
     - path              # path.py is outdated

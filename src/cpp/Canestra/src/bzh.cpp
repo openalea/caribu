@@ -3,7 +3,6 @@
 using namespace std ;
 #include <ferrlog.h>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include "diffuseur.h"
 extern "C" {
@@ -20,7 +19,7 @@ char pcBfName[128];
 
 // Test de la fonction ANSI remove
 //MC2005
-#include <errno.h>
+#include <cerrno>
 void Tremove(char * buffer){
   Ferr<<">>> bzh.cpp: Tremove()- destruction par remove() du fichier "<<buffer<<'\n';
   
@@ -46,7 +45,7 @@ void Tremove(char * buffer){
 }//Tremove()
 
 //MC2005 : Ajout de la destruction des fichiers matrice si option -f
-void placenette(char *ficname){
+void placenette(const char *ficname){
   /*  char cmd[255];
       int k; 
       k=access(ficname,F_OK);
@@ -67,7 +66,7 @@ void placenette(char *ficname){
 }
 
 /** Efface la matrice diagonale, les non_zeros et les Bfar */
-void PlaceNette(void) {
+void PlaceNette() {
   placenette(pcNzName);
   placenette(pcDgName);
   placenette(pcBfName);
@@ -76,14 +75,14 @@ void PlaceNette(void) {
 
 /** Gestion des donnees persistantes de Canestra
 * proto declare dans bzh.h */
-void EffaceMatrices(void) {
+void EffaceMatrices() {
   PlaceNette();
 }
 
 void hdmat_init(char *dir,char *rootname){
   char tempo[128];
     
-  if(rootname==NULL)
+  if(rootname==nullptr)
     strcpy(tempo,"xxx");
   else
     strcpy(tempo,rootname);
@@ -105,11 +104,11 @@ void hdmat_init(char *dir,char *rootname){
   Ferr << '\n' ;//fflush(stderr);
 }
 
-void hdmat_majname(char *dir,char*suff){
+void hdmat_majname(char *dir, const char*suff){
 
   char tempo[128];
     
-  if(suff==NULL)
+  if(suff==nullptr)
     strcpy(tempo,"xxx");
   else
     strcpy(tempo,suff);
@@ -129,7 +128,7 @@ void hdmat_majname(char *dir,char*suff){
 //  hdmat_majname
 
 void hd_calc_Bfar(VEC *Cenv,char *pcEnvName,Diffuseur ** TabDiff,double Eclt){
-  int	i,is,j, Nc,iff,nbp,*diag=NULL;//i : indice prim, is indice face
+  int	i,is,j, Nc,nbp;//i : indice prim, is indice face
   double rho[2],tau[2],po;
   float cl[2];
   FILE *fic;

@@ -34,23 +34,14 @@
 
 #include        <stdio.h>
 #include        "machine.h"
-
 #include        "matrix.h"
 #include        "matrix2.h"
-#include	"sparse.h"
+#include	    "sparse.h"
+#include	    "sparse2.h"
 #include        "iter.h"
 #include	<math.h>
 
 static char rcsid[] = "$Id: itersym.c,v 1.2 1995/01/30 14:55:54 des Exp $";
-
-
-#ifdef ANSI_C
-VEC	*spCHsolve(SPMAT *,VEC *,VEC *);
-VEC	*trieig(VEC *,VEC *,MAT *);
-#else
-VEC	*spCHsolve();
-VEC	*trieig();
-#endif
 
 
 
@@ -258,9 +249,6 @@ void    iter_splanczos(SPMAT *A, int m, VEC *x0, VEC *a, VEC *b, Real *beta2, MA
    iter_free(ip);   /* release only ITER structure */
 }
 
-
-
-extern	double	frexp(), ldexp();
 
 /* product -- returns the product of a long list of numbers
    -- answer stored in mant (mantissa) and expt (exponent) */

@@ -8,6 +8,8 @@
 class Source_Lumiere
 {
    public:
+	virtual ~Source_Lumiere() = default;
+
 	int nb_photons;
         virtual Param_Inter lache_photon()=0;
         Source_Lumiere(int alancer=10)
