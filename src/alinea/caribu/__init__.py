@@ -1,5 +1,1 @@
-from openalea.caribu import *
-
-from warnings import warn
-
-warn("This is deprecated; Use openalea namespace instead alinea!", DeprecationWarning, stacklevel=2)
+raise ImportError("alinea.caribu import is deprecated; Use openalea.caribu instead")
