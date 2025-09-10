@@ -12,7 +12,7 @@
 {% set version = environ.get('SETUPTOOLS_SCM_PRETEND_VERSION', scm_version) %}
 
 package:
-  name: alinea.caribu
+  name: openalea.caribu
   version: {{ version }}
 
 source:
@@ -51,7 +51,7 @@ test:
   requires:
     - pytest
   imports:
-    - alinea.caribu
+    - openalea.caribu
   source_files:
     - test/*.py
   commands:

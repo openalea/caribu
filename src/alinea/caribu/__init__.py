@@ -1,7 +1,1 @@
-from importlib.metadata import version, PackageNotFoundError
-
-try:
-    __version__ = version("alinea.caribu")
-except PackageNotFoundError:
-    # package is not installed
-    pass
+raise ImportError("alinea.caribu import is deprecated; Use openalea.caribu instead")

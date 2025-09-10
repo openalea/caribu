@@ -11,7 +11,7 @@ include dvlpt_requirements.txt
 
 recursive-include test *
 
-recursive-include src/alinea/caribu *
+recursive-include src/openalea/caribu *
 recursive-include src/caribu_data *
 
 

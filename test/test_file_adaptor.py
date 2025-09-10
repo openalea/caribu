@@ -1,5 +1,5 @@
-from alinea.caribu.file_adaptor import read_light, read_pattern, read_opt, read_can, build_materials
-from alinea.caribu.data_samples import data_path
+from openalea.caribu.file_adaptor import read_light, read_pattern, read_opt, read_can, build_materials
+from openalea.caribu.data_samples import data_path
 
 
 def test_light():

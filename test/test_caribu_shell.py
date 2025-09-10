@@ -1,7 +1,7 @@
 """ Unit Tests for caribu_shell module """
 
-from alinea.caribu.caribu_shell import Caribu, CaribuOptionError, vcaribu
-from alinea.caribu.data_samples import data_path
+from openalea.caribu.caribu_shell import Caribu, CaribuOptionError, vcaribu
+from openalea.caribu.data_samples import data_path
 
 
 # Original test of caribu.csh script by M. Chelle

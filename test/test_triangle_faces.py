@@ -1,7 +1,7 @@
 from math import sqrt
 from numpy.testing import assert_almost_equal
 
-from alinea.caribu.caribu import radiosity, raycasting
+from openalea.caribu.caribu import radiosity, raycasting
 
 
 def test_unresolved_faces():

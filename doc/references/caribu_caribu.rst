@@ -2,134 +2,134 @@ Reference guide
 ###################################
 .. contents::
 
-:mod:`alinea.caribu.caribu` module
+:mod:`openalea.caribu.caribu` module
 ==================================
-.. automodule:: alinea.caribu.caribu
+.. automodule:: openalea.caribu.caribu
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
-:mod:`alinea.caribu.caribu_interface` module
+:mod:`openalea.caribu.caribu_interface` module
 ============================================
-.. automodule:: alinea.caribu.caribu_interface
+.. automodule:: openalea.caribu.caribu_interface
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.caribu_shell` module
+:mod:`openalea.caribu.caribu_shell` module
 ========================================
-.. automodule:: alinea.caribu.caribu_shell
+.. automodule:: openalea.caribu.caribu_shell
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.caribu_star` module
+:mod:`openalea.caribu.caribu_star` module
 =======================================
-.. automodule:: alinea.caribu.caribu_star
+.. automodule:: openalea.caribu.caribu_star
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.CaribuScene` module
+:mod:`openalea.caribu.CaribuScene` module
 =======================================
-.. automodule:: alinea.caribu.CaribuScene
+.. automodule:: openalea.caribu.CaribuScene
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.CaribuScene_nodes` module
+:mod:`openalea.caribu.CaribuScene_nodes` module
 =============================================
-.. automodule:: alinea.caribu.CaribuScene_nodes
+.. automodule:: openalea.caribu.CaribuScene_nodes
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.caributriangleset` module
+:mod:`openalea.caribu.caributriangleset` module
 =============================================
-.. automodule:: alinea.caribu.caributriangleset
+.. automodule:: openalea.caribu.caributriangleset
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.colormap` module
+:mod:`openalea.caribu.colormap` module
 ====================================
-.. automodule:: alinea.caribu.colormap
+.. automodule:: openalea.caribu.colormap
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.data_access` module
+:mod:`openalea.caribu.data_access` module
 =======================================
-.. automodule:: alinea.caribu.data_access
+.. automodule:: openalea.caribu.data_access
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.data_samples` module
+:mod:`openalea.caribu.data_samples` module
 ========================================
-.. automodule:: alinea.caribu.data_samples
+.. automodule:: openalea.caribu.data_samples
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.display` module
+:mod:`openalea.caribu.display` module
 ===================================
-.. automodule:: alinea.caribu.display
+.. automodule:: openalea.caribu.display
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.file_adaptator` module
+:mod:`openalea.caribu.file_adaptator` module
 ==========================================
-.. automodule:: alinea.caribu.file_adaptator
+.. automodule:: openalea.caribu.file_adaptator
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.label` module
+:mod:`openalea.caribu.label` module
 =================================
-.. automodule:: alinea.caribu.label
+.. automodule:: openalea.caribu.label
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.light` module
+:mod:`openalea.caribu.light` module
 =================================
-.. automodule:: alinea.caribu.light
+.. automodule:: openalea.caribu.light
     :members:
     :undoc-members:
     :inherited-members:
     :show-inheritance:
 
 
-:mod:`alinea.caribu.plantgl_adaptor` module
+:mod:`openalea.caribu.plantgl_adaptor` module
 ===========================================
-.. automodule:: alinea.caribu.plantgl_adaptor
+.. automodule:: openalea.caribu.plantgl_adaptor
     :members:
     :undoc-members:
     :inherited-members:
