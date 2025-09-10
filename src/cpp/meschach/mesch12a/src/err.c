@@ -217,7 +217,7 @@ int	count_errs(int flag)
    list_num is an error list number (0 is the basic list 
    pointed by err_mesg, 1 is the basic list of warnings)
  */
-int	ev_err(char *file,int err_num,int line_num,const char *fn_name,int list_num)
+int	ev_err(const char *file,int err_num,int line_num,const char *fn_name,int list_num)
 {
    int	num;
    
