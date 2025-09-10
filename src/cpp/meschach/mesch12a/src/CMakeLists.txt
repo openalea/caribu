@@ -9,11 +9,6 @@ if (WIN32)
     target_compile_definitions(meschach PUBLIC MINGW WIN32)
 endif()
 
-# Needed for Macosx-latest numerical stability
-if (APPLE)
-    add_compile_options(-ffp-contract=off)
-endif()
-
 # -------------------------------------------------------
 # === Meschach compatibility checks ===
 # These replicate what the old configure.in used to do
