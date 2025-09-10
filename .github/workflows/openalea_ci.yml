@@ -23,6 +23,9 @@ on:
         default: "true"
         type: boolean
 
+run-name: >
+  ${{ github.event_name == 'workflow_dispatch' && 'Pre-check build before tag' || 'OpenAlea CI' }}
+
 jobs:
   build:
     uses: openalea/action-build-publish-anaconda/.github/workflows/openalea_ci.yml@ci_on_dispatch
