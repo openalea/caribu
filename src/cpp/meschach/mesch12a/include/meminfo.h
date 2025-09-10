@@ -31,6 +31,8 @@
 #ifndef MEM_INFOH
 #define MEM_INFOH
 
+#include "machine.h"
+
 //MC08 pour scons
 #define SPARSE 1
 // plante avec c++ 4.0 Complex...   #define COMPLEX 1
