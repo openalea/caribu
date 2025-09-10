@@ -15,9 +15,16 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
+    inputs:
+      check_before_tag:
+        description: "Run full CI pre-Check before tagging"
+        required: false
+        default: "true"
+        type: boolean
 
 jobs:
   build:
-    uses: openalea/action-build-publish-anaconda/.github/workflows/openalea_ci.yml@main
+    uses: openalea/action-build-publish-anaconda/.github/workflows/openalea_ci.yml@ci_on_dispatch
     secrets:
       anaconda_token: ${{ secrets.ANACONDA_TOKEN }}
