@@ -1,7 +1,7 @@
-from alinea.caribu.caribu_star import *
-from alinea.adel.astk_interface import AdelWheat
-from alinea.astk.plant_interface import *
-from alinea.astk.plantgl_utils import *
+from openalea.caribu.caribu_star import *
+from openalea.adel.astk_interface import AdelWheat
+from openalea.astk.plant_interface import *
+from openalea.astk.plantgl_utils import *
 
 
 wheat = AdelWheat()

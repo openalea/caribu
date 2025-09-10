@@ -1,5 +1,5 @@
 =============
-alinea.caribu
+openalea.caribu
 =============
 
 .. {# pkglts, doc

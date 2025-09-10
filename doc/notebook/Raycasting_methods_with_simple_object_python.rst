@@ -57,7 +57,7 @@ transmitance, no reflectance), without rediffusion) of a scene
 
 .. code:: python
 
-    from alinea.caribu.caribu import raycasting
+    from openalea.caribu.caribu import raycasting
     
     # call raycasting algorithm for lightening the scene
     res = raycasting(triangles, materials, lights)
@@ -86,7 +86,7 @@ rediffusions) of a scene
 
 .. code:: python
 
-    from alinea.caribu.caribu import radiosity
+    from openalea.caribu.caribu import radiosity
     
     res = radiosity(triangles, materials, lights)
     
@@ -117,7 +117,7 @@ rediffusion.
 
 .. code:: python
 
-    from alinea.caribu.caribu import mixed_radiosity
+    from openalea.caribu.caribu import mixed_radiosity
     
     # number of layers for running the turbid medium algrothm
     layers = 2

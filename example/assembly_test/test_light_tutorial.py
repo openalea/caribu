@@ -3,9 +3,9 @@
 Test the generic light tutorial with caribu.
 """
 
-from alinea.adel.data_samples import adel_two_metamers
-from alinea.adel.astk_interface import AdelWheat
-from alinea.caribu.caribu_star import caribu_star
+from openalea.adel.data_samples import adel_two_metamers
+from openalea.adel.astk_interface import AdelWheat
+from openalea.caribu.caribu_star import caribu_star
 from mtg.plantframe.color import colormap
 
 def plot3d(g):

@@ -55,13 +55,13 @@
     "pysetup.call": "2wHuP94SpWKZpqOzExkQGTxnhGPgBHK3qOdPn0Ncstj5FkZ7FBGGM/inqAXaI4QLKQtTNlOUYRGSkYUWAUcf1w==", 
     "pysetup.kwds": "G9Ihh0DBKqbjy65oMy1AS19vd5Hb4I49ffioKXV1OgC1cqDP/Y7e90KRBWB5VlYeRroLx+wCk7vCgWX9b2t/ow=="
   }, 
-  "src/alinea/caribu/__init__.py": {
+  "src/openalea/caribu/__init__.py": {
     "base": "gR33dW0qqYmsV9NSNB+DD8XmuxnC2t0mKjnMoU5728qh97fSER6MbX+3QKxpZDLByZToaAay4xhx8acxketJmA=="
   }, 
-  "src/alinea/caribu/data_access.py": {
+  "src/openalea/caribu/data_access.py": {
     "data": "7+MILHWDtY+zT+R6iS8UBp7uwniOMTJeUu2sCSc/ZSCE6Uxlp5cBvThK7keVBghZd+6yErj45IJzzdxk4oFGTg=="
   }, 
-  "src/alinea/caribu/version.py": {
+  "src/openalea/caribu/version.py": {
     "version": "ZDt/R5FtE9kaoSVb77sPZHJP14vhnZBukcnHdUjKosuhObXnw4NxT+DSV4ndUjljQAfSVOPG+cR29dVoP8jaRA=="
   }, 
   "src/caribu_data/__init__.py": {}, 
