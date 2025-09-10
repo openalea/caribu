@@ -25,6 +25,9 @@ build:
     - CMAKE_GENERATOR=MinGW Makefiles # [win]
     - CXX=g++ # [win]
     - CC=gcc # [win]
+  ignore_run_exports_from:
+    # do not propagate m2w64-toolchain run exports: caribu executables are called outside python
+    - m2w64-toolchain   # [win]
   ignore_run_exports:
     # do not propagate m2w64 lib for run environment, caribu executables are independant from python
     - m2w64-gcc-libs  # [win]
