@@ -25,11 +25,12 @@ build:
     - CMAKE_GENERATOR=MinGW Makefiles # [win]
     - CXX=g++ # [win]
     - CC=gcc # [win]
-    # Force static linking on Windows with m2w64
+    # Force static build on Windows to allow skipping run export of m2w64 stdlib
     - LDFLAGS=-static -static-libgcc -static-libstdc++   # [win]
   ignore_run_exports_from:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
+    # Avoid automatic run export of m2w64 stdlib on windows (that forces hard regression of msvc libs)
+    - {{ compiler('c') }} # [win]
+    - {{ compiler('cxx') }} # [win]
   script:
     - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
