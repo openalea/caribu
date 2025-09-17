@@ -6,7 +6,7 @@ import pydata_sphinx_theme # Pydata theme: https://pydata-sphinx-theme.readthedo
 
 from importlib.metadata import metadata
 project='caribu'
-meta = metadata('alinea.' + project)
+meta = metadata('openalea.' + project)
 release = meta.get("version")
 # for example take major/minor
 version = ".".join(release.split('.')[:3])
@@ -37,7 +37,7 @@ extensions = [
     'sphinx.ext.todo',      # support for todo items
     'sphinx.ext.napoleon',  # support for numpy and google style docstrings
     "sphinx_favicon",      # support for favicon
-    "sphinx_copybutton",      # support for copybutton in code blocks
+    #"sphinx_copybutton",      # support for copybutton in code blocks
     "nbsphinx",     # for integrating jupyter notebooks
     "myst_parser"   # for parsing .md files
 ]

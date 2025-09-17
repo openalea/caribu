@@ -40,14 +40,14 @@ II.1 Show result
 .. code:: python
 
     def show_result(res):
-        print "Index of the triangles : ", res['index']
-        print "The internal barcode : ", res['label']
-        print "The individual areas of triangles : ", res['area']
-        print "Surfacic density of energy : \n"
-        print "\t- absorbed by the triangles : ", res['Eabs']
-        print "\t- incoming on the triangles :", res['Ei']
-        print "\t- incoming on the inferior face of the triangle", res['Ei_inf']
-        print "\t- incoming on the superior face of the triangle", res['Ei_sup']
+        print("Index of the triangles : ", res['index'])
+        print("The internal barcode : ", res['label'])
+        print("The individual areas of triangles : ", res['area'])
+        print("Surfacic density of energy : \n")
+        print("\t- absorbed by the triangles : ", res['Eabs'])
+        print("\t- incoming on the triangles :", res['Ei'])
+        print("\t- incoming on the inferior face of the triangle", res['Ei_inf'])
+        print("\t- incoming on the superior face of the triangle", res['Ei_sup'])
 
 II.2 Raycasting
 ~~~~~~~~~~~~~~~
