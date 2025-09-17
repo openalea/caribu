@@ -67,9 +67,9 @@ extern  void sprow_dump(FILE *fp, SPROW *r)
    -- return -(idx+2) where idx is index to insertion point */
 extern  int	sprow_idx(SPROW	*r, int col)
 {
-   register int		lo, hi, mid;
+   int		lo, hi, mid;
    int			tmp;
-   register row_elt	*r_elt;
+   row_elt	*r_elt;
    
    /*******************************************
      if ( r == (SPROW *)NULL )

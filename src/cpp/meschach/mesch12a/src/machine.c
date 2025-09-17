@@ -36,16 +36,14 @@ static	char	*rcsid = "$Id: machine.c,v 1.4 1994/01/13 05:28:56 des Exp $";
 #include	"machine.h"
 
 /* __ip__ -- inner product */
-double	__ip__(dp1,dp2,len)
-register Real	*dp1, *dp2;
-int	len;
+double	__ip__(Real *dp1, Real *dp2, int len)
 {
 #ifdef VUNROLL
-    register int	len4;
-    register Real	sum1, sum2, sum3;
+     int	len4;
+     Real	sum1, sum2, sum3;
 #endif
-    register int	i;
-    register Real     sum;
+     int	i;
+     Real     sum;
 
     sum = 0.0;
 #ifdef VUNROLL
@@ -72,14 +70,11 @@ int	len;
 }
 
 /* __mltadd__ -- scalar multiply and add c.f. v_mltadd() */
-void	__mltadd__(dp1,dp2,s,len)
-register Real	*dp1, *dp2;
-register double s;
-register int	len;
+void	__mltadd__(Real *dp1, Real *dp2, double s, int len)
 {
-    register int	i;
+     int	i;
 #ifdef VUNROLL
-    register int        len4;
+     int        len4;
     
     len4 = len / 4;
     len  = len % 4;
@@ -98,40 +93,32 @@ register int	len;
 }
 
 /* __smlt__ scalar multiply array c.f. sv_mlt() */
-void	__smlt__(dp,s,out,len)
-register Real	*dp, *out;
-register double s;
-register int	len;
+void	__smlt__(Real *dp, double s, Real *out,int len)
 {
-    register int	i;
+     int	i;
     for ( i = 0; i < len; i++ )
 	out[i] = s*dp[i];
 }
 
 /* __add__ -- add arrays c.f. v_add() */
-void	__add__(dp1,dp2,out,len)
-register Real	*dp1, *dp2, *out;
-register int	len;
+void	__add__(Real *dp1, Real *dp2, Real *out, int len)
 {
-    register int	i;
+     int	i;
     for ( i = 0; i < len; i++ )
 	out[i] = dp1[i] + dp2[i];
 }
 
 /* __sub__ -- subtract arrays c.f. v_sub() */
-void	__sub__(dp1,dp2,out,len)
-register Real	*dp1, *dp2, *out;
-register int	len;
+void	__sub__(Real *dp1, Real *dp2, Real *out, int len)
+
 {
-    register int	i;
+     int	i;
     for ( i = 0; i < len; i++ )
 	out[i] = dp1[i] - dp2[i];
 }
 
 /* __zero__ -- zeros an array of floating point numbers */
-void	__zero__(dp,len)
-register Real	*dp;
-register int	len;
+void	__zero__(Real *dp, int len)
 {
 #ifdef CHAR0ISDBL0
     /* if a floating point zero is equivalent to a string of nulls */

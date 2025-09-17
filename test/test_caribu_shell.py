@@ -1,7 +1,7 @@
 """ Unit Tests for caribu_shell module """
 
-from alinea.caribu.caribu_shell import Caribu, CaribuOptionError, vcaribu
-from alinea.caribu.data_samples import data_path
+from openalea.caribu.caribu_shell import Caribu, CaribuOptionError, vcaribu
+from openalea.caribu.data_samples import data_path
 
 
 # Original test of caribu.csh script by M. Chelle
@@ -20,7 +20,13 @@ def test_case_1_projection_non_toric_scene(debug=False):
     sim.sphere_diameter = -1
     sim.pattern = None
     sim.run()
-    return sim.nrj
+    assert isinstance(sim.nrj, dict)
+    assert 'par' in sim.nrj
+    assert 'nir' in sim.nrj
+    for w in ('par', 'nir'):
+        assert 'data' in sim.nrj[w]
+        assert 'Eabs' in sim.nrj[w]['data']
+
 
 
 def test_case_2_projection_toric_scene(debug=False):
@@ -39,7 +45,12 @@ def test_case_2_projection_toric_scene(debug=False):
     sim.pattern = data_path('filter.8')
 
     sim.run()
-    return sim.nrj
+    assert isinstance(sim.nrj, dict)
+    assert 'par' in sim.nrj
+    assert 'nir' in sim.nrj
+    for w in ('par', 'nir'):
+        assert 'data' in sim.nrj[w]
+        assert 'Eabs' in sim.nrj[w]['data']
 
 
 def test_case_3_radiosity_non_toric_scene(debug=False):
@@ -58,7 +69,12 @@ def test_case_3_radiosity_non_toric_scene(debug=False):
     sim.pattern = None
 
     sim.run()
-    return sim.nrj
+    assert isinstance(sim.nrj, dict)
+    assert 'par' in sim.nrj
+    assert 'nir' in sim.nrj
+    for w in ('par', 'nir'):
+        assert 'data' in sim.nrj[w]
+        assert 'Eabs' in sim.nrj[w]['data']
 
 
 def test_case_4_projection_sail_toric_scene(debug=False):
@@ -77,7 +93,12 @@ def test_case_4_projection_sail_toric_scene(debug=False):
     sim.pattern = data_path('filter.8')
 
     sim.run()
-    return sim.nrj
+    assert isinstance(sim.nrj, dict)
+    assert 'par' in sim.nrj
+    assert 'nir' in sim.nrj
+    for w in ('par', 'nir'):
+        assert 'data' in sim.nrj[w]
+        assert 'Eabs' in sim.nrj[w]['data']
 
 
 def test_case_5_nested_radiosity_toric_scene(debug=False):
@@ -96,7 +117,10 @@ def test_case_5_nested_radiosity_toric_scene(debug=False):
     sim.pattern = data_path('filter.8')
 
     sim.run()
-    return sim.nrj
+    assert isinstance(sim.nrj, dict)
+    assert 'par' in sim.nrj
+    assert 'data' in sim.nrj['par']
+    assert 'Eabs' in sim.nrj['par']['data']
 
 
 def test_caribu_inconsistent_case():
@@ -142,6 +166,10 @@ def test_vcaribu():
     pattern = None
     options = {'infinity': False}
     nrj, status = vcaribu(can, sky, opts, pattern, options)
+    assert isinstance(nrj, dict)
+    assert 'par' in nrj
+    assert 'data' in nrj['par']
+    assert 'Eabs' in nrj['par']['data']
 
 
 def test_sensor(debug=False):
@@ -160,7 +188,8 @@ def test_sensor(debug=False):
     sim.sphere_diameter = -1
     sim.pattern = None
     sim.run()
-    return sim.measures
+    assert isinstance(sim.measures, dict)
+    assert 'par' in sim.measures
 
 if __name__ == '__main__':
     tests = [(fname,func) for fname, func in globals().items() if 'test_' in fname]

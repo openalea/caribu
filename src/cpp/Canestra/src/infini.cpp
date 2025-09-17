@@ -30,7 +30,7 @@ void pave(int x,int  y, char idx) ;
 
 //local function
 bool out(int i,int j,int moving_i,int moving_j) {
-  register int k,l;
+  int k,l;
   bool dehors[2]={true,true};
 
 

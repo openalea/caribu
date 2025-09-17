@@ -7,13 +7,13 @@ BSP::~BSP(){
   Ldiff.free_liste();
 }
 
-void BSP::destruction_boite(){
+void BSP::destruction_boite() const {
   delete this;
 }
 //modif pour traiter un volume fixe par l'user  (cas infini) - MC 95
-void BSP::volume_englobant_scene(reel *bornemin, reel *bornemax,ListeD<Diffuseur*>& Ldiff_scene){
+void BSP::volume_englobant_scene(const reel *bornemin, const reel *bornemax,ListeD<Diffuseur*>& Ldiff_scene){
   //modif : pour l'infini : inclure les a-cheval
-  register int i,nbs;
+  int i,nbs;
   Diffuseur *pdiff;
   Point pt;
   // char bps[3];//Bon Pour le Service 
@@ -78,8 +78,8 @@ inline void BSP::ajouter(Diffuseur* no_diff){
   nb_diffuseurs++;
 }
 
-void BSP::copie_boite(BSP* B1){
-  register int i;
+void BSP::copie_boite(BSP* B1) const {
+  int i;
   
   for (i=0; i<3; i++){
     B1->position_max[i]=position_max[i];
@@ -130,8 +130,8 @@ void BSP::decoupe_boite(int axe, BSP* B1, BSP* B2, double frontier){
   remplir_diffuseur(B1, B2, axe);
 }
 
-bool BSP::contient(Point &P) {
-  register int ii;
+bool BSP::contient(Point &P) const {
+  int ii;
   bool dedans=true;
   for(ii=0;ii<3;ii++) {
     dedans &= (P[ii]<position_max[ii]) && (P[ii]>position_min[ii]);

@@ -42,14 +42,13 @@ static	char	rcsid[] = "$Id: bkpfacto.c,v 1.7 1994/01/13 05:45:50 des Exp $";
 #define alpha	0.6403882032022076 /* = (1+sqrt(17))/8 */
 
 /* sqr -- returns square of x -- utility function */
-double	sqr(x)
-double	x;
+double	sqr(const double x)
 {	return x*x;	}
 
 /* interchange -- a row/column swap routine */
-static void interchange(A,i,j)
-MAT	*A;	/* assumed != NULL & also SQUARE */
-int	i, j;	/* assumed in range */
+static void interchange(MAT *A, int i, int j)
+//MAT	*A;	/* assumed != NULL & also SQUARE */
+//int	i, j;	/* assumed in range */
 {
 	Real	**A_me, tmp;
 	int	k, n;
@@ -99,9 +98,7 @@ int	i, j;	/* assumed in range */
 	P is a permutation matrix, M lower triangular and D is block
 	diagonal with blocks of size 1 or 2
 	-- P is stored in pivot; blocks[i]==i iff D[i][i] is a block */
-MAT	*BKPfactor(A,pivot,blocks)
-MAT	*A;
-PERM	*pivot, *blocks;
+MAT	*BKPfactor(MAT *A,PERM *pivot, PERM *blocks)
 {
 	int	i, j, k, n, onebyone, r;
 	Real	**A_me, aii, aip1, aip1i, lambda, sigma, tmp;
@@ -224,10 +221,7 @@ dopivot:
 
 /* BKPsolve -- solves A.x = b where A has been factored a la BKPfactor()
 	-- returns x, which is created if NULL */
-VEC	*BKPsolve(A,pivot,block,b,x)
-MAT	*A;
-PERM	*pivot, *block;
-VEC	*b, *x;
+VEC	*BKPsolve(MAT *A, PERM *pivot, PERM *block, VEC *b, VEC *x)
 {
 	static VEC	*tmp=VNULL;	/* dummy storage needed */
 	int	i, j, n, onebyone;

@@ -26,8 +26,7 @@
 
 #include	<stdio.h>
 
-double	dclean(x)
-double	x;
+double	dclean(double x)
 {
     static double	y;
     y = x;
@@ -36,7 +35,7 @@ double	x;
 
 int main()
 {
-    static double	deps, deps1, dtmp;
+    static double	deps;
 
     deps = 1.0;
     while ( dclean(1.0+deps) > 1.0 )

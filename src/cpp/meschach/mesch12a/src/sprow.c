@@ -41,9 +41,7 @@ static char	rcsid[] = "$Id: sprow.c,v 1.1 1994/01/13 05:35:36 des Exp $";
 
 /* sprow_dump - prints relevant information about the sparse row r */
 
-void sprow_dump(fp,r)
-FILE *fp;
-SPROW *r;
+void sprow_dump(FILE *fp, SPROW *r)
 {
    int  j_idx;
    row_elt *elts;
@@ -54,7 +52,7 @@ SPROW *r;
    
    fprintf(fp,"row: len = %d, maxlen = %d, diag idx = %d\n",
 	   r->len,r->maxlen,r->diag);
-   fprintf(fp,"element list @ 0x%lx\n",(long)(r->elt));
+   fprintf(fp,"element list @ 0x%p\n",(void *)(r->elt));
    if ( ! r->elt )
    {
       fprintf(fp,"*** NULL element list ***\n");
@@ -71,13 +69,11 @@ SPROW *r;
 /* sprow_idx -- get index into row for a given column in a given row
    -- return -1 on error
    -- return -(idx+2) where idx is index to insertion point */
-int	sprow_idx(r,col)
-SPROW	*r;
-int	col;
+int	sprow_idx(SPROW *r, int col)
 {
-   register int		lo, hi, mid;
+   int		lo, hi, mid;
    int			tmp;
-   register row_elt	*r_elt;
+   row_elt	*r_elt;
    
    /*******************************************
      if ( r == (SPROW *)NULL )
@@ -118,8 +114,7 @@ int	col;
 
 /* sprow_get -- gets, initialises and returns a SPROW structure
    -- max. length is maxlen */
-SPROW	*sprow_get(maxlen)
-int	maxlen;
+SPROW	*sprow_get(int maxlen)
 {
    SPROW	*r;
    
@@ -151,9 +146,7 @@ int	maxlen;
    -- type must be TYPE_SPMAT if r is a row of a SPMAT structure,
       otherwise it must be TYPE_SPROW
    -- returns r */
-SPROW	*sprow_xpd(r,n,type)
-SPROW	*r;
-int	n,type;
+SPROW	*sprow_xpd(SPROW *r, int n, int type)
 {
    int	newlen;
    
@@ -211,9 +204,7 @@ int	n,type;
 /* sprow_resize -- resize a SPROW variable by means of realloc()
    -- n is a new size
    -- returns r */
-SPROW	*sprow_resize(r,n,type)
-SPROW	*r;
-int	n,type;
+SPROW	*sprow_resize(SPROW *r, int n, int type)
 {
    if (n < 0)
      error(E_NEG,"sprow_resize");
@@ -255,8 +246,7 @@ int	n,type;
 
 
 /* release a row of a matrix */
-int sprow_free(r)
-SPROW	*r;
+int sprow_free(SPROW *r)
 {
    if ( ! r )
      return -1;
@@ -284,9 +274,7 @@ SPROW	*r;
       whether r_out is a row of a SPMAT structure
       or a SPROW variable
    -- returns r_out */
-SPROW	*sprow_merge(r1,r2,r_out,type)
-SPROW	*r1, *r2, *r_out;
-int type;
+SPROW	*sprow_merge(SPROW *r1, SPROW *r2, SPROW *r_out, int type)
 {
    int	idx1, idx2, idx_out, len1, len2, len_out;
    row_elt	*elt1, *elt2, *elt_out;
@@ -339,9 +327,7 @@ int type;
       whether r_out is a row of a SPMAT structure
       or a SPROW variable
    -- returns r_out */
-SPROW	*sprow_copy(r1,r2,r_out,type)
-SPROW	*r1, *r2, *r_out;
-int type;
+SPROW	*sprow_copy(SPROW *r1, SPROW *r2, SPROW *r_out, int type)
 {
    int	idx1, idx2, idx_out, len1, len2, len_out;
    row_elt	*elt1, *elt2, *elt_out;
@@ -395,10 +381,7 @@ int type;
       whether r_out is a row of a SPMAT structure
       or a SPROW variable
    -- returns r_out */
-SPROW	*sprow_mltadd(r1,r2,alpha,j0,r_out,type)
-SPROW	*r1, *r2, *r_out;
-double	alpha;
-int	j0, type;
+SPROW	*sprow_mltadd(SPROW *r1, SPROW *r2, double alpha, int j0, SPROW * r_out, int type)
 {
    int	idx1, idx2, idx_out, len1, len2, len_out;
    row_elt	*elt1, *elt2, *elt_out;
@@ -465,9 +448,7 @@ int	j0, type;
       whether r_out is a row of a SPMAT structure
       or a SPROW variable
    -- returns r_out */
-SPROW	*sprow_add(r1,r2,j0,r_out,type)
-SPROW	*r1, *r2, *r_out;
-int	j0, type;
+SPROW	*sprow_add(SPROW *r1, SPROW *r2, int j0, SPROW *r_out, int type)
 {
    int	idx1, idx2, idx_out, len1, len2, len_out;
    row_elt	*elt1, *elt2, *elt_out;
@@ -534,9 +515,7 @@ int	j0, type;
       whether r_out is a row of a SPMAT structure
       or a SPROW variable
    -- returns r_out */
-SPROW	*sprow_sub(r1,r2,j0,r_out,type)
-SPROW	*r1, *r2, *r_out;
-int	j0, type;
+SPROW	*sprow_sub(SPROW *r1, SPROW *r2, int j0, SPROW *r_out, int type)
 {
    int	idx1, idx2, idx_out, len1, len2, len_out;
    row_elt	*elt1, *elt2, *elt_out;
@@ -601,10 +580,7 @@ int	j0, type;
    -- can be in situ
    -- only for columns j0, j0+1, ...
    -- returns r_out */
-SPROW	*sprow_smlt(r1,alpha,j0,r_out,type)
-SPROW	*r1, *r_out;
-double	alpha;
-int	j0, type;
+SPROW	*sprow_smlt(SPROW *r1, double alpha, int j0, SPROW *r_out,int type)
 {
    int	idx1, idx_out, len1;
    row_elt	*elt1, *elt_out;
@@ -640,9 +616,7 @@ int	j0, type;
 
   
 /* sprow_foutput -- print a representation of r on stream fp */
-void	sprow_foutput(fp,r)
-FILE	*fp;
-SPROW	*r;
+void	sprow_foutput(FILE *fp, SPROW *r)
 {
    int	i, len;
    row_elt	*e;
@@ -662,10 +636,7 @@ SPROW	*r;
 
 /* sprow_set_val -- sets the j-th column entry of the sparse row r
    -- Note: destroys the usual column & row access paths */
-double  sprow_set_val(r,j,val)
-SPROW   *r;
-int     j;
-double  val;
+double  sprow_set_val(SPROW *r, int j, double val)
 {
    int  idx, idx2, new_len;
    

@@ -23,7 +23,7 @@ using namespace std ;
 // Type declarations (ex fortran common)
 
 struct Msailin{
-  REEL *l, *ttl, *roo, *tau, *bmu, *bnu;/* tableau de n couches */
+  REEL *l{}, *ttl{}, *roo{}, *tau{}, *bmu{}, *bnu{};/* tableau de n couches */
   REEL tts, tto, psi; 
   int nbang;
   Tabdyn<REEL,2> f;	/* was [n][45] */
@@ -31,7 +31,7 @@ struct Msailin{
   Msailin(){nbang=-1;tts=tto=psi=0;}
   void alloue(int n){
     n++;
-    register int i;
+    int i;
     if(nbang>0){
       l=new REEL[n];   ttl=new REEL[n];
       roo=new REEL[n]; tau=new REEL[n];
@@ -49,7 +49,7 @@ struct Msailin{
     if (nbang >0) {
       delete [] l;delete [] ttl;delete [] roo;
       delete [] tau;delete [] bmu;delete [] bnu ;
-    } // sinon plante à vide
+    } // sinon plante ï¿½ vide
   }//destructor
 } ;
 struct Limit{

@@ -23,15 +23,18 @@ Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #include <iostream>
 using namespace std ;
 
-#ifndef WIN32
-#ifndef MINGW
-#include <alloca.h>
+#if defined(_MSC_VER)
+/* MSVC provides _alloca via <malloc.h> */
+#  include <malloc.h>
+#  define alloca _alloca
+#elif defined(__MINGW32__) || defined(__MINGW64__)
+/* MinGW provides alloca via <malloc.h> */
+#  include <malloc.h>
 #else
-#define alloca malloc
+/* GCC/Clang provide alloca via <alloca.h> */
+#  include <alloca.h>
 #endif
-#else
-#define alloca malloc
-#endif
+
 
 //#include <alloc.h>
 

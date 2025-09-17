@@ -41,7 +41,7 @@ Voxel::~Voxel(){
     // MC161203 : gestion a la mano des desallocation par un tableau de pointeur
     // NB une facon plus propre serait de gerer dans BSP un nbre d'instance
 
-    register int i,j,k,n; 
+    int i,j,k,n; 
     for(i=0;i<SI.maxi()[0];i++)
       for(j=0;j<SI.maxi()[1];j++)
 	for(k=0;k<SI.maxi()[2];k++){
@@ -82,7 +82,7 @@ Voxel& Voxel::operator = (Voxel& g){
 void  Voxel::division(char  axe, unsigned char * niveau_sub_max,BSP* B){
   BSP *B1;
   BSP *B2;
-  register int i;
+  int i;
   int indi;
   bool taille_min[3];
   double frontier;
@@ -216,7 +216,7 @@ void Voxel::numerotation(BSP* B){
 
 //************* Voxel:: visu()  ***********
 void Voxel::visu(){
-  register int i,j,k;
+  int i,j,k;
   BSP * B;
   
   Ferr <<"Voxel[visu()] DEBUT\n" ;
@@ -235,7 +235,7 @@ void Voxel::visu(){
 void Voxel::construction(reel* bornemin, reel* bornemax,
 			 double Renv, ListeD<Diffuseur*>& Ldiff) {
   double delta[3],reste,ratio=1.0 ;
-  register int i;
+  int i;
   FILE *grille_par;
   char grille_nom[]="grille_par";
   
@@ -253,7 +253,7 @@ void Voxel::construction(reel* bornemin, reel* bornemax,
        <<" - ratio = "  << ratio<<"\n" ;
   }
   else {
-    fscanf(grille_par,"%d %g",&SEUIL_NB_DIFF,&ratio);
+    fscanf(grille_par,"%d %lg",&SEUIL_NB_DIFF,&ratio);
     Ferr <<"Seuil dans "  << grille_nom<<" = "  << SEUIL_NB_DIFF
        <<" - ratio = "  << ratio<<"\n" ;
     }

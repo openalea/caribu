@@ -56,7 +56,7 @@ extern  int err_list_free();		/* freeing a list of errors */
 
 #else  /* ANSI_C */
 
-extern	int ev_err(char *,int,int,char *,int);  /* main error handler */
+extern	int ev_err(const char *,int,int,const char *,int);  /* main error handler */
 extern	int set_err_flag(int flag);         /* for different ways of handling
                                                 errors, returns old value */
 extern  int count_errs(int true_false);     /* to avoid "too many errors" */

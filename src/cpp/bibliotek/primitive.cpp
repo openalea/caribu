@@ -14,7 +14,7 @@ Primitive :: Primitive(Point p)
 // POLYGONE
 
 void Polygone::init(Liste<Point>& liste_sommet,double name=0){
-  register int i=1;
+  int i=1;
   
   nom=name;
   for( liste_sommet.debut();
@@ -36,7 +36,7 @@ void Polygone::init(Liste<Point>& liste_sommet,double name=0){
 }//init
 
 Polygone::Polygone( Polygone& frere):Primitive(){
-  register int i;
+  int i;
   nb_sommets=i=frere.nb_sommet();
   printf("Polygone::Polygone(Polygone&) nb_sommets=%d\n",i);fflush(stdout);
   sommet=new Point[i];
@@ -46,7 +46,7 @@ Polygone::Polygone( Polygone& frere):Primitive(){
   calcul_normale_cst_equ(sommet[0],sommet [1],sommet[2]);
 }//Cstructeur par copie
 Polygone::Polygone(Polygone* frere){
-  register int i;
+  int i;
   
   nb_sommets=i=frere->nb_sommet();
   sommet=new Point[i];
@@ -116,7 +116,7 @@ void Polygone::init(char* line,double name,
   nom=name;
   strcpy(str3,line);
   sscanf(str3,"%d",&ii);
-  sprintf(str2,"%d",ii);
+  snprintf(str2,sizeof(str2), "%d",ii);
   str=strstr(str3,str2);//strtok(str3,str2);
   str++;
   nb_sommets=i=ii;
@@ -224,7 +224,7 @@ Ferr <<"\tPolygone::init(char*) => Norme de (POP1)^(POP2 Nulle \n" ;
 }//Polygone::init(char*) 
 
 Polygone::Polygone(float(*T)[3],double name,reel*mini,reel*maxi){
-  register int i,j;
+  int i,j;
   int ii;
   Point P;
   double x;
@@ -292,7 +292,7 @@ Ferr <<"\tPolygone(reel **) => Norme de (POP1)^(POP2 Nulle \n" ;
 
 void Polygone::show(const char* msg,ostream &out){
   out << msg<<"-Polygone :"; qui();
-  for (register int i=0; i<nb_sommets; i++){
+  for (int i=0; i<nb_sommets; i++){
     out << "\t" <<sommet[i][0]<<" "<<sommet[i][1]<<" "<<sommet[i][2]<<endl;
   }
 }//show()
@@ -353,7 +353,7 @@ int Polygone::tout_point_sup(reel& position, const int& axe){
 }
 
 int Polygone::nb_in(reel& amin,reel& amax, const int& axe) {
-  register int nbp=0,i;
+  int nbp=0,i;
   bool info=false;
   for (i=0; i<nb_sommets; i++) {
     if(sommet[i][axe]>amax) {
@@ -403,7 +403,7 @@ void Polygone::calcul_normale_cst_equ(Point& p1, Point& p2, Point& p3){
   OA.formation_vecteur(O,p1);
   cst_equ_plan=OA.prod_scalaire(normale);
   //Calcul de l'isobarycentre et de la + grde distance de isob aux sommets (aprt_sphere)
-  register int i,j;
+  int i,j;
   float d2;
   isob[0]=isob[1]=isob[2]=0.;
   for(i=0;i<nb_sommets;i++)
@@ -552,7 +552,7 @@ double Polygone::surface(){
   default:
     Point G=centre();
     x=0.0;
-    for(register int i=0;i<nb_sommets;){
+    for(int i=0;i<nb_sommets;){
       u.formation_vecteur(G,sommet[i++]);
       v.formation_vecteur(G,sommet[(i<nb_sommets)?i:0]);
       x+=(u.prod_vectoriel(v)).norme();

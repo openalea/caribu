@@ -28,7 +28,7 @@ void Canopy::gencan(char *fname){
   FILE *fic;
   Diffuseur *diff;
   Primitive *prim;
-  register int i,nbs,nbd=0,nbp=0;
+  int i,nbs,nbd=0,nbp=0;
   int label;
 
   fic=fopen(fname,"w");
@@ -181,7 +181,7 @@ char* endline(ifstream & fin){
 
 void Canopy::parse_can(char *ngeom,char *nopti,reel *bornemin,reel*bornemax,bool sol,char *name8){
   bool rejet=false,infty=false;
-  register int i=0,nbp=0;
+  int i=0,nbp=0;
   Diffuseur* diff;
   ifstream fopti;
   char c, line[256];
@@ -290,7 +290,7 @@ void Canopy::parse_can(char *ngeom,char *nopti,reel *bornemin,reel*bornemax,bool
   double nom,espid;
   bool valid;
   reel min[3],max[3];
-  register int id;
+  int id;
   unsigned char specie; 
   bool opak;
   espid=1000000;

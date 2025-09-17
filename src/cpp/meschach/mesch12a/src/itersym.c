@@ -34,23 +34,14 @@
 
 #include        <stdio.h>
 #include        "machine.h"
-
 #include        "matrix.h"
 #include        "matrix2.h"
-#include	"sparse.h"
+#include	    "sparse.h"
+#include	    "sparse2.h"
 #include        "iter.h"
 #include	<math.h>
 
 static char rcsid[] = "$Id: itersym.c,v 1.2 1995/01/30 14:55:54 des Exp $";
-
-
-#ifdef ANSI_C
-VEC	*spCHsolve(SPMAT *,VEC *,VEC *);
-VEC	*trieig(VEC *,VEC *,MAT *);
-#else
-VEC	*spCHsolve();
-VEC	*trieig();
-#endif
 
 
 
@@ -64,11 +55,7 @@ VEC	*trieig();
    x = iter_spcg(A,LLT,b,eps,VNULL,limit,steps);
    In the second case the solution vector is created.
    */
-VEC  *iter_spcg(A,LLT,b,eps,x,limit,steps)
-SPMAT	*A, *LLT;
-VEC	*b, *x;
-double	eps;
-int *steps, limit;
+VEC  *iter_spcg(SPMAT *A, SPMAT *LLT, VEC *b, double eps, VEC *x, int limit, int *steps)
 {	
    ITER *ip;
    
@@ -93,8 +80,7 @@ int *steps, limit;
 /* 
   Conjugate gradients method;
   */
-VEC  *iter_cg(ip)
-ITER *ip;
+VEC  *iter_cg(ITER *ip)
 {
    static VEC *r = VNULL, *p = VNULL, *q = VNULL, *z = VNULL;
    Real	alpha, beta, inner, old_inner, nres;
@@ -181,11 +167,7 @@ ITER *ip;
    -- creates T matrix of size == m,
    but no larger than before beta_k == 0
    -- uses passed routine to do matrix-vector multiplies */
-void	iter_lanczos(ip,a,b,beta2,Q)
-ITER    *ip;
-VEC	*a, *b;
-Real	*beta2;
-MAT	*Q;
+void	iter_lanczos(ITER *ip, VEC *a, VEC *b, Real *beta2, MAT *Q)
 {
    int	j;
    static VEC	*v = VNULL, *w = VNULL, *tmp = VNULL;
@@ -253,12 +235,7 @@ MAT	*Q;
 }
 
 /* iter_splanczos -- version that uses sparse matrix data structure */
-void    iter_splanczos(A,m,x0,a,b,beta2,Q)
-SPMAT	*A;
-int     m;
-VEC     *x0, *a, *b;
-Real    *beta2;
-MAT     *Q;
+void    iter_splanczos(SPMAT *A, int m, VEC *x0, VEC *a, VEC *b, Real *beta2, MAT *Q)
 {	
    ITER *ip;
    
@@ -273,15 +250,9 @@ MAT     *Q;
 }
 
 
-
-extern	double	frexp(), ldexp();
-
 /* product -- returns the product of a long list of numbers
    -- answer stored in mant (mantissa) and expt (exponent) */
-static	double	product(a,offset,expt)
-VEC	*a;
-double	offset;
-int	*expt;
+static	double	product(VEC *a, double offset, int *expt)
 {
    Real	mant, tmp_fctr;
    int	i, tmp_expt;
@@ -325,10 +296,8 @@ int	*expt;
 
 /* product2 -- returns the product of a long list of numbers
    -- answer stored in mant (mantissa) and expt (exponent) */
-static	double	product2(a,k,expt)
-VEC	*a;
-int	k;	/* entry of a to leave out */
-int	*expt;
+static	double	product2(VEC *a, int k, int *expt)
+//int	k;	/* entry of a to leave out */
 {
    Real	mant, mu, tmp_fctr;
    int	i, tmp_expt;
@@ -362,8 +331,7 @@ int	*expt;
 }
 
 /* dbl_cmp -- comparison function to pass to qsort() */
-static	int	dbl_cmp(x,y)
-Real	*x, *y;
+static	int	dbl_cmp(Real *x, Real *y)
 {
    Real	tmp;
    
@@ -374,11 +342,12 @@ Real	*x, *y;
 /* iter_lanczos2 -- lanczos + error estimate for every e-val
    -- uses Cullum & Willoughby approach, Sparse Matrix Proc. 1978
    -- returns multiple e-vals where multiple e-vals may not exist
-   -- returns evals vector */
-VEC	*iter_lanczos2(ip,evals,err_est)
-ITER 	*ip;            /* ITER structure */
-VEC	*evals;		/* eigenvalue vector */
-VEC	*err_est;	/* error estimates of eigenvalues */
+   -- returns evals vector
+   ITER 	*ip;            ITER structure 
+   VEC	*evals;		 eigenvalue vector 
+   VEC	*err_est;	 error estimates of eigenvalues
+    */
+VEC	*iter_lanczos2(ITER *ip, VEC *evals, VEC *err_est)
 {
    VEC		*a;
    static	VEC	*b=VNULL, *a2=VNULL, *b2=VNULL;
@@ -467,14 +436,11 @@ VEC	*err_est;	/* error estimates of eigenvalues */
 }
 
 /* iter_splanczos2 -- version of iter_lanczos2() that uses sparse matrix data
-   structure */
-
-VEC    *iter_splanczos2(A,m,x0,evals,err_est)
-SPMAT	*A;
-int	 m;
-VEC	*x0;		/* initial vector */
-VEC	*evals;		/* eigenvalue vector */
-VEC	*err_est;	/* error estimates of eigenvalues */
+   structure 
+   VEC	*x0;		 initial vector 
+   VEC	*evals;		 eigenvalue vector 
+   VEC	*err_est;	 error estimates of eigenvalues */
+VEC    *iter_splanczos2(SPMAT *A, int m, VEC *x0, VEC *evals, VEC *err_est)
 {	
    ITER *ip;
    VEC *a;
@@ -498,8 +464,7 @@ VEC	*err_est;	/* error estimates of eigenvalues */
   Another variant - mainly for testing
   */
 
-VEC  *iter_cg1(ip)
-ITER *ip;
+VEC  *iter_cg1(ITER *ip)
 {
    static VEC *r = VNULL, *p = VNULL, *q = VNULL, *z = VNULL;
    Real	alpha;

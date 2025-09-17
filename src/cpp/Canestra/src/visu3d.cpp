@@ -17,7 +17,7 @@
 
 inline void beep(const char *msg="M'enfin ...",int nbeep=1)
 { cout<<(char) 7 <<msg<<endl;
-  for(register int i=1;i<1;i++) cout<<(char) 7<<endl;
+  for(int i=1;i<1;i++) cout<<(char) 7<<endl;
 }//beep()
 
 #define PAUSE(msg)  printf(msg);printf("- Taper la touche Any");getchar();
@@ -32,7 +32,7 @@ void FileOk(char * nfic){
 }//FileOk()
 
 int main(int argc,char **argv){
-  register unsigned int i,j;
+  unsigned int i,j;
   // Gestion des options
   bool sol=false,infty=false, abs=false;
   double max=-1;
@@ -136,7 +136,7 @@ int main(int argc,char **argv){
      fG=fopen(nomG,"r");
      fB=fopen(nomB,"r");
   }
-  register int ii,im;
+  int ii,im;
   for(i=0;i<scene.radim;){
     im=(TabDiff[nbp]->isopaque())? 1: 2;
     for(ii=0;ii<im;ii++,i++){

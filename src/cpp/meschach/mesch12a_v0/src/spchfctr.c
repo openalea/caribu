@@ -54,8 +54,8 @@ SPMAT	*comp_AAT(SPMAT *A);
 double	sprow_ip(SPROW *row1, SPROW *row2, int lim)
 {
 	int			idx1, idx2, len1, len2, tmp;
-	register row_elt	*elts1, *elts2;
-	register Real		sum;
+	row_elt	*elts1, *elts2;
+	Real		sum;
 
 	elts1 = row1->elt;	elts2 = row2->elt;
 	len1 = row1->len;	len2 = row2->len;
@@ -175,7 +175,7 @@ int	set_scan(int new_len)
 	-- only the lower triangular part of A (incl. diagonal) is used */
 extern  SPMAT	*spCHfactor(SPMAT *A)
 {
-	register 	int	i;
+		int	i;
 	int	idx, k, m, minim, n, num_scan, diag_idx, tmp1;
 	Real	pivot, tmp2;
 	SPROW	*r_piv, *r_op;
@@ -436,7 +436,7 @@ extern  SPMAT	*spICHfactor(SPMAT *A)
 	-- only the lower triangular part of A (incl. diagonal) is used */
 extern  SPMAT	*spCHsymb(SPMAT *A)
 {
-	register 	int	i;
+		int	i;
 	int	idx, k, m, minim, n, num_scan, diag_idx, tmp1;
 	SPROW	*r_piv, *r_op;
 	row_elt	*elt_piv, *elt_op, *old_elt;

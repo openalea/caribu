@@ -92,24 +92,19 @@ static char	rcsid[] = "$Id: extras.c,v 1.3 1994/01/13 05:45:36 des Exp $";
 /* mblar-1 routines */
 
 /* Mscale -- sets x <- alpha.x */
-void	Mscale(len,alpha,x)
-int	len;
-double	alpha;
-Real	*x;
+void	Mscale(int len,double alpha,Real* x)
 {
-    register int	i;
+    int	i;
 
     for ( i = 0; i < len; i++ )
 	x[i] *= alpha;
 }
 
 /* Mswap -- swaps x and y */
-void	Mswap(len,x,y)
-int	len;
-Real	*x, *y;
+void	Mswap(int len,Real* x,Real* y)
 {
-    register int	i;
-    register Real	tmp;
+    int	i;
+    Real	tmp;
 
     for ( i = 0; i < len; i++ )
     {
@@ -120,23 +115,18 @@ Real	*x, *y;
 }
 
 /* Mcopy -- copies x to y */
-void	Mcopy(len,x,y)
-int	len;
-Real	*x, *y;
+void	Mcopy(int len,Real* x,Real* y)
 {
-    register int	i;
+    int	i;
 
     for ( i = 0; i < len; i++ )
 	y[i] = x[i];
 }
 
 /* Maxpy -- y <- y + alpha.x */
-void	Maxpy(len,alpha,x,y)
-int	len;
-double	alpha;
-Real	*x, *y;
+void	Maxpy(int len,double alpha,Real* x,Real* y)
 {
-    register int	i, len4;
+    int	i, len4;
 
     /****************************************
     for ( i = 0; i < len; i++ )
@@ -160,19 +150,17 @@ Real	*x, *y;
 }
 
 /* Mdot -- returns x'.y */
-double	Mdot(len,x,y)
-int	len;
-Real	*x, *y;
+double	Mdot(int len,Real* x,Real* y)
 {
-    register int	i, len4;
-    register Real	sum;
+    int	i, len4;
+    Real	sum;
 
 #ifndef REGISTER_RICH
     sum = 0.0;
 #endif
 
 #ifdef REGISTER_RICH
-    register Real	sum0, sum1, sum2, sum3;
+    Real	sum0, sum1, sum2, sum3;
     
     sum0 = sum1 = sum2 = sum3 = 0.0;
     
@@ -201,12 +189,10 @@ Real	*x, *y;
 #endif
 
 /* Mnorminf -- returns ||x||_inf */
-double	Mnorminf(len,x)
-int	len;
-Real	*x;
+double	Mnorminf(int len,Real* x)
 {
-    register int	i;
-    register Real	tmp, max_val;
+    int	i;
+    Real	tmp, max_val;
 
     max_val = 0.0;
     for ( i = 0; i < len; i++ )
@@ -220,12 +206,10 @@ Real	*x;
 }
 
 /* Mnorm1 -- returns ||x||_1 */
-double	Mnorm1(len,x)
-int	len;
-Real	*x;
+double	Mnorm1(int len,Real* x)
 {
-    register int	i;
-    register Real	sum;
+    int	i;
+    Real	sum;
 
     sum = 0.0;
     for ( i = 0; i < len; i++ )
@@ -235,12 +219,10 @@ Real	*x;
 }
 
 /* Mnorm2 -- returns ||x||_2 */
-double	Mnorm2(len,x)
-int	len;
-Real	*x;
+double	Mnorm2(int len,Real* x)
 {
-    register int	i;
-    register Real	norm, invnorm, sum, tmp;
+    int	i;
+    Real	norm, invnorm, sum, tmp;
 
     norm = Mnorminf(len,x);
     if ( norm == 0.0 )
@@ -259,14 +241,11 @@ Real	*x;
 /* mblar-2 routines */
 
 /* Mmv -- y <- alpha.A.x + beta.y */
-void	Mmv(m,n,alpha,A,j0,x,beta,y)
-int	m, n, j0;
-double	alpha, beta;
-Real	**A, *x, *y;
+void	Mmv(int m,int n,double alpha,Real **A,int j0,Real* x,double beta,Real* y)
 {
-    register int	i, j, m4, n4;
-    register Real	sum0, sum1, sum2, sum3, tmp0, tmp1, tmp2, tmp3;
-    register Real	*dp0, *dp1, *dp2, *dp3;
+    int	i, j, m4, n4;
+    Real	sum0, sum1, sum2, sum3, tmp0, tmp1, tmp2, tmp3;
+    Real	*dp0, *dp1, *dp2, *dp3;
 
     /****************************************
     for ( i = 0; i < m; i++ )
@@ -323,19 +302,16 @@ Real	**A, *x, *y;
 }
 
 /* Mvm -- y <- alpha.A^T.x + beta.y */
-void	Mvm(m,n,alpha,A,j0,x,beta,y)
-int	m, n, j0;
-double	alpha, beta;
-Real	**A, *x, *y;
+void	Mvm(int m,int n,double alpha,Real **A,int j0,Real* x,double beta,Real* y)
 {
-    register int	i, j, m4, n2;
-    register Real	*Aref;
-    register Real 	tmp;
+    int	i, j, m4, n2;
+    Real	*Aref;
+    Real 	tmp;
 
 #ifdef REGISTER_RICH
-    register Real	*Aref0, *Aref1;
-    register Real	tmp0, tmp1;
-    register Real	yval0, yval1, yval2, yval3;
+    Real	*Aref0, *Aref1;
+    Real	tmp0, tmp1;
+    Real	yval0, yval1, yval2, yval3;
 #endif
 
     if ( beta != 1.0 )
@@ -393,14 +369,11 @@ Real	**A, *x, *y;
 }
 
 /* Mupdate -- A <- A + alpha.x.y^T */
-void	Mupdate(m,n,alpha,x,y,A,j0)
-int	m, n, j0;
-double	alpha;
-Real	**A, *x, *y;
+void	Mupdate(int m,int n,double alpha,Real* x,Real* y,Real** A,int j0)
 {
-    register int	i, j, n4;
-    register Real	*Aref;
-    register Real 	tmp;
+    int	i, j, n4;
+    Real	*Aref;
+    Real 	tmp;
 
     /****************************************
     for ( i = 0; i < m; i++ )
@@ -429,14 +402,10 @@ Real	**A, *x, *y;
 /* mblar-3 routines */
 
 /* Mmm -- C <- C + alpha.A.B */
-void	Mmm(m,n,p,alpha,A,Aj0,B,Bj0,C,Cj0)
-int	m, n, p;	/* C is m x n */
-double  alpha;
-Real	**A, **B, **C;
-int	Aj0, Bj0, Cj0;
+void	Mmm(int m,int n,int p,double alpha,Real** A,int Aj0,Real** B,int Bj0,Real** C,int Cj0)
 {
-    register int	i, j, k;
-    /* register Real	tmp, sum; */
+    int	i, j, k;
+    /* Real	tmp, sum; */
 
     /****************************************
     for ( i = 0; i < m; i++ )
@@ -448,13 +417,9 @@ int	Aj0, Bj0, Cj0;
 }
 
 /* Mmtrm -- C <- C + alpha.A^T.B */
-void	Mmtrm(m,n,p,alpha,A,Aj0,B,Bj0,C,Cj0)
-int	m, n, p;	/* C is m x n */
-double  alpha;
-Real	**A, **B, **C;
-int	Aj0, Bj0, Cj0;
+void	Mmtrm(int m,int n,int p,double alpha,Real** A,int Aj0,Real** B,int Bj0,Real** C,int Cj0)
 {
-    register int	i, j, k;
+    int	i, j, k;
 
     /****************************************
     for ( i = 0; i < m; i++ )
@@ -465,32 +430,11 @@ int	Aj0, Bj0, Cj0;
 	Mupdate(m,n,alpha,&(A[k][Aj0]),&(B[k][Bj0]),C,Cj0);
 }
 
-/* Mmmtr -- C <- C + alpha.A.B^T */
-void	Mmmtr(m,n,p,alpha,A,Aj0,B,Bj0,C,Cj0)
-int	m, n, p;	/* C is m x n */
-double  alpha;
-Real	**A, **B, **C;
-int	Aj0, Bj0, Cj0;
-{
-    register int	i, j, k;
-
-    /****************************************
-    for ( i = 0; i < m; i++ )
-	for ( j = 0; j < n; j++ )
-	    C[i][Cj0+j] += alpha*Mdot(p,&(A[i][Aj0]),&(B[j][Bj0]));
-    ****************************************/
-    for ( i = 0; i < m; i++ )
-	Mmv(n,p,alpha,&(A[i][Aj0]),B,Bj0,(C[i][Cj0]));
-}
 
 /* Mmtrmtr -- C <- C + alpha.A^T.B^T */
-void	Mmtrmtr(m,n,p,alpha,A,Aj0,B,Bj0,C,Cj0)
-int	m, n, p;	/* C is m x n */
-double  alpha;
-Real	**A, **B, **C;
-int	Aj0, Bj0, Cj0;
+void	Mmtrmtr(int m,int n,int p,double alpha,Real** A,int Aj0,Real** B, int Bj0,Real** C,int Cj0)
 {
-    register int	i, j, k;
+    int	i, j, k;
 
     for ( i = 0; i < m; i++ )
 	for ( j = 0; j < n; j++ )

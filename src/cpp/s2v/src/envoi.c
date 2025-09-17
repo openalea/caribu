@@ -8,7 +8,7 @@ main(int argc, char **argv){
   int n,t;
   double id;
   FILE * fout;
-  register int i,j,k;
+  int i,j,k;
   char cmd[50];
   int shmid;
   bool prog=false;

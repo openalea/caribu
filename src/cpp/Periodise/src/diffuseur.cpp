@@ -143,7 +143,7 @@ Param_Inter DiffO::interact(Param_Inter &parag,bool inside,int order){
   v=rediff;
   w=prim->normal();
   u=v.prod_vectoriel(w);
-  for(register int i=0;i<3;i++){
+  for(int i=0;i<3;i++){
     rediff[i]= u[i]*n[0] + v[i]*n[1] + w[i]*n[2] ;
   }
   
@@ -388,7 +388,7 @@ void DiffO::calc_stat(int niter, double Stoit){
 //-*************** DiffT::norm_surf() ************************
 
 void DiffT::norm_surf(int nbr,double Stoit){
-  //MC00: ???? pourquoi seult la moyenne est normalisée??
+  //MC00: ???? pourquoi seult la moyenne est normalisï¿½e??
   // calcul de la moyenne et de la variance
   double surf;
   
@@ -431,7 +431,7 @@ void DiffO::norm_surf(int nbr,double Stoit){
 
 //-*************** Diff8::cstructor *****************************
 Diff8::Diff8(Diffuseur * pdif,Vecteur & delta) {
-  register int i;
+  int i;
   
   diff=pdif;
   prim=new Polygone(*((Polygone*)&(diff->primi())));

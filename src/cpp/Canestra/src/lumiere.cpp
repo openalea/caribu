@@ -12,7 +12,7 @@ void Soleil :: init (int& n,Vecteur& dir, double* bmin, double* bmax){
   Vecteur V;
   dir.normalise();
   // cas d'un direction oblique
-  for(register int i=0;i<3;i++){
+  for(int i=0;i<3;i++){
     bornemin[i]=bmin[i];
     bornemax[i]=bmax[i];
   }
@@ -69,7 +69,7 @@ void SoleilSS :: init (int& n, Vecteur& dir, double* bmin, double* bmax){
   Vecteur V;
   dir.normalise();
   // cas d'un direction oblique
-  for(register int i=0;i<3;i++){
+  for(int i=0;i<3;i++){
     bornemin[i]=bmin[i];
     bornemax[i]=bmax[i];
   }

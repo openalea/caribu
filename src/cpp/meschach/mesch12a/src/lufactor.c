@@ -42,9 +42,7 @@ static	char	rcsid[] = "$Id: lufactor.c,v 1.9 1995/04/20 19:21:54 des Exp $";
 
 /* LUfactor -- gaussian elimination with scaled partial pivoting
 		-- Note: returns LU matrix which is A */
-MAT	*LUfactor(A,pivot)
-MAT	*A;
-PERM	*pivot;
+MAT *LUfactor(MAT *A, PERM *pivot)
 {
 	u_int	i, j, k, k_max, m, n;
 	int	i_max;
@@ -136,10 +134,7 @@ PERM	*pivot;
 
 
 /* LUsolve -- given an LU factorisation in A, solve Ax=b */
-VEC	*LUsolve(A,pivot,b,x)
-MAT	*A;
-PERM	*pivot;
-VEC	*b,*x;
+VEC *LUsolve(MAT *A, PERM *pivot, VEC *b, VEC *x)
 {
 	if ( A==(MAT *)NULL || b==(VEC *)NULL || pivot==(PERM *)NULL )
 		error(E_NULL,"LUsolve");
@@ -155,10 +150,7 @@ VEC	*b,*x;
 }
 
 /* LUTsolve -- given an LU factorisation in A, solve A^T.x=b */
-VEC	*LUTsolve(LU,pivot,b,x)
-MAT	*LU;
-PERM	*pivot;
-VEC	*b,*x;
+VEC *LUTsolve(MAT *LU, PERM *pivot, VEC *b, VEC *x)
 {
 	if ( ! LU || ! b || ! pivot )
 		error(E_NULL,"LUTsolve");
@@ -175,8 +167,7 @@ VEC	*b,*x;
 
 /* m_inverse -- returns inverse of A, provided A is not too rank deficient
 	-- uses LU factorisation */
-MAT	*m_inverse(A,out)
-MAT	*A, *out;
+MAT *m_inverse(MAT *A, MAT *out)
 {
 	int	i;
 	static VEC	*tmp = VNULL, *tmp2 = VNULL;
@@ -213,9 +204,7 @@ MAT	*A, *out;
 
 /* LUcondest -- returns an estimate of the condition number of LU given the
 	LU factorisation in compact form */
-double	LUcondest(LU,pivot)
-MAT	*LU;
-PERM	*pivot;
+double LUcondest(MAT *LU, PERM *pivot)
 {
     static	VEC	*y = VNULL, *z = VNULL;
     Real	cond_est, L_norm, U_norm, sum, tiny;

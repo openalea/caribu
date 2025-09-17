@@ -138,7 +138,7 @@ static inline double env(int i,int j,double &denv,signed char tr) {
   if(Nc==0)
     return 0.0;
   else {
-    register int t,N_2;
+    int t,N_2;
     Vecteur dir;
     Point M;
     N_2=(double)(NB/2.0);
@@ -225,7 +225,7 @@ static bool init_MPE(int &i,int&j) {
 static  bool solve3(double M[3][3],double *b) {
   //renvoie true ou false si le systeme a une solution, ecrite dans b
   double D=0.0,x[3]={0,0,0},t[3];
-  register int i,j;
+  int i,j;
   
   D+=M[0][0]*(M[1][1]*M[2][2]-(M[2][1]*M[1][2]));
   D-=M[0][1]*(M[1][0]*M[2][2]-(M[2][0]*M[1][2]));
@@ -278,7 +278,7 @@ void   init_NFF(char * EnvName,double *Esource,double &Rsph,bool bias) {
 #endif
   //precalcul pour les dist. et les dFF
   int a;
-  register int i,ii,j,N_2;
+  int i,ii,j,N_2;
   double v2,u2;
 
   denv=Rsph;
@@ -735,7 +735,7 @@ void NFF(int i_sup,int i_inf,VEC **Cfar){
 void NFF(SPMAT*FF,int &i_sup,int &i_inf,VEC **Cfar){
 #endif
   //Rq : 'cause envt on ne peut pas profiter de Ai.Fij=Aj.Fji
-  register int i,j,n,idx;
+  int i,j,n,idx;
   //printf("NFF() : DEBUT\n");
   //Chrono
   time(&dTnff);
@@ -922,7 +922,7 @@ void stat_NFF() {
   printf("@ Temps total de NFF()        : %d:%d:%d (%ld s)\n\n",(int)(Tnff/3600),(int)((Tnff%3600)/60),(int)(Tnff%60),Tnff);
   fflush(stdout);
 #ifdef _HD
-  register int i;
+  int i;
   //Ecriture du fichier binaire diag.bzh
   FILE* diagb;
   Ferr<<"FF.cpp: stat_NFF(): file "<<pcDgName<<" open for writing\n"; 

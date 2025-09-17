@@ -1,31 +1,54 @@
-{% set data = load_setup_py_data() %}
+{% set pyproject = load_file_data('pyproject.toml') %}
+{% set description = pyproject.get('project', {}).get('description') %}
+{% set home = pyproject.get('project', {}).get('urls').get('Homepage') %}
+
+{# Align version with the one computed by setuptools_scm #}
+{% set base_tag = GIT_DESCRIBE_TAG | default("0.0.0.dev0") | replace("v", "") %}
+{% set distance = GIT_DESCRIBE_NUMBER | default("0") | int %}
+{% set base_parts = base_tag.split('.') %}
+{% set micro = base_parts[2] | int %}
+{% set next_version = base_parts[0] + "." + base_parts[1] + "." + (micro + 1)|string %}
+{% set scm_version = next_version + ".dev" + distance|string if distance > 0 else base_tag %}
+{% set version = environ.get('SETUPTOOLS_SCM_PRETEND_VERSION', scm_version) %}
 
 package:
-  name: alinea.caribu
-  version: {{ data.get('version') }}
+  name: openalea.caribu
+  version: {{ version }}
 
 source:
   path: ..
 
 build:
-  preserve_egg_dir: True
-  number: 3
-  script: {{PYTHON}} setup.py install 
+  string: py{{ PY_VER }}
+  script_env:
+    # forge cmake generator and compilers for scikit-build without msvc on Windows
+    - CMAKE_GENERATOR=MinGW Makefiles # [win]
+    - CXX=g++ # [win]
+    - CC=gcc # [win]
+    # Force static build on Windows to allow skipping run export of m2w64 stdlib
+    - LDFLAGS=-static -static-libgcc -static-libstdc++   # [win]
+  ignore_run_exports_from:
+    # Avoid automatic run export of m2w64 stdlib on windows (that forces hard regression of msvc libs)
+    - {{ compiler('c') }} # [win]
+    - {{ compiler('cxx') }} # [win]
+  script:
+    - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
 requirements:
   host:
-    - python {{PY_VER}}
+    - python
+    - pip
+    - scikit-build-core
     - setuptools
-    - openalea.deploy
-    - m2w64-toolchain   [win]
+    - wheel
+
   build:
-    - python {{PY_VER}}
-    - {{ compiler('c') }}   # [unix]
-    - {{ compiler('cxx') }} # [unix]
-    - openalea.deploy
-    - openalea.sconsx
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
   run:
-    - python {{PY_VER}}
+    - python
     - path              # path.py is outdated
     - openalea.plantgl
     - openalea.mtg
@@ -34,13 +57,14 @@ test:
   requires:
     - pytest
   imports:
-    - alinea.caribu
+    - openalea.caribu
   source_files:
     - test/*.py
   commands:
    - pytest -v
 
 about:
-  home: {{ data.get('url') }}
-  summary: Eco-physiological model of light interception by plants.
-
+  home: {{ home }}
+  description: {{ description }}
+  summary: {{ description }}
+  license: CeCILL_C

@@ -34,8 +34,7 @@ static	char	rcsid[] = "$Id: matop.c,v 1.4 1995/03/27 15:43:57 des Exp $";
 
 
 /* m_add -- matrix addition -- may be in-situ */
-MAT	*m_add(mat1,mat2,out)
-MAT	*mat1,*mat2,*out;
+MAT	*m_add(MAT	*mat1,MAT	*mat2,MAT	*out)
 {
 	u_int	m,n,i;
 
@@ -59,8 +58,7 @@ MAT	*mat1,*mat2,*out;
 }
 
 /* m_sub -- matrix subtraction -- may be in-situ */
-MAT	*m_sub(mat1,mat2,out)
-MAT	*mat1,*mat2,*out;
+MAT	*m_sub(MAT	*mat1,MAT	*mat2,MAT	*out)
 {
 	u_int	m,n,i;
 
@@ -84,8 +82,7 @@ MAT	*mat1,*mat2,*out;
 }
 
 /* m_mlt -- matrix-matrix multiplication */
-MAT	*m_mlt(A,B,OUT)
-MAT	*A,*B,*OUT;
+MAT	*m_mlt(MAT	*A,MAT	*B,MAT	*OUT)
 {
 	u_int	i, /* j, */ k, m, n, p;
 	Real	**A_v, **B_v /*, *B_row, *OUT_row, sum, tmp */;
@@ -130,8 +127,7 @@ MAT	*A,*B,*OUT;
 
 /* mmtr_mlt -- matrix-matrix transposed multiplication
 	-- A.B^T is returned, and stored in OUT */
-MAT	*mmtr_mlt(A,B,OUT)
-MAT	*A, *B, *OUT;
+MAT	*mmtr_mlt(MAT	*A,MAT	*B,MAT	*OUT)
 {
 	int	i, j, limit;
 	/* Real	*A_row, *B_row, sum; */
@@ -165,8 +161,7 @@ MAT	*A, *B, *OUT;
 
 /* mtrm_mlt -- matrix transposed-matrix multiplication
 	-- A^T.B is returned, result stored in OUT */
-MAT	*mtrm_mlt(A,B,OUT)
-MAT	*A, *B, *OUT;
+MAT	*mtrm_mlt(MAT	*A,MAT	*B,MAT	*OUT)
 {
 	int	i, k, limit;
 	/* Real	*B_row, *OUT_row, multiplier; */
@@ -201,9 +196,7 @@ MAT	*A, *B, *OUT;
 
 /* mv_mlt -- matrix-vector multiplication 
 		-- Note: b is treated as a column vector */
-VEC	*mv_mlt(A,b,out)
-MAT	*A;
-VEC	*b,*out;
+VEC	*mv_mlt(MAT	*A,VEC * b,VEC *out)
 {
 	u_int	i, m, n;
 	Real	**A_v, *b_v /*, *A_row */;
@@ -237,9 +230,7 @@ VEC	*b,*out;
 }
 
 /* sm_mlt -- scalar-matrix multiply -- may be in-situ */
-MAT	*sm_mlt(scalar,matrix,out)
-double	scalar;
-MAT	*matrix,*out;
+MAT	*sm_mlt(double scalar,MAT	*matrix,MAT	*out)
 {
 	u_int	m,n,i;
 
@@ -259,9 +250,7 @@ MAT	*matrix,*out;
 
 /* vm_mlt -- vector-matrix multiplication 
 		-- Note: b is treated as a row vector */
-VEC	*vm_mlt(A,b,out)
-MAT	*A;
-VEC	*b,*out;
+VEC	*vm_mlt(MAT	*A,VEC *b,VEC* out)
 {
 	u_int	j,m,n;
 	/* Real	sum,**A_v,*b_v; */
@@ -296,8 +285,7 @@ VEC	*b,*out;
 }
 
 /* m_transp -- transpose matrix */
-MAT	*m_transp(in,out)
-MAT	*in, *out;
+MAT	*m_transp(MAT	*in,MAT	*out)
 {
 	int	i, j;
 	int	in_situ;
@@ -327,9 +315,7 @@ MAT	*in, *out;
 }
 
 /* swap_rows -- swaps rows i and j of matrix A upto column lim */
-MAT	*swap_rows(A,i,j,lo,hi)
-MAT	*A;
-int	i, j, lo, hi;
+MAT	*swap_rows(MAT	*A,int i,int j,int lo,int hi)
 {
 	int	k;
 	Real	**A_me, tmp;
@@ -352,9 +338,7 @@ int	i, j, lo, hi;
 }
 
 /* swap_cols -- swap columns i and j of matrix A upto row lim */
-MAT	*swap_cols(A,i,j,lo,hi)
-MAT	*A;
-int	i, j, lo, hi;
+MAT	*swap_cols(MAT	*A,int i,int j,int lo,int hi)
 {
 	int	k;
 	Real	**A_me, tmp;
@@ -379,9 +363,7 @@ int	i, j, lo, hi;
 /* ms_mltadd -- matrix-scalar multiply and add
 	-- may be in situ
 	-- returns out == A1 + s*A2 */
-MAT	*ms_mltadd(A1,A2,s,out)
-MAT	*A1, *A2, *out;
-double	s;
+MAT	*ms_mltadd(MAT	*A1,MAT *A2,double s,MAT *out)
 {
 	/* register Real	*A1_e, *A2_e, *out_e; */
 	/* register int	j; */
@@ -421,10 +403,7 @@ double	s;
 /* mv_mltadd -- matrix-vector multiply and add
 	-- may not be in situ
 	-- returns out == v1 + alpha*A*v2 */
-VEC	*mv_mltadd(v1,v2,A,alpha,out)
-VEC	*v1, *v2, *out;
-MAT	*A;
-double	alpha;
+VEC	*mv_mltadd(VEC* v1,VEC* v2,MAT *A,double alpha,VEC* out)
 {
 	/* register	int	j; */
 	int	i, m, n;
@@ -463,10 +442,7 @@ double	alpha;
 /* vm_mltadd -- vector-matrix multiply and add
 	-- may not be in situ
 	-- returns out' == v1' + v2'*A */
-VEC	*vm_mltadd(v1,v2,A,alpha,out)
-VEC	*v1, *v2, *out;
-MAT	*A;
-double	alpha;
+VEC	*vm_mltadd(VEC* v1,VEC* v2,MAT* A,double alpha,VEC* out)
 {
 	int	/* i, */ j, m, n;
 	Real	tmp, /* *A_e, */ *out_ve;
@@ -495,4 +471,3 @@ double	alpha;
 
 	return out;
 }
-

@@ -1,0 +1,4 @@
+c_compiler:
+  - m2w64-toolchain          # [win]
+cxx_compiler:
+  - m2w64-toolchain         # [win]

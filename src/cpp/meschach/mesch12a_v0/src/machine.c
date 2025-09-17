@@ -35,11 +35,11 @@ static	char *rcsid = "$Header: /usr/local/home/des/meschach/meschach/RCS/machine
 #include	"machine.h"
 
 /* __ip__ -- inner product */
-extern  double	__ip__(register double *dp1,register double *dp2, register int len)
+extern  double	__ip__(double *dp1,double *dp2, int len)
 {
-    register int	len4;
-    register int	i;
-    register double	sum0, sum1, sum2, sum3;
+    int	len4;
+    int	i;
+    double	sum0, sum1, sum2, sum3;
     
     sum0 = sum1 = sum2 = sum3 = 0.0;
     
@@ -63,9 +63,9 @@ extern  double	__ip__(register double *dp1,register double *dp2, register int le
 }
 
 /* __mltadd__ -- scalar multiply and add c.f. v_mltadd() */
-extern  void	__mltadd__(register double *dp1, register double *dp2, register double s, register int len)
+extern  void	__mltadd__(double *dp1, double *dp2, double s, int len)
 {
-    register int	i, len4;
+    int	i, len4;
     
     len4 = len / 4;
     len  = len % 4;
@@ -83,31 +83,31 @@ extern  void	__mltadd__(register double *dp1, register double *dp2, register dou
 }
 
 /* __smlt__ scalar multiply array c.f. sv_mlt() */
-extern  void	__smlt__(register double *dp,register double s, register double	*out, register int len)
+extern  void	__smlt__(double *dp,double s, double	*out, int len)
 {
-    register int	i;
+    int	i;
     for ( i = 0; i < len; i++ )
 	(*out++) = s*(*dp++);
 }
 
 /* __add__ -- add arrays c.f. v_add() */
-extern  void	__add__(register double	*dp1, register double *dp2,register double *out,register int len)
+extern  void	__add__(double	*dp1, double *dp2,double *out,int len)
 {
-    register int	i;
+    int	i;
     for ( i = 0; i < len; i++ )
 	(*out++) = (*dp1++) + (*dp2++);
 }
 
 /* __sub__ -- subtract arrays c.f. v_sub() */
-extern  void	__sub__(register double	*dp1, register double *dp2, register double *out, register int len)
+extern  void	__sub__(double	*dp1, double *dp2, double *out, int len)
 {
-    register int	i;
+    int	i;
     for ( i = 0; i < len; i++ )
 	(*out++) = (*dp1++) - (*dp2++);
 }
 
 /* __zero__ -- zeros an array of double precision numbers */
-extern  void	__zero__(register double *dp,register int len)
+extern  void	__zero__(double *dp,int len)
 {
     /* if a double precision zero is equivalent to a string of nulls */
     MEM_ZERO((char *)dp,len*sizeof(double));
@@ -125,9 +125,9 @@ extern  void	__zero__(register double *dp,register int len)
 /* __ip4__ -- compute 4 inner products in one go */
 extern  void	__ip4__(double *v0,double *v1,double *v2,double *v3,double *w,double out[4], int len)
 {
-    register int	i, len2;
-    register double	sum00, sum10, sum20, sum30, w_val0;
-    register double	sum01, sum11, sum21, sum31, w_val1;
+    int	i, len2;
+    double	sum00, sum10, sum20, sum30, w_val0;
+    double	sum01, sum11, sum21, sum31, w_val1;
     
     len2 = len / 2;
     len  = len % 2;
@@ -168,8 +168,8 @@ extern  void	__ip4__(double *v0,double *v1,double *v2,double *v3,double *w,doubl
 /* __lc4__ -- linear combinations: w <- w+a[0]*v0+ ... + a[3]*v3 */
 extern  void	__lc4__(double *v0,double *v1,double *v2,double *v3,double *w,double	a[4], int len)
 {
-    register int	i, len2;
-    register double	a0, a1, a2, a3, tmp0, tmp1;
+    int	i, len2;
+    double	a0, a1, a2, a3, tmp0, tmp1;
     
     len2 = len / 2;
     len  = len % 2;
@@ -201,8 +201,8 @@ extern  void	__lc4__(double *v0,double *v1,double *v2,double *v3,double *w,doubl
 /* __ma4__ -- multiply and add with 4 vectors: vi <- vi + ai*w */
 extern  void	__ma4__(double *v0,double *v1,double *v2,double *v3,double *w,double	a[4], int len)
 {
-    register int	i;
-    register double	a0, a1, a2, a3, w0;
+    int	i;
+    double	a0, a1, a2, a3, w0;
 
     a0 = a[0];	a1 = a[1];
     a2 = a[2];	a3 = a[3];

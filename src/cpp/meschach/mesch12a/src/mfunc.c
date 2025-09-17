@@ -41,9 +41,7 @@ static char	rcsid[] = "$Id: mfunc.c,v 1.2 1994/11/01 05:57:56 des Exp $";
 
 /* _m_pow -- computes integer powers of a square matrix A, A^p
    -- uses tmp as temporary workspace */
-MAT	*_m_pow(A, p, tmp, out)
-MAT	*A, *tmp, *out;
-int	p;
+MAT	*_m_pow(MAT *A, int p, MAT *tmp, MAT *out)
 {
    int		it_cnt, k, max_bit;
    
@@ -95,9 +93,7 @@ int	p;
 }
 
 /* m_pow -- computes integer powers of a square matrix A, A^p */
-MAT	*m_pow(A, p, out)
-MAT	*A, *out;
-int	p;
+MAT	*m_pow(MAT *A, int p, MAT *out)
 {
    static MAT	*wkspace, *tmp;
    
@@ -130,10 +126,7 @@ int	p;
    -- j_out - the power of 2 for scaling the matrix A
               such that ||A/2^j_out|| <= 0.5
 */
-MAT *_m_exp(A,eps,out,q_out,j_out)
-MAT *A,*out;
-double eps;
-int *q_out, *j_out;
+MAT *_m_exp(MAT *A, double eps, MAT *out, int *q_out, int *j_out)
 {
    static MAT *D = MNULL, *Apow = MNULL, *N = MNULL, *Y = MNULL;
    static VEC *c1 = VNULL, *tmp = VNULL;
@@ -293,9 +286,7 @@ int *q_out, *j_out;
 
 
 /* simple interface for _m_exp */
-MAT *m_exp(A,eps,out)
-MAT *A,*out;
-double eps;
+MAT *m_exp(MAT *A, double eps, MAT *out)
 {
    int q_out, j_out;
 
@@ -307,9 +298,7 @@ double eps;
 
 /* m_poly -- computes sum_i a[i].A^i, where i=0,1,...dim(a);
    -- uses C. Van Loan's fast and memory efficient method  */
-MAT *m_poly(A,a,out)
-MAT *A,*out;
-VEC *a;
+MAT *m_poly(MAT *A, VEC *a, MAT *out)
 {
    static MAT	*Apow = MNULL, *Y = MNULL;
    static VEC   *tmp;

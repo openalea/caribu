@@ -82,7 +82,7 @@ Homogene& Homogene::operator /= (double a){
 #ifdef _FUC
 Homogene Homogene::operator * (Matrice4& M){
   Homogene res;
-  register int i, j;
+   int i, j;
 
   for (i=0; i<3; i++)
     for (j=0; j<4; j++)
@@ -409,7 +409,7 @@ Homogene& Matrice4 :: operator [] (int i){
 }
 
 Matrice4& Matrice4 :: operator = (Matrice4& A){
-  register int i, j;
+   int i, j;
 
   for (i=0; i<4; i++)
     for (j=0; j<4; j++)

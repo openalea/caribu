@@ -26,8 +26,7 @@
 
 #include	<stdio.h>
 
-double	fclean(x)
-double	x;
+double	fclean(double x)
 {
     static float	y;
     y = x;

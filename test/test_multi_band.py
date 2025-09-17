@@ -1,7 +1,7 @@
 from math import sqrt
-from .tools import assert_almost_equal
+from tools import assert_almost_equal
 
-from alinea.caribu.caribu import x_radiosity, x_mixed_radiosity, x_raycasting
+from openalea.caribu.caribu import x_radiosity, x_mixed_radiosity, x_raycasting
 
 def test_raycasting_two_triangles_no_occlusion():
     lower_pts = [(0, 0, 0), (sqrt(2), 0, 0), (0, sqrt(2), 0)]

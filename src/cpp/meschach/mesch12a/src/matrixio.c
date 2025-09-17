@@ -37,14 +37,19 @@ static char rcsid[] = "$Id: matrixio.c,v 1.4 1994/01/13 05:31:10 des Exp $";
 /* local variables */
 static char line[MAXLINE];
 
+MAT *im_finput(FILE *fp, MAT *mat);
+MAT *bm_finput(FILE *fp, MAT *mat);
+PERM *ipx_finput(FILE *fp, PERM *px);
+PERM *bpx_finput(FILE *fp, PERM *px);
+VEC *ifin_vec(FILE *fp, VEC *vec);
+VEC *bfin_vec(FILE *fp, VEC *vec);
 
 /**************************************************************************
   Input routines
   **************************************************************************/
 /* skipjunk -- skips white spaces and strings of the form #....\n
    Here .... is a comment string */
-int     skipjunk(fp)
-FILE    *fp;
+int skipjunk(FILE *fp)
 {
      int        c;
      
@@ -69,9 +74,7 @@ FILE    *fp;
      return 0;
 }
 
-MAT     *m_finput(fp,a)
-FILE    *fp;
-MAT     *a;
+MAT     *m_finput(FILE *fp, MAT *a)
 {
      MAT        *im_finput(),*bm_finput();
      
@@ -82,9 +85,7 @@ MAT     *a;
 }
 
 /* im_finput -- interactive input of matrix */
-MAT     *im_finput(fp,mat)
-FILE    *fp;
-MAT     *mat;
+MAT     *im_finput(FILE *fp, MAT *mat)
 {
      char       c;
      u_int      i, j, m, n, dynamic;
@@ -144,9 +145,7 @@ MAT     *mat;
 }
 
 /* bm_finput -- batch-file input of matrix */
-MAT     *bm_finput(fp,mat)
-FILE    *fp;
-MAT     *mat;
+MAT     *bm_finput(FILE *fp, MAT *mat)
 {
      u_int      i,j,m,n,dummy;
      int        io_code;
@@ -179,9 +178,7 @@ MAT     *mat;
      return (mat);
 }
 
-PERM    *px_finput(fp,px)
-FILE    *fp;
-PERM    *px;
+PERM    *px_finput(FILE *fp, PERM *px)
 {
      PERM       *ipx_finput(),*bpx_finput();
      
@@ -193,9 +190,7 @@ PERM    *px;
 
 
 /* ipx_finput -- interactive input of permutation */
-PERM    *ipx_finput(fp,px)
-FILE    *fp;
-PERM    *px;
+PERM    *ipx_finput(FILE *fp, PERM *px)
 {
      u_int      i,j,size,dynamic; /* dynamic set if memory allocated here */
      u_int      entry,ok;
@@ -247,9 +242,7 @@ PERM    *px;
 }
 
 /* bpx_finput -- batch-file input of permutation */
-PERM    *bpx_finput(fp,px)
-FILE    *fp;
-PERM    *px;
+PERM    *bpx_finput(FILE *fp, PERM *px)
 {
      u_int      i,j,size,entry,ok;
      int        io_code;
@@ -289,9 +282,7 @@ PERM    *px;
 }
 
 
-VEC     *v_finput(fp,x)
-FILE    *fp;
-VEC     *x;
+VEC     *v_finput(FILE *fp, VEC *x)
 {
      VEC        *ifin_vec(),*bfin_vec();
      
@@ -302,9 +293,7 @@ VEC     *x;
 }
 
 /* ifin_vec -- interactive input of vector */
-VEC     *ifin_vec(fp,vec)
-FILE    *fp;
-VEC     *vec;
+VEC     *ifin_vec(FILE *fp, VEC *vec)
 {
      u_int      i,dim,dynamic;  /* dynamic set if memory allocated here */
      
@@ -347,9 +336,7 @@ VEC     *vec;
 }
 
 /* bfin_vec -- batch-file input of vector */
-VEC     *bfin_vec(fp,vec)
-FILE    *fp;
-VEC     *vec;
+VEC     *bfin_vec(FILE *fp, VEC *vec)
 {
      u_int      i,dim;
      int        io_code;
@@ -380,10 +367,9 @@ VEC     *vec;
 /**************************************************************************
   Output routines
   **************************************************************************/
-static char    *format = "%14.9g ";
+static char *format = "%14.9g ";
 
-char	*setformat(f_string)
-char    *f_string;
+char *setformat(char *f_string)
 {
     char	*old_f_string;
     old_f_string = format;
@@ -393,9 +379,7 @@ char    *f_string;
     return old_f_string;
 }
 
-void    m_foutput(fp,a)
-FILE    *fp;
-MAT     *a;
+void    m_foutput(FILE *fp, MAT *a)
 {
      u_int      i, j, tmp;
      
@@ -416,9 +400,7 @@ MAT     *a;
      }
 }
 
-void    px_foutput(fp,px)
-FILE    *fp;
-PERM    *px;
+void    px_foutput(FILE *fp, PERM *px)
 {
      u_int      i;
      
@@ -435,9 +417,7 @@ PERM    *px;
      fprintf(fp,"\n");
 }
 
-void    v_foutput(fp,x)
-FILE    *fp;
-VEC     *x;
+void    v_foutput(FILE *fp, VEC *x)
 {
      u_int      i, tmp;
      
@@ -455,24 +435,22 @@ VEC     *x;
 }
 
 
-void    m_dump(fp,a)
-FILE    *fp;
-MAT     *a;
+void    m_dump(FILE *fp, MAT *a)
 {
 	u_int   i, j, tmp;
      
      if ( a == (MAT *)NULL )
      {  fprintf(fp,"Matrix: NULL\n");   return;         }
-     fprintf(fp,"Matrix: %d by %d @ 0x%lx\n",a->m,a->n,(long)a);
+     fprintf(fp,"Matrix: %d by %d @ 0x%p\n",a->m,a->n,(void *)a);
      fprintf(fp,"\tmax_m = %d, max_n = %d, max_size = %d\n",
 	     a->max_m, a->max_n, a->max_size);
      if ( a->me == (Real **)NULL )
      {  fprintf(fp,"NULL\n");           return;         }
-     fprintf(fp,"a->me @ 0x%lx\n",(long)(a->me));
-     fprintf(fp,"a->base @ 0x%lx\n",(long)(a->base));
+     fprintf(fp,"a->me @ 0x%p\n",(void *)(a->me));
+     fprintf(fp,"a->base @ 0x%p\n",(void *)(a->base));
      for ( i=0; i<a->m; i++ )   /* for each row... */
      {
-	  fprintf(fp,"row %u: @ 0x%lx ",i,(long)(a->me[i]));
+	  fprintf(fp,"row %u: @ 0x%p ",i,(void *)(a->me[i]));
 	  for ( j=0, tmp=2; j<a->n; j++, tmp++ )
 	  {             /* for each col in row... */
 	       fprintf(fp,format,a->me[i][j]);
@@ -482,36 +460,32 @@ MAT     *a;
      }
 }
 
-void    px_dump(fp,px)
-FILE    *fp;
-PERM    *px;
+void    px_dump(FILE *fp, PERM *px)
 {
      u_int      i;
      
      if ( ! px )
      {  fprintf(fp,"Permutation: NULL\n");      return;         }
-     fprintf(fp,"Permutation: size: %u @ 0x%lx\n",px->size,(long)(px));
+     fprintf(fp,"Permutation: size: %u @ 0x%p\n",px->size,(void *)(px));
      if ( ! px->pe )
      {  fprintf(fp,"NULL\n");   return;         }
-     fprintf(fp,"px->pe @ 0x%lx\n",(long)(px->pe));
+     fprintf(fp,"px->pe @ 0x%p\n",(void *)(px->pe));
      for ( i=0; i<px->size; i++ )
 	  fprintf(fp,"%u->%u ",i,px->pe[i]);
      fprintf(fp,"\n");
 }
 
 
-void    v_dump(fp,x)
-FILE    *fp;
-VEC     *x;
+void    v_dump(FILE *fp, VEC *x)
 {
      u_int      i, tmp;
      
      if ( ! x )
      {  fprintf(fp,"Vector: NULL\n");   return;         }
-     fprintf(fp,"Vector: dim: %d @ 0x%lx\n",x->dim,(long)(x));
+     fprintf(fp,"Vector: dim: %d @ 0x%p\n",x->dim,(void *)(x));
      if ( ! x->ve )
      {  fprintf(fp,"NULL\n");   return;         }
-     fprintf(fp,"x->ve @ 0x%lx\n",(long)(x->ve));
+     fprintf(fp,"x->ve @ 0x%p\n",(void *)(x->ve));
      for ( i=0, tmp=0; i<x->dim; i++, tmp++ )
      {
 	  fprintf(fp,format,x->ve[i]);

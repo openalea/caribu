@@ -2,12 +2,9 @@
 
 #ifndef _Image
 #define _Image
- 
-#include <math.h>
-#include <stdlib.h> // pour exit
+
 #include <iostream> //
 #include <fstream>  //
-#include <iomanip>  //
 
 #include "T_utilitaires.h"
 #include "outils.h"
@@ -21,11 +18,11 @@ class Image {
    char filename[80];
  public:
     Image(){}
-    Image(int x,int y,char * nom="out.ppm")
+    Image(int x,int y,char * nom=(char*)"out.ppm")
       {init(x, y,nom);}
 
     // typage AH 02 2001
-    void init(int x,int y,char * nom="out.ppm")
+    void init(int x,int y,char * nom=(char*)"out.ppm")
       { btm.alloue(x,y);strcpy(filename,nom);bitmax=-9.9e10;}
 
     Image & operator =(Image &img)
@@ -35,14 +32,14 @@ class Image {
         btm.alloue(img.btm.maxi()[0],img.btm.maxi()[1]);
 */
     cout<<"Image[=]  avant copie des variables de btm \n";cout.flush(); 
-       for(register int i=0;i<pim->btm.maxi()[0];i++)
-         for(register int j=0;j<pim->btm.maxi()[1];j++)
+       for(int i=0;i<pim->btm.maxi()[0];i++)
+         for(int j=0;j<pim->btm.maxi()[1];j++)
           pim-> btm(i,j)=   img.btm(i,j);
         return *pim;
       } 
    double maxval(){
      double val;
-     register int i,j;
+     int i,j;
      
      bitmax=-9.9e20;
      for(j=0;j<btm.maxi()[1];j++)
@@ -97,12 +94,12 @@ class Image {
         fic<<"# MONTE CARLO - MC - 08/1994 \n#      BitMax = "<<bitmax<<endl;
         fic<<btm.maxi()[0]<<" "<<btm.maxi()[1]<<endl;
         fic<<"255\n";
-        register int i,j;
+        int i,j;
         for(j=0;j<btm.maxi()[1];j++)
           for(i=0;i<btm.maxi()[0];i++) {
 	    pix= (unsigned char) (btm(i,j)/bitmax*255);
 	    pix = (pix>=255)?255:pix;
-	    sprintf(ccTmp,"%ud", pix) ; 
+	    snprintf(ccTmp,sizeof(ccTmp),"%ud", (unsigned char) pix) ; 
 	    fic.write(ccTmp,1);
 	  }      
         fic.close();
@@ -121,10 +118,10 @@ class RGB {
    char filename[80];
  public:
     RGB(){}
-    RGB(int x,int y,char * nom="out.ppm")
+    RGB(int x,int y,char * nom=(char*)"out.ppm")
       {init(x, y,nom);}
    // typage AH 02 2001 
-    void     init(int x,int y,char * nom="out.ppm")
+    void     init(int x,int y,char * nom=(char*)"out.ppm")
       { btm.alloue(x,y,3);strcpy(filename,nom);bitmax=-9.9e10;}
     RGB & operator =(RGB &img)
       { cout<<"RGB[=]  DEBUT \n";cout.flush();
@@ -133,15 +130,15 @@ class RGB {
         btm.alloue(img.btm.maxi()[0],img.btm.maxi()[1]);
 */
     cout<<"RGB[=]  avant copie des variables de btm \n";cout.flush(); 
-       for(register int i=0;i<pim->btm.maxi()[0];i++)
-         for(register int j=0;j<pim->btm.maxi()[1];j++)
-	   for(register int k=0;k<3;k++)
+       for(int i=0;i<pim->btm.maxi()[0];i++)
+         for(int j=0;j<pim->btm.maxi()[1];j++)
+	   for(int k=0;k<3;k++)
           pim-> btm(i,j,k)=   img.btm(i,j,k);
         return *pim;
       } 
    double maxval(int k)
     { double val;
-      register int i,j;
+      int i,j;
     
       bitmax=-9.9e20;
       for(j=0;j<btm.maxi()[1];j++)
@@ -184,13 +181,13 @@ class RGB {
      { btm.maj(val);bitmax=val;}
 
    // typage AH 02 2001 
-    void     charge(char *name=" ")
+    void     charge(char *name=(char*)" ")
       { if(!strcmp(name," ")) name=filename;
         cout<<"RGB[charge] Pas encore implemente !\n";
       }
 
    // typage AH 02 2001 
-    void     sauve(char *name=" ")
+    void     sauve(char *name=(char*)" ")
       { 
 	//unsigned char bit;
 	unsigned int pix ;
@@ -204,7 +201,7 @@ class RGB {
         fic<<"# class RGB - MC - 1996 \n#      BitMax = "<<bitmax<<endl;
         fic<<btm.maxi()[0]<<" "<<btm.maxi()[1]<<endl;
         fic<<"255\n";
-        register int i,j,k;
+        int i,j,k;
         for(j=0;j<btm.maxi()[1];j++)
           for(i=0;i<btm.maxi()[0];i++)
 	    for(k=0;k<3;k++) {
@@ -218,7 +215,7 @@ class RGB {
 		/*/
 	      pix= (unsigned int) (btm(i,j,k)/bitmax*255);
 	      pix=(pix>=255)?255:pix;
-	      sprintf(ccTmp,"%ud", pix) ; 
+	      snprintf(ccTmp,sizeof(ccTmp),"%ud", pix) ; 
 	      fic.write(ccTmp,1);  
 	      /**/
              }      

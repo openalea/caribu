@@ -13,7 +13,7 @@ int f(int first, int second, int third,...){
   
   indice=first+10*second+100*third;
   va_start(ptarg,third);  
-  for(register unsigned char i=3;i<4;i++){
+  for(unsigned char i=3;i<4;i++){
     //indice+=coeff*bonind(va_arg(ptarg,int),i);
     indice+=1000*va_arg(ptarg,int);
   }   

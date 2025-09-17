@@ -1,7 +1,7 @@
 from math import isnan, sqrt
-from .tools import assert_almost_equal
+from tools import assert_almost_equal
 
-from alinea.caribu.caribu import green_leaf_PAR, raycasting, radiosity, mixed_radiosity
+from openalea.caribu.caribu import green_leaf_PAR, raycasting, radiosity, mixed_radiosity
 
 
 def test_raycasting_null_triangle_superposed_points():

@@ -81,6 +81,8 @@ target/
 # svn
 .svn
 
+# visual studio conf
+.vscode
 
 # coverage
 .coverage

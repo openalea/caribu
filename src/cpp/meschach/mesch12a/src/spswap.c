@@ -41,10 +41,7 @@ static	char	rcsid[] = "$Id: spswap.c,v 1.3 1994/01/13 05:44:43 des Exp $";
 
 /* scan_to -- updates scan (int) vectors to point to the last row in each
 	column with row # <= max_row, if any */
-void	scan_to(A, scan_row, scan_idx, col_list, max_row)
-SPMAT	*A;
-IVEC	*scan_row, *scan_idx, *col_list;
-int	max_row;
+void scan_to(SPMAT *A, IVEC *scan_row, IVEC *scan_idx, IVEC *col_list, int max_row)
 {
     int		col, idx, j_idx, row_num;
     SPROW	*r;
@@ -103,9 +100,7 @@ int	max_row;
 }
 
 /* patch_col -- patches column access paths for fill-in */
-void patch_col(A, col, old_row, old_idx, row_num, idx)
-SPMAT	*A;
-int	col, old_row, old_idx, row_num, idx;
+void patch_col(SPMAT *A, int col, int old_row, int old_idx, int row_num, int idx)
 {
     SPROW	*r;
     row_elt	*e;
@@ -130,9 +125,7 @@ int	col, old_row, old_idx, row_num, idx;
    -- row_num is returned; idx is also set by this routine
    -- assumes that the column access paths (possibly without the
    nxt_idx fields) are set up */
-row_elt *chase_col(A, col, row_num, idx, max_row)
-SPMAT	*A;
-int	col, *row_num, *idx, max_row;
+row_elt *chase_col(SPMAT *A, int col, int *row_num, int *idx, int max_row)
 {
     int		old_idx, old_row, tmp_idx, tmp_row;
     SPROW	*r;
@@ -206,9 +199,7 @@ int	col, *row_num, *idx, max_row;
 
 /* chase_past -- as for chase_col except that we want the first
 	row whose row # >= min_row; -1 indicates no such row */
-row_elt *chase_past(A, col, row_num, idx, min_row)
-SPMAT	*A;
-int	col, *row_num, *idx, min_row;
+row_elt *chase_past(SPMAT *A, int col, int *row_num, int *idx, int min_row)
 {
     SPROW	*r;
     row_elt	*e;
@@ -255,9 +246,7 @@ int	col, *row_num, *idx, min_row;
 
 /* bump_col -- move along to next nonzero entry in column col after row_num
 	-- update row_num and idx */
-row_elt *bump_col(A, col, row_num, idx)
-SPMAT	*A;
-int	col, *row_num, *idx;
+row_elt *bump_col(SPMAT *A, int col, int *row_num, int *idx)
 {
     SPROW	*r;
     row_elt	*e;

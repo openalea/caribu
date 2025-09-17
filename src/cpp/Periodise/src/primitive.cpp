@@ -77,7 +77,7 @@ char * next_nonumber(char *ch){
 
 Polygone::Polygone(char* line,double name,reel*mini,reel*maxi){
   //  istrstream Lparag(line);
-  register int i,j;
+  int i,j;
   int ii;
   Point P;
   char *ch;
@@ -163,7 +163,7 @@ Polygone::Polygone(char* line,double name,reel*mini,reel*maxi){
 }//Polygone
 
 Polygone::Polygone(float(*T)[3],double name,reel*mini,reel*maxi){
-  register int i,j;
+  int i,j;
   Point P;
   double x;
 
@@ -237,7 +237,7 @@ Polygone::Polygone(float(*T)[3],double name,reel*mini,reel*maxi){
 
 void Polygone::show(const char* msg,ostream &out)
 {   out << msg<<"-Polygone :"; qui();
-for (register int i=0; i<nb_sommets; i++)
+for (int i=0; i<nb_sommets; i++)
 	{ out << "\t" <<sommet[i][0]<<" "<<sommet[i][1]<<" "<<sommet[i][2]<<endl;
 
 	}
@@ -295,7 +295,7 @@ int Polygone::tout_point_sup(reel& position, char& axe){
 }
 
 int Polygone::nb_in(reel& amin,reel& amax, char& axe) {
-  register int nbp=0,i;
+  int nbp=0,i;
   bool info=false;
   for (i=0; i<nb_sommets; i++) {
     if(sommet[i][axe]>amax) {
@@ -347,7 +347,7 @@ void Polygone::calcul_normale_cst_equ(Point& p1, Point& p2, Point& p3){
 }
 
 Point  Polygone::centre(){
-  register int i,j;
+  int i,j;
   Point G(0,0,0);
 
   for(i=0;i<nb_sommets;i++)
@@ -492,7 +492,7 @@ void Polygone::calc_surface(){
   default:
     Point G=centre();
     psurf=0.0;
-    for(register int i=0;i<nb_sommets;){
+    for(int i=0;i<nb_sommets;){
       u.formation_vecteur(G,sommet[i++]);
       v.formation_vecteur(G,sommet[(i<nb_sommets)?i:0]);
       psurf+=(u.prod_vectoriel(v)).norme();

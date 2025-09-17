@@ -1,0 +1,12 @@
+name: caribu
+channels:
+  - openalea3
+  - conda-forge
+
+dependencies:
+  - openalea.mtg
+  - openalea.plantgl
+  - oawidgets
+  - pip
+  - pip:
+      - -e ..[doc]

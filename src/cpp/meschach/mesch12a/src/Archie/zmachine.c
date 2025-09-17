@@ -115,7 +115,7 @@ int	flag, len;
 /* __zmlt__ scalar complex multiply array c.f. sv_mlt() */
 void	__zmlt__(zp,s,out,len)
 Mcomplex	*zp, s, *out;
-register int	len;
+int	len;
 {
     int		i;
     LongReal	t_re, t_im;

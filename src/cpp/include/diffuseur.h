@@ -27,7 +27,7 @@ public:
   virtual bool isreal()=0;
   double intersect(Param_Inter parag,Point *I)
   {return (prim->intersect(parag,I));}
-  void  show(char *texte="",ostream& out=cout) // montre!
+  void  show(char *texte=(char *)"",ostream& out=cout) // montre!
   { prim->show(texte,out);  }
   virtual  unsigned int num()=0;
   virtual  void togle_face()=0;

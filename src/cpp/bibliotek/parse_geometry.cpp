@@ -119,7 +119,7 @@ void SetTurtle(TURTLE *tu){
 /*************************************************************************/
 /* draws triangles */
 void OGLPrim::DrawTriangle(float *p1, float *p2, float *p3){
-  register short i;
+  short i;
   float u[3],v[3],w[3],Gt[3],surf;
   
   for(i=0;i<3;i++){
@@ -516,7 +516,7 @@ int OGLPrim::parse_line(char *line)
 {
 //line <= CSGetString(), T[nbT] return the triangles describing the analysed primitive
 struct syntax_item *ptr;
-register int i=0,ir=0;
+int i=0,ir=0;
 char real[500],c,*str=NULL;
 short record=0,lstr;
 int answer=0;

@@ -70,7 +70,7 @@ private:  // fonction privee
 //************ operator = *****************
 template <class Type, unsigned int D>   
 inline Tabdyn<Type,D>& Tabdyn<Type,D>::operator =(Tabdyn<Type,D>& rval){
-  for(register unsigned char i=0;i<D ;i++)
+  for(unsigned char i=0;i<D ;i++)
     if(max[i]!=rval.max[i]){
       cerr<<"\n Tabdyn [operator =] erreur dimension "<<i<<endl;
       exit(-1);
@@ -119,7 +119,7 @@ template <class Type, unsigned int D>
 inline void  Tabdyn<Type,D>::lectarg ( int &first,va_list & ptarg ){
   // va_start(ptarg,first);
   taille=max[0]=bonmax(first);
-  for(register unsigned char  i=1;i<D;i++){
+  for(unsigned char  i=1;i<D;i++){
     max[i]=bonmax(va_arg(ptarg,int));
     taille*=max[i];
     // cout<<"taille"<< taille<<"\n";
@@ -190,7 +190,7 @@ Type & Tabdyn<Type,D>::operator()(int first, int second, int third,...){
   coeff=max[0]*max[1];
   indice=first+max[0]*second+coeff*third;
   va_start(ptarg,third);  
-  for(register unsigned char i=3;i<D;i++){
+  for(unsigned char i=3;i<D;i++){
     coeff*=max[i-1];
     //indice+=coeff*bonind(va_arg(ptarg,int),i);
     indice+=coeff*va_arg(ptarg,int);

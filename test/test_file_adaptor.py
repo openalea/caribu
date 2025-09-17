@@ -1,5 +1,5 @@
-from alinea.caribu.file_adaptor import read_light, read_pattern, read_opt, read_can, build_materials
-from alinea.caribu.data_samples import data_path
+from openalea.caribu.file_adaptor import read_light, read_pattern, read_opt, read_can, build_materials
+from openalea.caribu.data_samples import data_path
 
 
 def test_light():
@@ -13,14 +13,12 @@ def test_light():
     lights = read_light(sky)
     assert len(lights) == 16
 
-    return lights
 
 
 def test_pattern():
     path = data_path('filter.8')
     domain = read_pattern(path)
     assert domain == (0, 0, 20, 20)
-    return domain
 
 
 def test_opt():
@@ -31,8 +29,6 @@ def test_opt():
     assert s == 0.15
     assert opts[1] == (0.1, 0.1, 0.05, 0.1, 0.05)
 
-    return n, s, opts
-
 
 def test_can():
     can = data_path('filterT.can')
@@ -42,7 +38,6 @@ def test_can():
     assert len(triangles[0]) == 3
     assert len(triangles[0][0]) == 3
 
-    return cscene
 
 
 def test_materials():
@@ -53,4 +48,4 @@ def test_materials():
     materials = build_materials(list(cscene.keys()), opts, s)
     assert len(materials) == len(cscene)
     assert materials[list(materials.keys())[0]] == (0.1, 0.05)
-    return materials
+

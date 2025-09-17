@@ -1,7 +1,7 @@
-from alinea.caribu.caribu_star import *
-from alinea.adel.astk_interface import AdelWheat
-from alinea.astk.plant_interface import *
-from alinea.astk.plantgl_utils import *
+from openalea.caribu.caribu_star import *
+from openalea.adel.astk_interface import AdelWheat
+from openalea.astk.plant_interface import *
+from openalea.astk.plantgl_utils import *
 
 
 wheat = AdelWheat()
@@ -27,7 +27,7 @@ area_adel = g[elt_id]['area']
 area_pgl = sum(areas[elt_id])
 area_caribu = out['Area'][elt_id]
 area_exposition = rain_exposition[elt_id] / rain_fraction[elt_id] /0.01**2
-print area_adel, area_pgl, area_caribu, area_exposition
+print(area_adel, area_pgl, area_caribu, area_exposition)
 
 
 #one newly emerged leaf
@@ -42,7 +42,7 @@ area_caribu = out['Area'][elt_id]
 area_exposition = None
 if rain_fraction[elt_id] > 0:
     area_exposition = rain_exposition[elt_id] / rain_fraction[elt_id] /0.01**2
-print area_adel, area_pgl, area_caribu, area_exposition
+print(area_adel, area_pgl, area_caribu, area_exposition)
 
 #input blade elements
 l=g[396]['length']
