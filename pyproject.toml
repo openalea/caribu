@@ -42,6 +42,10 @@ doc = [
   "myst-parser",
   "sphinx-favicon",
   "nbsphinx",
+  "ipykernel",
+  "sphinx-copybutton",
+  "ipython_genutils",
+  "pandoc",
 ]
 
 [project.urls]

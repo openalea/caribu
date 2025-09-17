@@ -5,6 +5,10 @@ build:
   tools:
     python: "miniconda3-3.12-24.9"
 
+  jobs:
+    pre_install:
+      - export PREFIX=$CONDA_PREFIX
+
 conda:
   environment: doc/environment.yml
 
