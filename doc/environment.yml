@@ -13,3 +13,7 @@ dependencies:
     - myst-parser
     - sphinx-favicon
     - nbsphinx
+    - pandoc
+    - ipykernel
+    - sphinx-copybutton
+    - ipython_genutils
