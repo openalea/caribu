@@ -12,7 +12,7 @@
 {% set version = environ.get('SETUPTOOLS_SCM_PRETEND_VERSION', scm_version) %}
 
 package:
-  name: alinea.caribu
+  name: openalea.caribu
   version: {{ version }}
 
 source:
@@ -25,6 +25,12 @@ build:
     - CMAKE_GENERATOR=MinGW Makefiles # [win]
     - CXX=g++ # [win]
     - CC=gcc # [win]
+    # Force static build on Windows to allow skipping run export of m2w64 stdlib
+    - LDFLAGS=-static -static-libgcc -static-libstdc++   # [win]
+  ignore_run_exports_from:
+    # Avoid automatic run export of m2w64 stdlib on windows (that forces hard regression of msvc libs)
+    - {{ compiler('c') }} # [win]
+    - {{ compiler('cxx') }} # [win]
   script:
     - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
 
@@ -35,11 +41,12 @@ requirements:
     - scikit-build-core
     - setuptools
     - wheel
-    - cmake
-    - ninja
+
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
+    - cmake
+    - ninja
   run:
     - python
     - path              # path.py is outdated
@@ -50,7 +57,7 @@ test:
   requires:
     - pytest
   imports:
-    - alinea.caribu
+    - openalea.caribu
   source_files:
     - test/*.py
   commands:

@@ -1,5 +1,5 @@
 ======================================================
-Welcome to alinea.caribu's documentation!
+Welcome to openalea.caribu's documentation!
 ======================================================
 .. sidebar:: Summary
 

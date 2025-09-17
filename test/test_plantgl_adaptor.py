@@ -7,7 +7,7 @@ except ImportError:
 
 if run_test:
 
-    from alinea.caribu.plantgl_adaptor import scene_to_cscene, mtg_to_cscene
+    from openalea.caribu.plantgl_adaptor import scene_to_cscene, mtg_to_cscene
 
     def test_scene():
         s = pgl.Scene()
