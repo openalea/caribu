@@ -6,7 +6,7 @@ import pydata_sphinx_theme # Pydata theme: https://pydata-sphinx-theme.readthedo
 
 from importlib.metadata import metadata
 project='caribu'
-meta = metadata('alinea.' + project)
+meta = metadata('openalea.' + project)
 release = meta.get("version")
 # for example take major/minor
 version = ".".join(release.split('.')[:3])
