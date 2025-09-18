@@ -95,4 +95,5 @@ if __name__ == "__main__":
     c_scene = CaribuScene(scene=can, light=sky, opt=opts, debug = debug)
     raw, aggregated = c_scene.run(direct=True, infinite=False, sensors=sensors)
 
+
     print("--- done")
