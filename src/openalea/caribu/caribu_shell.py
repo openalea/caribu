@@ -77,8 +77,18 @@ def _abrev(fnc, maxlg=1):
     abbreviate a text string containing a path or a file content to the first maxlg lines,
     addind '...' when the number of libnes is greater than maxlg
     """
-    if fnc is None or os.path.exists(fnc):
-        return str(fnc)
+    # Check if fnc is a path or a file content
+    if os.name == 'nt':
+        # we avoid using os.path.exists on Windows because of
+        # its limit of number of characters
+        if fnc is None or fnc.find("/") != -1 or fnc.find("\\") != -1:
+            return str(fnc)
+    
+    # os.path.exists works on unix systems
+    else :
+        if fnc is None or os.path.exists(fnc):
+            return str(fnc)
+    
     lines = fnc.splitlines()
     if maxlg <= 1:
         return lines[0] + ' ... '
@@ -338,7 +348,7 @@ class Caribu:
                 self.pattern = Path(fn.basename())
 
         if self.sensor is not None:
-            if os.path.exists(self.sensor):
+            if str(self.sensor).endswith('.can'):
                 fn = Path(self.sensor)
                 fn.copy(d / fn.basename())
             else:
