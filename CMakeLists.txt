@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 project(caribu LANGUAGES C CXX)
 
+if(DEFINED ENV{SKIP_EXT})
+  message(STATUS "Skipping build of C/C++ extensions (SKIP_EXT set)")
+  return()  # stops processing the CMakeLists here
+endif()
+
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
