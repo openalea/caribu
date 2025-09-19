@@ -21,20 +21,11 @@
   Contact: chelle@grinon.inra.fr
   INRA - INRIA - CIRAD
 """
-import os
 from subprocess import Popen, STDOUT, PIPE
 import tempfile
 import platform
-try:
-    from path import Path
-except ImportError:
-    try:
-        from path import path as Path
-    except ImportError:
-        try:
-            from openalea.core.path import path as Path
-        except ImportError:
-            from IPython.external.path import path as Path
+from pathlib import Path
+import shutil
 
 
 def _process(cmd, directory, out):
@@ -74,21 +65,17 @@ def _safe_iter(obj, atomic_types=(str, int, float, complex)):
 
 def _abrev(fnc, maxlg=1):
     """
-    abbreviate a text string containing a path or a file content to the first maxlg lines,
-    addind '...' when the number of libnes is greater than maxlg
+    abbreviate a file content to the first maxlg lines,
+    addind '...' when the number of libnes is greater than maxlg.
+    If fnc is a Path, return str(fnc)
     """
+    if fnc is None:
+        return 'None'
+
     # Check if fnc is a path or a file content
-    if os.name == 'nt':
-        # we avoid using os.path.exists on Windows because of
-        # its limit of number of characters
-        if fnc is None or fnc.find("/") != -1 or fnc.find("\\") != -1:
-            return str(fnc)
-    
-    # os.path.exists works on unix systems
-    else :
-        if fnc is None or os.path.exists(fnc):
-            return str(fnc)
-    
+    if isinstance(fnc, Path):
+        return str(fnc)
+
     lines = fnc.splitlines()
     if maxlg <= 1:
         return lines[0] + ' ... '
@@ -135,13 +122,13 @@ class Caribu:
         """
         Class fo Nested radiosity illumination on a 3D scene.
 
-        canfile: file '.can' (or file content) representing 3d scene
-        skyfile: file/file content containing all the light description
-        optfiles: list of files/files contents defining optical property
-        sensorfile: file or file content with virtual sensor positions
+        canfile: Path to / content of a file representing 3d scene
+        skyfile: Path to / content of a sky file defining all the light description
+        optfiles: list of Path to / content of files defining optical property
+        sensorfile: Path to / content of a file defining virtual sensor positions
         optnames: list of name to be used as keys for output dict (if None use the name of the opt files or
         the generic names band0,band1 if optfiles are given as content)
-        patternfile: file/file content that defines a domain to till the scene.
+        patternfile: Path to / content of a file that defines a domain to till the scene.
         direct: consider only direct projection
         infinitise: Consider a toric canopy (infinite). Needs a pattern to take effect
         nb_layers: number of layers to be considered for the scene
@@ -160,7 +147,7 @@ class Caribu:
         self.my_dbg = debug
         # print "my_dbg = ",   self.my_dbg
         # tempdir (initialised to allow testing of  existence in del)
-        self.tempdir = Path('')
+        self.tempdir = Path(' ')
 
         # Input files
         self.scene = canfile
@@ -198,7 +185,7 @@ class Caribu:
         else:
             if self.tempdir.exists():
                 # print 'Remove tempfile %s'%self.tempdir
-                self.tempdir.rmtree()
+                shutil.rmtree(self.tempdir)
 
     def __str__(self):
         s = """
@@ -276,8 +263,8 @@ class Caribu:
             # try to derive from filename or use generic name
             optn = []
             for i, opt in enumerate(_safe_iter(self.opticals)):
-                if os.path.exists(opt):
-                    name = str(Path(Path(opt).basename()).stripext())
+                if isinstance(opt, Path):
+                    name = opt.stem
                     optn.append(name)
                 else:
                     optn.append('band%d' % i)
@@ -320,54 +307,52 @@ class Caribu:
     def copyfiles(self, skip_sky=False, skip_pattern=False, skip_opt=False):
         d = self.tempdir
 
-        if str(self.scene).endswith('.can'):
-            fn = Path(self.scene)
-            fn.copy(d / fn.basename())
+        if isinstance(self.scene, Path):
+            dst = d / self.scene.name
+            shutil.copy(self.scene, dst)
         else:
-            fn = d / 'cscene.can'
-            fn.write_text(self.scene)
-        self.scene = Path(fn.basename())
+            dst = d / 'cscene.can'
+            dst.write_text(self.scene)
+        self.scene = Path(dst.name)
 
         if not skip_sky:
-            if os.path.exists(self.sky):
-                fn = Path(self.sky)
-                fn.copy(d / fn.basename())
+            if isinstance(self.sky, Path):
+                dst = d / self.sky.name
+                shutil.copy(self.sky, dst)
             else:
-                fn = d / 'sky.light'
-                fn.write_text(self.sky)
-            self.sky = Path(fn.basename())
+                dst = d / 'sky.light'
+                dst.write_text(self.sky)
+            self.sky = Path(dst.name)
 
         if not skip_pattern:
             if self.infinity:
-                if os.path.exists(self.pattern):
-                    fn = Path(self.pattern)
-                    fn.copy(d / fn.basename())
+                if isinstance(self.pattern, Path):
+                    dst = d / self.pattern.name
+                    shutil.copy(self.pattern, dst)
                 else:
-                    fn = d / 'pattern.8'
-                    fn.write_text(self.pattern)
-                self.pattern = Path(fn.basename())
+                    dst = d / 'pattern.8'
+                    dst.write_text(self.pattern)
+                self.pattern = Path(dst.name)
 
         if self.sensor is not None:
-            if str(self.sensor).endswith('.can'):
-                fn = Path(self.sensor)
-                fn.copy(d / fn.basename())
+            if isinstance(self.sensor, Path):
+                dst = d / self.sensor.name
+                shutil.copy(self.sensor, dst)
             else:
-                fn = d / 'sensor.can'
-                fn.write_text(self.sensor)
-            self.sensor = Path(fn.basename())
+                dst = d / 'sensor.can'
+                dst.write_text(self.sensor)
+            self.sensor = Path(dst.name)
 
         if not skip_opt:
             optn = [x + '.opt' for x in _safe_iter(self.optnames)]
             try:
                 for i, opt in enumerate(_safe_iter(self.opticals)):
                     # safe_iter allows not to iterate along character composing the optfile name when only one optfile is given
-                    if os.path.exists(opt):
-                        # print opt
-                        fn = Path(opt)
-                        fn.copy(d / optn[i])
+                    dst = d / optn[i]
+                    if isinstance(opt, Path):
+                        shutil.copy(opt, dst)
                     else:
-                        fn = d / optn[i]
-                        fn.write_text(opt)
+                        dst.write_text(opt)
                 self.opticals = list(map(Path, _safe_iter(optn)))
             except IndexError:
                 raise CaribuOptionError("Optnames list must be None or as long as optfiles list")
@@ -472,7 +457,7 @@ class Caribu:
 
     def periodise(self):
         d = self.tempdir
-        name, ext = self.scene.splitext()
+        name, ext = self.scene.stem, self.scene.suffix
         outscene = name + '_8' + ext
         cmd = '%s -m %s -8 %s -o %s ' % (self.periodise_name, self.scene, self.pattern, outscene)
         if self.my_dbg:
@@ -489,7 +474,7 @@ class Caribu:
 
     def s2v(self):
         d = self.tempdir
-        wavelength = ' '.join([fn.stripext() for fn in self.opticals])
+        wavelength = ' '.join([fn.stem for fn in self.opticals])
         cmd = "%s %s %d %f %s " % (
             self.s2v_name, self.scene, self.nb_layers, self.can_height, self.pattern) + wavelength
         if self.my_dbg:
@@ -506,20 +491,19 @@ class Caribu:
 
     def mcsail(self, opt):
         d = self.tempdir
-        optname, ext = Path(opt.basename()).splitext()
-        (d / optname + '.spec').copy(d / 'spectral')
+        shutil.copy(d / opt.with_suffix('.spec'), d / 'spectral')
 
         cmd = "%s %s " % (self.sail_name, self.sky)
 
         if self.my_dbg:
             print(">>> mcsail(): ", cmd)
-        logfile = "sail-%s.log" % optname
+        logfile = "sail-%s.log" % opt.stem
         logfile = d / logfile
         status = _process(cmd, d, logfile)
 
         mcsailenv = d / 'mlsail.env'
         if mcsailenv.exists():
-            mcsailenv.move(d / optname + '.env')
+            mcsailenv.rename(d / opt.with_suffix('.env'))
         else:
             f = open(logfile)
             msg = f.readlines()
@@ -531,9 +515,8 @@ class Caribu:
         """Fonction d'appel de l'executable canestrad, code C++ compilee de la radiosite mixte  - MC09"""
         # canestrad -M $Sc -8 $argv[6] -l $argv[2] -p $po.opt -e $po.env -s -r  $argv[1] -1
         d = self.tempdir
-        optname, ext = Path(opt.basename()).splitext()
         if self.my_dbg:
-            print(optname)
+            print(opt.stem)
         str_pattern = str_direct = str_FF = str_diam = str_env = str_sensor = ""
 
         if self.infinity:
@@ -552,7 +535,7 @@ class Caribu:
             else:
                 str_FF = " -w " + self.FF_name
             if self.sphere_diameter >= 0:
-                str_env = " -e %s.env " % optname
+                str_env = " -e %s.env " % opt.stem
 
         if self.sensor is not None:
             str_sensor = " -C %s " % self.sensor
@@ -568,24 +551,24 @@ class Caribu:
         ficres = d / 'Etri.vec0'
         ficsens = d / 'solem.dat'
         if ficres.exists():
-            self.store_result(ficres, str(optname))
+            self.store_result(ficres, opt.stem)
 
             if self.sensor is not None:
                 if ficsens.exists():
-                    self.store_sensor(ficsens, str(optname))
+                    self.store_sensor(ficsens, opt.stem)
 
             if self.resdir is not None:
                 # copy result files
-                fdest = Path(optname + ".vec")
+                fdest = opt.with_suffix('.vec')
                 if self.my_dbg:
-                    print(fdest)
-                ficres.move(self.resdir / fdest)
+                    print(fdest.name)
+                ficres.rename(self.resdir / fdest)
 
                 if self.sensor is not None:
-                    fdest = Path(optname + ".sens")
+                    fdest = opt.with_suffix('.sens')
                     if self.my_dbg:
                         print(fdest)
-                    ficsens.move(self.resdir / fdest)
+                    ficsens.rename(self.resdir / fdest)
         else:
             f = open(d / "nr.log")
             msg = f.readlines()
@@ -595,11 +578,11 @@ class Caribu:
 
         if (d / Path("nr.log")).exists():
             # copy log files
-            fic = Path("nr-" + optname + ".log")
-            (d / "nr.log").move(d / fic)
+            fic = Path("nr-" + opt.stem + ".log")
+            (d / "nr.log").rename(d / fic)
 
         if self.my_dbg:
-            print(">>> caribu.py: Caribu::canestra (%s) finished !" % optname)
+            print(">>> caribu.py: Caribu::canestra (%s) finished !" % opt.stem)
 
 
 def vcaribu(canopy, lightsource, optics, pattern, options):
@@ -623,13 +606,13 @@ def vcaribu(canopy, lightsource, optics, pattern, options):
 
     sim = Caribu(resdir=None, resfile=None)  # no output on disk
     # --canfile
-    sim.scene = canopy
+    sim.scene = None if canopy is None else Path(canopy)
     # --optics
-    sim.opticals = optics
+    sim.opticals = None if optics is None else Path(optics)
     # --skyfile
-    sim.sky = lightsource
+    sim.sky = None if lightsource is None else Path(lightsource)
     # --pattern
-    sim.pattern = pattern
+    sim.pattern = None if pattern is None else Path(pattern)
     # --options (if different from caribu defaults)
     if options is not None:
         # --scatter
@@ -668,9 +651,9 @@ def vperiodise(canopy, pattern):
     """ low level interface to periodise. return modified canopy in can format """
     sim = Caribu(resdir=None, resfile=None)  # no output on disk
     # --canfile
-    sim.scene = canopy
+    sim.scene = None if canopy is None else Path(canopy)
     # --pattern
-    sim.pattern = pattern
+    sim.pattern = None if pattern is None else Path(pattern)
     periodic_scene = sim.run_periodise()
 
     return periodic_scene

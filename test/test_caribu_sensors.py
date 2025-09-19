@@ -1,7 +1,7 @@
 import openalea.plantgl.all as pgl
 
-from alinea.caribu.CaribuScene import CaribuScene
-from alinea.caribu.data_samples import data_path
+from openalea.caribu.CaribuScene import CaribuScene
+from openalea.caribu.data_samples import data_path
 
 def create_grid_sensors(dxyz, nxyz) :     
     """creates a grid of virtual sensors in Caribu and PlantGL format

@@ -16,6 +16,7 @@ import numpy
 from itertools import groupby, chain
 from math import sqrt
 from numbers import Number
+from pathlib import Path
 
 from openalea.mtg.mtg import MTG
 from openalea.plantgl.all import Scene as pglScene, Viewer
@@ -286,18 +287,18 @@ class CaribuScene:
                         z_soil = self.scene.getZmin()
                 self.soil = domain_mesh(self.pattern, z_soil, soil_mesh)
         
-        self.tempdir = '' # allow testing existence in __del__
+        self.tempdir = Path(' ') # allow testing existence in __del__
         if filecache:
             self.tempdir = tempfile.mkdtemp() if not debug else './caribuscene_'+str(id(self))
+            self.tempdir = Path(self.tempdir)
         self.canfile = None
         self.optfile = None
 
 
     def __del__(self):
-        if hasattr(self, 'tempdir') and self.tempdir:
-            if os.path.exists(self.tempdir):
-                import shutil
-                shutil.rmtree(self.tempdir)
+        if self.tempdir.exists():
+            import shutil
+            shutil.rmtree(self.tempdir)
 
 
 
@@ -558,8 +559,8 @@ class CaribuScene:
                     self.materialvalues = materials
 
                     if self.tempdir != '':
-                        self.canfile = os.path.join(self.tempdir,'cscene.can')
-                        self.optfile = os.path.join(self.tempdir,'band0.opt')
+                        self.canfile = self.tempdir / 'cscene.can'
+                        self.optfile = self.tempdir / 'band0.opt'
                         write_scene(triangles, materials, canfile = self.canfile, optfile = self.optfile)
 
                 else:

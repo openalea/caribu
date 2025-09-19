@@ -11,19 +11,9 @@
 # ==============================================================================
 """ paths to module data file
 """
-try:
-    from path import Path
-except ImportError:
-    try:
-        from path import path as Path
-    except ImportError:
-        try:
-            from openalea.core.path import path as Path
-        except ImportError:
-            from IPython.external.path import path as Path
+from pathlib import Path
 
 
 def data_path(filename):
-    d = Path(__file__).dirname()
-    fn = 'data/' + filename
-    return d / fn
+    datadir = Path(__file__).parent / 'data'
+    return datadir / filename
