@@ -31,9 +31,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dynamic = ["version", "readme"]
-dependencies = [
-  "path"
-]
+dependencies = []
 
 [project.optional-dependencies]
 test = ["pytest"]

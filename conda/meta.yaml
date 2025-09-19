@@ -46,7 +46,6 @@ requirements:
     - {{ compiler('cxx') }}
   run:
     - python
-    - path              # path.py is outdated
     - openalea.plantgl
     - openalea.mtg
 
