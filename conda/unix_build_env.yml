@@ -1,0 +1,9 @@
+channels:
+  - openalea3/label/dev
+  - openalea3/label/rc
+  - openalea3
+  - conda-forge
+dependencies:
+  - python
+  - c-compiler
+  - cxx-compiler

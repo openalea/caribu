@@ -32,34 +32,32 @@ Michael Chelle, Bruno Andrieu, K. Bouatouch. Nested radiosity for plant canopies
 mamba create -n caribu -c openalea3 -c conda-forge openalea.caribu 
 ``` 
 
-### Developers (unix)
+### Developers
+
+#### Build cpp extension
 
 ```bash
 git clone 'https://github.com/openalea/caribu.git'
 cd caribu
-# this will create a fresh astk_dev env for you
-mamba env create -f ./conda/environment.yml
-# As an alternative, if you want to work in an existing environment:
-mamba install --only-deps -c openalea3 -c conda-forge openalea.caribu
-mamba install oawidgets 
-pip install -e .[doc,test] -vv
+# unix (conda required as mamba does not instantiate env vars)
+conda env create -n caribu_cpp -f ./conda/unix_build_env.yml
+# windows (conda required as mamba does not instantiate env vars)
+conda env create -n caribu_cpp -f ./conda/windows_build_env.yml
+conda activate caribu_cpp
+pip install -e .[test] -vv
 ```
 
-### On windows, building c extension requires a special dedicated environment
-mamba env create -n build_win -f ./conda/build_env_win.yml
-mamba activate build_win
-pip install . --config-setting=build-dir=build
-mamba deactivate
-mamba env create -n caribu_dev -f ./conda/pydev.yml
-mamba activate caribu_dev
-pip install -e .[test,doc] --config-setting=build-dir=build
-## Installation
+#### Python/doc development
 
-See [Installation Guide](./install/install.rst)
-
----
-
-
+```bash
+git clone 'https://github.com/openalea/caribu.git'
+cd caribu
+#(conda required as mamba does not instantiate env vars)
+conda env create -n caribu_py -f ./conda/python_dev_env.yml
+conda activate caribu_py
+pip install -e .[test,doc] -vv
+```
+Note : on unix, build and python dev environnment can be combined, but not on windows
 
 ## License
 

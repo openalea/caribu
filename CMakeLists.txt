@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(caribu LANGUAGES C CXX)
 
-if(DEFINED ENV{SKIP_EXT})
-  message(STATUS "Skipping build of C/C++ extensions (SKIP_EXT set)")
+if(DEFINED ENV{SKIP_BUILD})
+  message(STATUS "Skipping build of C/C++ extensions")
   return()  # stops processing the CMakeLists here
 endif()
 
@@ -28,5 +28,5 @@ add_subdirectory("src/cpp/s2v/src")
 add_subdirectory("src/cpp/Canestra/src")
 
 install(TARGETS mcsail periodise s2v canestrad
-        DESTINATION "$ENV{PREFIX}/bin")
+        DESTINATION bin)
 

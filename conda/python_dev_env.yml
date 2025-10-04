@@ -1,0 +1,12 @@
+channels:
+  - openalea3/label/dev
+  - openalea3/label/rc
+  - openalea3
+  - conda-forge
+dependencies:
+  - python
+  - openalea.caribu
+  - openalea.mtg
+  - oawidgets
+variables:
+  SKIP_BUILD: "1"
