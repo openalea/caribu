@@ -77,20 +77,15 @@ Changelog = "https://github.com/openalea/caribu/releases"
 "openalea.caribu" = "openalea.caribu_wralea"
 
 [tool.conda.environment]
-channels = [
-  "openalea3",
-  "conda-forge"
-]
 dependencies = [
   "matplotlib-base",
   "openalea.plantgl"
 ]
-test_dependencies = [
+test-dependencies = [
   "openalea.mtg"
 ]
-
-[tool.conda.environment.optional-dependencies]
-viz= [
+optional-dependencies = [
   "oawidgets"
 ]
+
 
