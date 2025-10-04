@@ -8,9 +8,10 @@ build:
   jobs:
     pre_install:
       - export PREFIX=$CONDA_PREFIX
+      - pip install -e .[doc]
 
 conda:
-  environment: doc/environment.yml
+  environment: conda/python_dev_env.yml
 
 sphinx:
   # Path to your Sphinx configuration file.
