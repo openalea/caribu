@@ -7,6 +7,6 @@ dependencies:
   - python
   - openalea.caribu
   - openalea.mtg
-  - oawidgets
+  - openalea.widgets
 variables:
   SKIP_BUILD: "1"
