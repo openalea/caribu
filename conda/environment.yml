@@ -5,8 +5,9 @@ channels:
   - conda-forge
 dependencies:
   - python
-  - openalea.caribu
-  - openalea.mtg
-  - oawidgets
-variables:
-  SKIP_BUILD: "1"
+  - openalea.libcaribu
+  - openalea.plantgl
+  - openalea.widgets
+  - pip
+  - pip:
+      - -e ..[doc,test]

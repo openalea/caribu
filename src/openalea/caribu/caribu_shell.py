@@ -26,29 +26,8 @@ import tempfile
 import platform
 from pathlib import Path
 import shutil
-
-
-def _process(cmd, directory, out):
-    """
-    Run a process in a shell.
-    Return the outputs in a file or string.
-    """
-    # print ">> caribu.py: process(%s) called..."%(cmd)
-
-    f = open(out, 'w')
-    if platform.system() == 'Darwin':
-        p = Popen(cmd, shell=True, cwd=directory,
-                  stdin=PIPE, stdout=f, stderr=PIPE)
-        status = p.communicate()
-    else:
-        p = Popen(cmd, shell=True, cwd=directory,
-                  stdin=None, stdout=f, stderr=STDOUT)
-        status = p.wait()
-
-    f.close()
-
-    # print "<<< caribu.py: process finished!"
-    return status
+import openalea.libcaribu.tools as lc
+import openalea.libcaribu.io as lcio
 
 
 def _safe_iter(obj, atomic_types=(str, int, float, complex)):
@@ -459,10 +438,12 @@ class Caribu:
         d = self.tempdir
         name, ext = self.scene.stem, self.scene.suffix
         outscene = name + '_8' + ext
-        cmd = '%s -m %s -8 %s -o %s ' % (self.periodise_name, self.scene, self.pattern, outscene)
+        args = ["-m", str(self.scene),
+                "-8", str(self.pattern),
+                "-o", outscene]
         if self.my_dbg:
-            print(">>> periodise() : ", cmd)
-        status = _process(cmd, d, d / "periodise.log")
+            print(">>> periodise() : ", ' '.join(args))
+        status = lc.run_periodise(d, args)
         if (d / outscene).exists():
             self.scene = outscene
         else:
@@ -474,12 +455,14 @@ class Caribu:
 
     def s2v(self):
         d = self.tempdir
-        wavelength = ' '.join([fn.stem for fn in self.opticals])
-        cmd = "%s %s %d %f %s " % (
-            self.s2v_name, self.scene, self.nb_layers, self.can_height, self.pattern) + wavelength
+        wavelength = [fn.stem for fn in self.opticals]
+        args = [str(self.scene),
+                str(self.nb_layers),
+                str(self.can_height),
+                str(self.pattern)] + wavelength
         if self.my_dbg:
-            print(">>> s2v() : ", cmd)
-        status = _process(cmd, d, d / "s2v.log")
+            print(">>> s2v() : ", ' '.join(args))
+        status = lc.run_s2v(d, args)
         # Raise an exception if s2v crashed...
         leafarea = d / 'leafarea'
         if not leafarea.exists():
@@ -493,19 +476,17 @@ class Caribu:
         d = self.tempdir
         shutil.copy(d / opt.with_suffix('.spec'), d / 'spectral')
 
-        cmd = "%s %s " % (self.sail_name, self.sky)
+        args = [str(self.sky)]
 
         if self.my_dbg:
-            print(">>> mcsail(): ", cmd)
-        logfile = "sail-%s.log" % opt.stem
-        logfile = d / logfile
-        status = _process(cmd, d, logfile)
+            print(">>> mcsail(): ", ' '.join(args))
+        status = lc.run_mcsail(d, args)
 
         mcsailenv = d / 'mlsail.env'
         if mcsailenv.exists():
             mcsailenv.rename(d / opt.with_suffix('.env'))
         else:
-            f = open(logfile)
+            f = open(d / 'mc-sail.log')
             msg = f.readlines()
             f.close()
             print(">>>  mcsail has not finished properly => STOP")
@@ -517,36 +498,38 @@ class Caribu:
         d = self.tempdir
         if self.my_dbg:
             print(opt.stem)
-        str_pattern = str_direct = str_FF = str_diam = str_env = str_sensor = ""
+
+        args = ["-M", str(self.scene),
+                "-l", str(self.sky),
+                "-p", str(opt),
+                '-A']
 
         if self.infinity:
-            str_pattern = " -8 %s " % self.pattern
+            args += ["-8", str(self.pattern)]
 
         if self.direct:
-            str_direct = " -1 "
+            args += ["-1"]
         else:
-            str_diam = " -d %s " % self.sphere_diameter
+            args += ["-d", str(self.sphere_diameter)]
 
             if self.form_factor:
                 # compute formfactor
                 self.form_factor = False
                 self.FF_name = tempfile.mktemp(prefix="", suffix="", dir="")
-                str_FF = " -f %s " % self.FF_name
+                args += ["-f", self.FF_name]
             else:
-                str_FF = " -w " + self.FF_name
+                args += ["-w", self.FF_name]
             if self.sphere_diameter >= 0:
-                str_env = " -e %s.env " % opt.stem
+                args += ["-e", str(opt.with_suffix('.env'))]
 
         if self.sensor is not None:
-            str_sensor = " -C %s " % self.sensor
+            args += ["-C", self.sensor]
 
-        str_img = "-L %d" % self.img_size
+        args += ["-L", str(self.img_size)]
 
-        cmd = "%s -M %s -l %s -p %s -A %s %s %s %s %s %s %s " % (
-            self.canestra_name, self.scene, self.sky, opt, str_pattern, str_direct, str_diam, str_FF, str_env, str_img, str_sensor)
         if self.my_dbg:
-            print((">>> Canestrad(): %s" % cmd))
-        status = _process(cmd, self.tempdir, d / "nr.log")
+            print(">>> Canestrad(): %s" % ' '.join(args))
+        status = lc.run_canestrad(d, args)
 
         ficres = d / 'Etri.vec0'
         ficsens = d / 'solem.dat'
@@ -570,16 +553,16 @@ class Caribu:
                         print(fdest)
                     ficsens.rename(self.resdir / fdest)
         else:
-            f = open(d / "nr.log")
+            f = open(d / "canestra.log")
             msg = f.readlines()
             f.close()
             print(">>>  canestra has not finished properly => STOP")
             raise CaribuRunError(''.join(msg))
 
-        if (d / Path("nr.log")).exists():
+        if (d / Path("canestra.log")).exists():
             # copy log files
             fic = Path("nr-" + opt.stem + ".log")
-            (d / "nr.log").rename(d / fic)
+            (d / "canestra.log").rename(d / fic)
 
         if self.my_dbg:
             print(">>> caribu.py: Caribu::canestra (%s) finished !" % opt.stem)

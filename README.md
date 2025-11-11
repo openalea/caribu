@@ -29,35 +29,17 @@ Michael Chelle, Bruno Andrieu, K. Bouatouch. Nested radiosity for plant canopies
 ### Users
 
 ```bash
-mamba create -n caribu -c openalea3 -c conda-forge openalea.caribu 
+mamba env create -n caribu -c openalea3 -c conda-forge openalea.caribu 
 ``` 
 
 ### Developers
-
-#### Build cpp extension
 
 ```bash
 git clone 'https://github.com/openalea/caribu.git'
 cd caribu
 # unix (conda required as mamba does not instantiate env vars)
-conda env create -n caribu_cpp -f ./conda/unix_build_env.yml
-# windows (conda required as mamba does not instantiate env vars)
-conda env create -n caribu_cpp -f ./conda/windows_build_env.yml
-conda activate caribu_cpp
-pip install -e .[test] -vv
+mamba env create -n caribu_dev -f ./conda/environment.yml
 ```
-
-#### Python/doc development
-
-```bash
-git clone 'https://github.com/openalea/caribu.git'
-cd caribu
-#(conda required as mamba does not instantiate env vars)
-conda env create -n caribu_py -f ./conda/python_dev_env.yml
-conda activate caribu_py
-pip install -e .[test,doc] -vv
-```
-Note : on unix, build and python dev environnment can be combined, but not on windows
 
 ## License
 
