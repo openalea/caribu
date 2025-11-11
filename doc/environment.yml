@@ -6,7 +6,7 @@ channels:
 
 dependencies:
   - openalea.caribu
-  - oawidgets
+  - openalea.widgets
   - pip
   - pip:
     - pydata-sphinx-theme
