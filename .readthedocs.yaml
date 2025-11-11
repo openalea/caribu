@@ -5,13 +5,8 @@ build:
   tools:
     python: "miniconda3-3.12-24.9"
 
-  jobs:
-    pre_install:
-      - export PREFIX=$CONDA_PREFIX
-      - pip install -e .[doc]
-
 conda:
-  environment: conda/python_dev_env.yml
+  environment: conda/environment.yml
 
 sphinx:
   # Path to your Sphinx configuration file.
