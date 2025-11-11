@@ -23,6 +23,25 @@ The idea is to mix:
 **Reference:**  
 Michael Chelle, Bruno Andrieu, K. Bouatouch. Nested radiosity for plant canopies. *The Visual Computer*, 1998, 14, pp.109-125. [10.1007/s003710050127](https://doi.org/10.1007/s003710050127). [hal-02697207](https://hal.inrae.fr/hal-04945340v1)
 
+## Content
+
+The suite is composed of two main sub-models : MCSail, that computes turbid
+medium equations on a layered canopy (derived from the SAIL model (Verhoef, 1984) and Canestra, that computes radiosity
+and projection. The suite also includes two utilities : periodise, that
+makes a scene suitable for infinite replication and S2v, that transforms a
+3D scene in a 1D multi-layer system.
+
+It operates on a special scene object called Caribuscene, composed of a list
+of triangles with optical properties representing the plants, a set of
+direction and intensities (called light sources) representing the sky and
+a pattern delimiting the scene, used for infinitisation.
+
+This model is completed with a set of utilities for visualisation
+(using PlantGL), import of caribuscene from files or MTG, and tools for
+building light sources from meteorological data
+
+Ref: Wout Verhoef (1984), Light scattering by leaf layers with application to canopy reflectance modeling: the SAIL model. Remote Sensing of Environment, 16, 125-141
+
 
 ## Installation
 

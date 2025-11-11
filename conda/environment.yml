@@ -5,6 +5,7 @@ channels:
   - conda-forge
 dependencies:
   - python
+  - pandoc
   - openalea.libcaribu
   - openalea.plantgl
   - openalea.widgets

@@ -55,7 +55,6 @@ doc = [
   "ipykernel",
   "sphinx-copybutton",
   "ipython_genutils",
-  "pandoc",
 ]
 
 [project.urls]
