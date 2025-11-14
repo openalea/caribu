@@ -18,7 +18,6 @@ from math import sqrt
 from numbers import Number
 from pathlib import Path
 
-from openalea.mtg.mtg import MTG
 from openalea.plantgl.all import Scene as pglScene, Viewer
 
 from openalea.caribu.file_adaptor import read_can, read_light, read_pattern, \
@@ -72,6 +71,12 @@ def _wsum(nrj_area):
         return 0
     else:
         return sum([e * a if a > 0 else 0 for e, a in nrj_area]) / area_tot
+
+def is_mtg_like(obj):
+    return all(
+        hasattr(obj, attr)
+        for attr in ("_scale", "_complex", "_components", "_parent", "_children", "_root")
+    )
 
 
 def domain_mesh(domain, z=0., subdiv=1):
@@ -185,7 +190,7 @@ class CaribuScene:
                 self.scene = CaribuTriangleSet(scene)
             elif isinstance(scene, str):
                 self.scene = CaribuTriangleSet(read_can(scene))
-            elif isinstance(scene, MTG):
+            elif is_mtg_like(scene):
                 self.scene = CaribuTriangleSet(mtg_to_cscene(scene))
             elif isinstance(scene, pglScene):
                 self.scene = CaribuTriangleSet(scene_to_cscene(scene))

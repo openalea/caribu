@@ -2,7 +2,6 @@
 Usage
 =====
 
-.. toctree::
-    :maxdepth: 2
-
-    ./notebook/Raycasting_methods_with_simple_object_python
+.. nbgallery::
+    notebook/caribu_crops
+    notebook/Raycasting_methods_with_simple_object_python

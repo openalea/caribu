@@ -1,6 +1,14 @@
 channels:
+  - openalea3/label/dev
+  - openalea3/label/rc
   - openalea3
   - conda-forge
 dependencies:
-  - openalea.mtg
+  - python
+  - pandoc
+  - openalea.libcaribu
   - openalea.plantgl
+  - openalea.widgets
+  - pip
+  - pip:
+      - -e ..[doc,test]

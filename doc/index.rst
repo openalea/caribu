@@ -15,9 +15,7 @@ Welcome to openalea.caribu's documentation!
 
     readme
     usage
-    history
-    references/index
-    notebook/notebook
+    api
     authors
 
 

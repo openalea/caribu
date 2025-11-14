@@ -1,57 +1,45 @@
-{% set pyproject = load_file_data('pyproject.toml') %}
-{% set description = pyproject.get('project', {}).get('description') %}
-{% set home = pyproject.get('project', {}).get('urls').get('Homepage') %}
-
-{# Align version with the one computed by setuptools_scm #}
-{% set base_tag = GIT_DESCRIBE_TAG | default("0.0.0.dev0") | replace("v", "") %}
-{% set distance = GIT_DESCRIBE_NUMBER | default("0") | int %}
-{% set base_parts = base_tag.split('.') %}
-{% set micro = base_parts[2] | int %}
-{% set next_version = base_parts[0] + "." + base_parts[1] + "." + (micro + 1)|string %}
-{% set scm_version = next_version + ".dev" + distance|string if distance > 0 else base_tag %}
-{% set version = environ.get('SETUPTOOLS_SCM_PRETEND_VERSION', scm_version) %}
+{% set pyproject = load_file_data('../pyproject.toml', from_recipe_dir=True) %}
+{% set name = pyproject.get('project').get('name') %}
+{% set description = pyproject.get('project').get('description') %}
+{% set version = environ.get('SETUPTOOLS_SCM_PRETEND_VERSION', "0.0.0.dev") %}
+{% set license = pyproject.get('project').get('license') %}
+{% set home = pyproject.get('project', {}).get('urls', {}).get('Homepage', '') %}
+{% set build_deps = pyproject.get("build-system", {}).get("requires", []) %}
+{% set deps = pyproject.get('project', {}).get('dependencies', []) %}
+{% set conda_deps = pyproject.get('tool', {}).get('conda', {}).get('environment', {}).get('dependencies',[]) %}
+{% set test_deps = pyproject.get('project', {}).get('optional-dependencies', {}).get('test',[]) %}
+{% set conda_test_deps = pyproject.get('tool', {}).get('conda', {}).get('environment', {}).get('test-dependencies',[]) %}
 
 package:
-  name: openalea.caribu
+  name: {{ name }}
   version: {{ version }}
 
 source:
   path: ..
 
 build:
-  string: py{{ PY_VER }}
-  script_env:
-    # forge cmake generator and compilers for scikit-build without msvc on Windows
-    - CMAKE_GENERATOR=MinGW Makefiles # [win]
-    - CXX=g++ # [win]
-    - CC=gcc # [win]
-    # Force static build on Windows to allow skipping run export of m2w64 stdlib
-    - LDFLAGS=-static -static-libgcc -static-libstdc++   # [win]
-  ignore_run_exports_from:
-    # Avoid automatic run export of m2w64 stdlib on windows (that forces hard regression of msvc libs)
-    - {{ compiler('c') }} # [win]
-    - {{ compiler('cxx') }} # [win]
+  noarch: python
   script:
-    - {{PYTHON}} -m pip install --no-deps --prefix={{ PREFIX }} . -vv
+    - {{PYTHON}} -m pip install --no-deps  --no-build-isolation . -vv
 
 requirements:
   host:
     - python
-    - pip
-    - scikit-build-core
-    - setuptools
-    - wheel
-  build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
+    {% for dep in build_deps %}
+    - {{ dep }}
+    {% endfor  %}
+
   run:
     - python
-    - openalea.plantgl
-    - openalea.mtg
+    {% for dep in deps + conda_deps %}
+    - {{ dep }}
+    {% endfor %}
 
 test:
   requires:
-    - pytest
+    {% for dep in test_deps + conda_test_deps %}
+    - {{ dep }}
+    {% endfor %}
   imports:
     - openalea.caribu
   source_files:
