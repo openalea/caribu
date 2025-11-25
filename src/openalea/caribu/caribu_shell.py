@@ -9,26 +9,109 @@
 #       WebSite : https://github.com/openalea-incubator/caribu
 #
 # ==============================================================================
-""" Chaine les appel de s2v, mcsail et canestra, comme le fait cpfg via caribu
-    Syntaxe: caribu.csh Ds file.light file.can nz h file.8 file1.opt ... fileN.opt
-
-  Exemple /home/tld/chelle/QHS/Calgary/dev/Canestra/MC-SAIL/Test
-  caribu.csh 0.2 sky2.light Tout.can 3 18 Tout.8 test nir par
-
-  MC98
-  C. Pradal - 2009
-  MC09
-  Contact: chelle@grinon.inra.fr
-  INRA - INRIA - CIRAD
+""" Pythonic implementation of caribu.csh shell script (see original script at the end of this file)
 """
-from subprocess import Popen, STDOUT, PIPE
+
 import tempfile
-import platform
 from pathlib import Path
 import shutil
-import openalea.libcaribu.tools as lc
+from copy import deepcopy
+import openalea.libcaribu.algos as lcal
 import openalea.libcaribu.io as lcio
+# alias for set_scene
+from openalea.libcaribu.algos import set_scene
 
+
+def caribu(scene_path, bands=None, direct_only=True, toric=False, mixed_radiosity=0, layers=2, height=1,
+           screen_size=None, sensors=False, artifacts=False, outdir=None, verbose=False):
+    """ Low level interface to caribu algorithms
+
+    Args:
+        - scene_path (Path) : a path to a dir containing scene data files with normalised names (scene.can, ...).
+          See openalea.caribu.caribu_shell.set_scene for instanciation
+        - bands (str or list of str): the name of the optical band to compute. If None (default), stem parts of *.opt files present in scene_path are used
+        - direct_only (bool): consider only first order illumination (default true)
+        - toric (bool): Consider a toric canopy. Needs a pattern file to be present in the scene_path to take effect
+        - mixed_radiosity (float) : control the mixed radiosity behavior. '-1' meeans 'no mixed radiosity' (pure radiosity, no sail),
+         '0' (default) means 'no radiosity' (sail only), any other number defines the diameter of the spherical boundary
+          between radiosity/non radiosity domain around primitives
+        - layers: number of layers to be considered for discretising the scene for sail
+        - height: height of the highest layer to use for sail
+        - screen_size: the size (pixel) of the diagonal of the projection screen
+        - sensors: should virtual sensor be activated ? (default False). requires a scene.sensor file in the scene_path
+        - artifacts: should canestra debugging artifacts (B.dat, Bz.dat, ...) be generated (default False) ?
+        - outdir: path where output files are written. If None (default), no output files are generated
+
+    Returns:
+        A {band_0: (result, measures), ...} dict containing the incident and absorbed flux of energy for all primitives
+        """
+    if bands is None:
+        bands = [opt.stem for opt in scene_path.glob("*.opt")]
+
+    if isinstance(bands, str):
+        bands = [bands]
+    else:
+        bands = list(bands)
+
+    if outdir:
+        outdir = Path(outdir)
+        outdir.mkdir(exist_ok=True)
+
+    if not direct_only and mixed_radiosity >= 0:
+        toric = True
+        if not all([(scene_path / f'{band}.vec').exists() for band in bands]):
+            lcal.s2v(scene_path, bands=bands, layers=layers, height=height, verbose=verbose)
+
+    if toric and not (scene_path / 'motif.can').exists():
+        lcal.periodise(scene_path, verbose=verbose)
+
+    args = []
+    if screen_size:
+        args += ["-L", str(screen_size)]
+    if sensors:
+        args += ['-C', 'scene.sensor']
+    if verbose:
+        args += ['-v', '2']
+    if not artifacts:
+        args += ['-n']
+
+    res = {}
+    FF_path = None
+    for i, band in enumerate(bands):
+        more_args = []
+        more_args += args
+        if direct_only:
+            if i == 0:
+                if toric:
+                    res[band] = lcal.toric_raycasting(scene_path, band=band, more_args=more_args, verbose=verbose)
+                else:
+                    res[band] = lcal.raycasting(scene_path, band=band, more_args=more_args, verbose=verbose)
+            else:
+                opticals = lcio.read_opt(scene_path / f'{band}.opt')
+                r, m = deepcopy(res[bands[0]])
+                alpha = lcio.absorptance_from_labels(r['label'], opticals)
+                r['Eabs'] = alpha * r['Ei']
+                res[band] = r, m
+        else:
+            if i == 0:
+                FF_path = scene_path / 'FF'
+                FF_path.mkdir(exist_ok=True)
+                more_args += ['-t', str(FF_path),
+                              '-f', 'scene.FF']
+            else:
+                more_args += ['-t', str(FF_path),
+                              '-w', 'scene.FF']
+            if mixed_radiosity < 0:
+                res[band] = lcal.radiosity(scene_path, band=band, more_args=more_args, verbose=verbose)
+            else:
+                res[band] = lcal.mixed_radiosity(scene_path, band=band, sd=mixed_radiosity, more_args=more_args, verbose=verbose)
+
+        if outdir:
+            shutil.copy(scene_path / 'Etri.vec0', outdir / f'{band}.vec0')
+            if i == 0 and FF_path:
+                shutil.copy(FF_path / 'scene.FF', outdir)
+
+    return res
 
 def _safe_iter(obj, atomic_types=(str, int, float, complex)):
     """Equivalent to iter when obj is iterable and not defined as atomic.
