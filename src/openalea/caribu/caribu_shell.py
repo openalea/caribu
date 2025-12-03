@@ -18,12 +18,15 @@ import shutil
 from copy import deepcopy
 import openalea.libcaribu.algos as lcal
 import openalea.libcaribu.io as lcio
+import numpy as np
 # alias for set_scene
 from openalea.libcaribu.algos import set_scene
 
 
+
+
 def caribu(scene_path, bands=None, direct_only=True, toric=False, mixed_radiosity=0, layers=2, height=1,
-           screen_size=None, sensors=False, artifacts=False, outdir=None, verbose=False):
+           screen_size=None, sensors=False, soil=False, artifacts=False, outdir=None, verbose=False):
     """ Low level interface to caribu algorithms
 
     Args:
@@ -38,6 +41,7 @@ def caribu(scene_path, bands=None, direct_only=True, toric=False, mixed_radiosit
         - layers: number of layers to be considered for discretising the scene for sail
         - height: height of the highest layer to use for sail
         - screen_size: the size (pixel) of the diagonal of the projection screen
+        - soil: should soil computations be activated ? (default False). requires a scene.soil in the scene
         - sensors: should virtual sensor be activated ? (default False). requires a scene.sensor file in the scene_path
         - artifacts: should canestra debugging artifacts (B.dat, Bz.dat, ...) be generated (default False) ?
         - outdir: path where output files are written. If None (default), no output files are generated
@@ -83,15 +87,15 @@ def caribu(scene_path, bands=None, direct_only=True, toric=False, mixed_radiosit
         if direct_only:
             if i == 0:
                 if toric:
-                    res[band] = lcal.toric_raycasting(scene_path, band=band, more_args=more_args, verbose=verbose)
+                    res[band] = lcal.toric_raycasting(scene_path, band=band, soil=soil, more_args=more_args, verbose=verbose)
                 else:
-                    res[band] = lcal.raycasting(scene_path, band=band, more_args=more_args, verbose=verbose)
+                    res[band] = lcal.raycasting(scene_path, band=band, soil=soil, more_args=more_args, verbose=verbose)
             else:
                 opticals = lcio.read_opt(scene_path / f'{band}.opt')
-                r, m = deepcopy(res[bands[0]])
+                r, s, m = deepcopy(res[bands[0]])
                 alpha = lcio.absorptance_from_labels(r['label'], opticals)
                 r['Eabs'] = alpha * r['Ei']
-                res[band] = r, m
+                res[band] = r, s, m
         else:
             if i == 0:
                 FF_path = scene_path / 'FF'
@@ -102,9 +106,9 @@ def caribu(scene_path, bands=None, direct_only=True, toric=False, mixed_radiosit
                 more_args += ['-t', str(FF_path),
                               '-w', 'scene.FF']
             if mixed_radiosity < 0:
-                res[band] = lcal.radiosity(scene_path, band=band, more_args=more_args, verbose=verbose)
+                res[band] = lcal.radiosity(scene_path, band=band, soil=soil, more_args=more_args, verbose=verbose)
             else:
-                res[band] = lcal.mixed_radiosity(scene_path, band=band, sd=mixed_radiosity, more_args=more_args, verbose=verbose)
+                res[band] = lcal.mixed_radiosity(scene_path, band=band, soil=soil, sd=mixed_radiosity, more_args=more_args, verbose=verbose)
 
         if outdir:
             shutil.copy(scene_path / 'Etri.vec0', outdir / f'{band}.vec0')

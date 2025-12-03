@@ -29,7 +29,7 @@ from openalea.caribu.caribu import raycasting, radiosity, mixed_radiosity, \
 from openalea.caribu.display import jet_colors, generate_scene, nan_to_zero
 from openalea.caribu.caribu_shell import vperiodise, Path
 from functools import reduce
-from openalea.caribu.caributriangleset import AbstractCaribuTriangleSet, CaribuTriangleSet 
+from openalea.caribu.caribu_triangle_set import AbstractCaribuTriangleSet, CaribuTriangleSet
 
 import tempfile
 
