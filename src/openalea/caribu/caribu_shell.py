@@ -26,7 +26,7 @@ import tempfile
 import platform
 from pathlib import Path
 import shutil
-import openalea.libcaribu.tools as lc
+import openalea.libcaribu.commands as lc
 import openalea.libcaribu.io as lcio
 
 
@@ -356,6 +356,7 @@ class Caribu:
         label = []
         area = []
         Eabs = []
+        Ei = []
         Ei_sup = []
         Ei_inf = []
         for line in f:
@@ -369,11 +370,12 @@ class Caribu:
             label.append(lab)
             area.append(floats[2])
             Eabs.append(floats[3])
-            Ei_sup.append(floats[4])
-            Ei_inf.append(floats[5])
+            Ei.append(floats[4])
+            Ei_sup.append(floats[5])
+            Ei_inf.append(floats[6])
 
         f.close()
-        data = {'index': idx, 'label': label, 'area': area, 'Eabs': Eabs, 'Ei_sup': Ei_sup, 'Ei_inf': Ei_inf}
+        data = {'index': idx, 'label': label, 'area': area, 'Eabs': Eabs, 'Ei': Ei, 'Ei_sup': Ei_sup, 'Ei_inf': Ei_inf}
         self.nrj[band_name] = {'doc': doc, 'data': data}
 
     def store_sensor(self, filename, band_name):
