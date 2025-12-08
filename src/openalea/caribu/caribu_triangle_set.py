@@ -18,7 +18,7 @@ class AbstractCaribuTriangleSet:
     def getZmin(self):
         pass
 
-    def __getshape__(self, shapeid):
+    def __getitem__(self, shapeid):
         """ Return all triangles of a shape """
         pass
 
@@ -131,7 +131,7 @@ class CaribuTriangleSet(AbstractCaribuTriangleSet):
     def getZmax(self):
         return self.getBoundingBox()[1][2]
 
-    def __getshape__(self, shapeid):
+    def __getitem__(self, shapeid):
         """ Return all triangles of a shape """
         return self.triangle_set[shapeid]
 
