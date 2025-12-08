@@ -18,6 +18,7 @@ import shutil
 from copy import deepcopy
 import openalea.libcaribu.algos as lcal
 import openalea.libcaribu.io as lcio
+import openalea.libcaribu.commands as lcm
 import numpy as np
 # alias for set_scene
 from openalea.libcaribu.algos import set_scene
@@ -530,7 +531,7 @@ class Caribu:
                 "-o", outscene]
         if self.my_dbg:
             print(">>> periodise() : ", ' '.join(args))
-        status = lc.run_periodise(d, args)
+        status = lcm.run_periodise(d, args)
         if (d / outscene).exists():
             self.scene = outscene
         else:
@@ -549,7 +550,7 @@ class Caribu:
                 str(self.pattern)] + wavelength
         if self.my_dbg:
             print(">>> s2v() : ", ' '.join(args))
-        status = lc.run_s2v(d, args)
+        status = lcm.run_s2v(d, args)
         # Raise an exception if s2v crashed...
         leafarea = d / 'leafarea'
         if not leafarea.exists():
@@ -567,7 +568,7 @@ class Caribu:
 
         if self.my_dbg:
             print(">>> mcsail(): ", ' '.join(args))
-        status = lc.run_mcsail(d, args)
+        status = lcm.run_mcsail(d, args)
 
         mcsailenv = d / 'mlsail.env'
         if mcsailenv.exists():
@@ -616,7 +617,7 @@ class Caribu:
 
         if self.my_dbg:
             print(">>> Canestrad(): %s" % ' '.join(args))
-        status = lc.run_canestrad(d, args)
+        status = lcm.run_canestrad(d, args)
 
         ficres = d / 'Etri.vec0'
         ficsens = d / 'solem.dat'
