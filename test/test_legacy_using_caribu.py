@@ -25,9 +25,9 @@ def caribu_test_scene(tmp_path_factory):
 def test_projection_non_toric_scene(caribu_test_scene):
     out = caribu(caribu_test_scene, direct_only=True, toric=False)
     assert 'par' in out
-    res, _ = out['par']
-    expected = lcio.read_results(data_dir / 'projection_non_toric_scene.vec0')
-    for field in res:
+    res, _, _ = out['par']
+    expected, _ = lcio.read_results(data_dir / 'projection_non_toric_scene.vec0')
+    for field in res.keys():
         assert_array_equal(res[field], expected[field])
 
 
@@ -46,8 +46,8 @@ def test_sensor_non_toric_scene(caribu_test_scene):
 def test_projection_toric_scene(caribu_test_scene):
     out = caribu(caribu_test_scene, direct_only=True, toric=True)
     assert 'par' in out
-    res, _ = out['par']
-    expected = lcio.read_results(data_dir / 'projection_toric_scene.vec0')
+    res, _, _ = out['par']
+    expected, _ = lcio.read_results(data_dir / 'projection_toric_scene.vec0')
     for field in res:
         assert_array_equal(res[field], expected[field])
 
@@ -55,8 +55,8 @@ def test_projection_toric_scene(caribu_test_scene):
 def test_radiosity_non_toric_scene(caribu_test_scene):
     out = caribu(caribu_test_scene, direct_only=False, mixed_radiosity=-1)
     assert 'par' in out
-    res, _ = out['par']
-    expected = lcio.read_results(data_dir / 'radiosity_non_toric_scene.vec0')
+    res, _, _ = out['par']
+    expected, _ = lcio.read_results(data_dir / 'radiosity_non_toric_scene.vec0')
     for field in res:
         assert_array_equal(res[field], expected[field])
 
