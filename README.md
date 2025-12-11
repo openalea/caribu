@@ -56,7 +56,6 @@ mamba env create -n caribu -c openalea3 -c conda-forge openalea.caribu
 ```bash
 git clone 'https://github.com/openalea/caribu.git'
 cd caribu
-# unix (conda required as mamba does not instantiate env vars)
 mamba env create -n caribu_dev -f ./conda/environment.yml
 ```
 
