@@ -76,7 +76,7 @@ test-dependencies = [
   "openalea.mtg"
 ]
 optional-dependencies = [
-  "openaalea.widgets"
+  "openalea.widgets"
 ]
 
 
