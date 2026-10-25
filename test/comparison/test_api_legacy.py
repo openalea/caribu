@@ -200,3 +200,13 @@ def test_horizontal_beam(domain):
             port = api.raycasting([triangle], [api.GREEN_LEAF_PAR], [light], domain)
             legacy = legacy_caribu.raycasting([triangle], [legacy_caribu.green_leaf_PAR], [light], domain)
             assert same(port, legacy)
+
+
+@pytest.mark.parametrize("directions, domain, by_triangle", [(1, None, False), (16, None, True),
+                                                            (46, (-2.6, -3.3, 0.2, 0.3), False)])
+def test_star(directions, domain, by_triangle):
+    from openalea.caribu.legacy.caribu_star import caribu_star
+    scene, _ = few_plants(1500)
+    port = api.star(scene, directions, by_triangle, domain)
+    legacy = caribu_star(scene, directions, by_triangle, domain)
+    assert same(port, legacy)

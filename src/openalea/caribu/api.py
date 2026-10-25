@@ -16,7 +16,7 @@ import os
 
 import numpy as np
 
-from . import direct, formats, nested, periodic
+from . import direct, formats, lights, nested, periodic
 from . import radiosity as radiosity_module
 from .labels import encode_labels
 
@@ -560,3 +560,43 @@ def _convert(output, conv_unit) -> dict:
             sensors[name] = [energy / meter_square for energy in sensors[name]]
         output["sensors"] = sensors
     return output
+
+
+# --- STAR (caribu_star) ---
+
+def star(scene_geometry, directions=1, output_by_triangle=False, domain=None, conv_unit=0.01):
+    """caribu_star: each element's exposure under a turtle sky of *directions* (1, 16, 46) of unit energy, its
+    silhouette to total area ratio (STAR, the direct light's Ei) and its exposed area (STAR × area, m²; per
+    triangle with *output_by_triangle*): (star, exposed_area). *conv_unit*: metres per scene unit."""
+    sources = lights.diffuse_source(directions)
+    scene = CaribuScene(scene=scene_geometry, light=sources, pattern=domain)
+    scene.conv_unit = conv_unit
+    raw, aggregated = scene.run(direct=True, infinite=domain is not None, simplify=True)
+    if output_by_triangle:
+        values, areas = raw["Ei"], raw["area"]
+        exposed = {key: [values[key][i] * areas[key][i] for i in range(len(areas[key]))] for key in areas}
+    else:
+        values, areas = aggregated["Ei"], aggregated["area"]
+        exposed = {key: values[key] * areas[key] for key in areas}
+    return values, exposed
+
+
+def _mtg_star(g, name, directions, output_by_triangle, domain, conv_unit):
+    values, exposed = star(g.property("geometry"), directions, output_by_triangle, domain, conv_unit)
+    for property_name, property_values in ((name + "_exposed_area", exposed), (name + "_star", values)):
+        if property_name not in g.properties():
+            g.add_property(property_name)
+        g.property(property_name).update(property_values)
+    return g
+
+
+def rain_star(g, output_by_triangle=False, domain=None, conv_unit=0.01, dt=1):
+    """caribu_rain_star: an MTG's rain exposure (vertical, one direction) in its properties rain_star and
+    rain_exposed_area."""
+    return _mtg_star(g, "rain", 1, output_by_triangle, domain, conv_unit)
+
+
+def light_star(g, light_sectors=16, output_by_triangle=False, domain=None, conv_unit=0.01, trigger=1):
+    """caribu_light_star: an MTG's light exposure (a turtle of *light_sectors*) in its properties light_star and
+    light_exposed_area."""
+    return _mtg_star(g, "light", light_sectors, output_by_triangle, domain, conv_unit)
