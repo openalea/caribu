@@ -166,3 +166,26 @@ def test_scene_pure_sail(bands):
     legacy = legacy_scene.run(direct=False, infinite=True, d_sphere=0, layers=6, split_face=True)
     assert same(port, legacy)
     assert same(port_scene.soil_aggregated, legacy_scene.soil_aggregated)
+
+
+@pytest.mark.parametrize("diameter", [0.3, 1.2])
+def test_mixed_radiosity_function_nested(diameter):
+    scene, material = few_plants(3000)
+    triangles = [t for values in scene.values() for t in values]
+    materials = [(0.06, 0.07) if k % 3 else (0.1, 0.05, 0.08, 0.02) if k % 5 else (0.2,) for k in range(len(triangles))]
+    domain, lights = (-0.6, -1.4, 0.5, 0.6), SKY[:6]
+    port = api.mixed_radiosity(triangles, materials, lights, domain, 0.2, diameter, 5, 1.1)
+    legacy = legacy_caribu.mixed_radiosity(triangles, materials, lights, domain, 0.2, diameter, 5, 1.1)
+    assert same(port, legacy)
+
+
+def test_scene_nested_bands():
+    """Two bands in cm (the second from the first's form factors and far field weights), the default sphere."""
+    scene, material = few_plants(3000)
+    scene = {key: [[tuple(100 * c for c in point) for point in t] for t in values] for key, values in scene.items()}
+    opt = {"par": material, "nir": {key: ((0.3,) if key.startswith("stem") else (0.4, 0.45)) for key in material}}
+    arguments = dict(scene=scene, light=SKY[:5], pattern=(-60., -140., 50., 60.), opt=opt,
+                     soil_reflectance={"par": 0.15, "nir": 0.3}, scene_unit="cm")
+    port = api.CaribuScene(**arguments).run(direct=False, infinite=True, layers=6, split_face=True)
+    legacy = LegacyScene(**arguments).run(direct=False, infinite=True, layers=6, split_face=True)
+    assert same(port, legacy)

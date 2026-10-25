@@ -1,6 +1,6 @@
 """The legacy's own tests run on the port: each legacy test module loaded with its algorithms (raycasting,
-x_raycasting, radiosity, x_radiosity, CaribuScene) rebound to the port's, its tests run when every algorithm they
-call is ported."""
+x_raycasting, radiosity, x_radiosity, mixed_radiosity, x_mixed_radiosity, CaribuScene) rebound to the port's, its
+tests run when every algorithm they call is ported."""
 import importlib.util
 import sys
 from pathlib import Path
@@ -11,12 +11,12 @@ from openalea.caribu import api
 
 LEGACY_TESTS = Path(__file__).parent / "legacy"
 PORTED = {"raycasting": api.raycasting, "x_raycasting": api.x_raycasting, "radiosity": api.radiosity,
-          "x_radiosity": api.x_radiosity, "CaribuScene": api.CaribuScene,
+          "x_radiosity": api.x_radiosity, "mixed_radiosity": api.mixed_radiosity,
+          "x_mixed_radiosity": api.x_mixed_radiosity, "CaribuScene": api.CaribuScene,
           "green_leaf_PAR": api.GREEN_LEAF_PAR}
-NOT_YET = {"mixed_radiosity", "x_mixed_radiosity", "light_sources"}
-# legacy tests of what stays in the legacy (its display), and those running scattering through CaribuScene.run
+NOT_YET = {"light_sources"}
+# legacy tests of what stays in the legacy (its display)
 LEFT = {("test_caribuscene", "test_display")}
-SCATTERING = {("test_caribuscene", "test_run_monochrome"), ("test_caribuscene", "test_run_polychrome")}
 MODULES = ["test_null_triangle", "test_simple_triangle", "test_triangle_faces", "test_material", "test_domain",
            "test_caribu", "test_multi_band", "test_caribuscene", "test_caribu_sensors"]
 
@@ -47,8 +47,6 @@ def _cases():
                 reason = "uses " + ", ".join(sorted(calls & NOT_YET)) + ", not yet ported"
             elif (name, test_name) in LEFT:
                 reason = "stays in the legacy"
-            elif (name, test_name) in SCATTERING:
-                reason = "runs scattering, not yet ported"
             yield pytest.param(module, test_name, id=f"{name}::{test_name}",
                                marks=[pytest.mark.skip(reason=reason)] if reason else [])
 

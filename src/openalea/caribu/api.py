@@ -1,8 +1,8 @@
 """
 The legacy's entry points over the port: `raycasting`, `x_raycasting` (direct light), `radiosity` and `x_radiosity`
 (every order of scattering in the whole scene), `mixed_radiosity` and `x_mixed_radiosity` (scattering in an
-infinite canopy: the far field of layers; the near field's sphere null, pure SAIL), caribu.py's, on lists of
-triangles and materials, and `CaribuScene` (its scenes by primitive, bands, soil, units, aggregation). Their outputs are the
+infinite canopy: radiosity within a sphere around each triangle, the far field of layers beyond; a null sphere
+for pure SAIL), caribu.py's, on lists of triangles and materials, and `CaribuScene` (its scenes by primitive, bands, soil, units, aggregation). Their outputs are the
 legacy's: per triangle `index`, `label`, `area`, `Eabs`, `Ei`, `Ei_sup`, `Ei_inf` (and `sensors`).
 
 A material is a 1-tuple (ρ, opaque), a 2-tuple (ρ, τ, a symmetric leaf) or a 4-tuple (ρ_sup, τ_sup, ρ_inf, τ_inf).
@@ -193,8 +193,8 @@ def x_radiosity(triangles, x_materials, lights=(DEFAULT_LIGHT,), screen_size=153
 def mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, diameter, layers, height,
                     screen_size=1536, sensors=None, debug=False, precision="legacy", workers=None) -> dict:
     """Scattering in the infinite canopy repeating *domain* (caribu.mixed_radiosity): the far field in *layers*
-    up to *height* (s2v, mcsail), the triangles within a sphere of *diameter* in radiosity (0: none, pure SAIL;
-    > 0 not yet ported); raycasting's outputs, the sensors' "Ei0" and "Ei" (the legacy refuses sensors here)."""
+    up to *height* (s2v, mcsail), the triangles within a sphere of *diameter* in radiosity (0: none, pure SAIL);
+    raycasting's outputs, the sensors' "Ei0" and "Ei" (the legacy refuses sensors here)."""
     if len(triangles) <= 1:
         raise ValueError("Radiosity method needs at least two primitives")
     if len(triangles) != len(materials):
@@ -208,16 +208,21 @@ def mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, diam
 
 def x_mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, diameter, layers, height,
                       sensors=None, screen_size=1536, debug=False, precision="legacy", workers=None) -> dict:
-    """mixed_radiosity for several bands, {band: materials}, *soil_reflectance* {band: ρ}: {band: outputs}."""
+    """mixed_radiosity for several bands, {band: materials}, *soil_reflectance* {band: ρ}: {band: outputs}; the
+    near field's form factors and the far field's weights computed in the first band, reused in the others (as
+    caribu's `-f`, `-w`)."""
     if len(triangles) <= 1:
         raise ValueError("Radiosity method needs at least two primitives")
     x_species, labels = x_species_and_labels(materials)
     points = _as_array(triangles)
     sensor_points = None if sensors is None else _as_array(sensors)
-    out = {}
+    out, reused = {}, None
     for band, band_materials in materials.items():
         result = nested.run(points, labels, list(lights), optics(x_species[band], soil_reflectance[band]), domain,
-                            layers, height, diameter, screen_size, sensor_points, workers, precision)
+                            layers, height, diameter, screen_size, sensor_points, workers, precision,
+                            weights=reused)
+        if diameter != 0 and reused is None:
+            reused = (result["counts"], result["weights"])
         out[band] = _radiosity_outputs(labels, result, band_materials, sensors, precision)
     return out
 
@@ -430,7 +435,7 @@ class CaribuScene:
         *direct*: first order only; *infinite*: the pattern repeated; *simplify*: no band level for a single band.
         *direct* False: radiosity in the whole scene (not *infinite*), or with *infinite* the far field in
         *layers* up to *height* (the scene's top by default) and radiosity within a sphere of diameter *d_sphere*
-        (0: pure SAIL; > 0, nested radiosity, not yet ported)."""
+        (0: pure SAIL)."""
         if not direct and infinite:
             if d_sphere < 0:
                 raise ValueError("calling radiosity should be done using direct=False and infinite=False")

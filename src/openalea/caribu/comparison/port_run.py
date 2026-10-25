@@ -45,10 +45,10 @@ def radiosity(vertices, labels, lights, materials, soil_reflectance=-1, size=153
 
 
 def layered(vertices, labels, lights, materials, pattern, layers, height, soil_reflectance=-1, size=1536,
-            sensors=None) -> dict:
-    """nested.run with a null sphere (pure SAIL), as legacy_run.layered's texts."""
+            sensors=None, diameter=0, bias=True) -> dict:
+    """nested.run, as legacy_run.layered's texts (E0.dat and B.dat too)."""
     result = nested.run(vertices, labels, lights, optics(materials, soil_reflectance), pattern, layers, height,
-                        size=size, sensors=sensors)
+                        diameter, size=size, sensors=sensors, bias=bias)
     structure = result["structure"]
     outputs = {"leafarea": sail.leafarea_string(structure), "band.spec": sail.spec_string(structure),
                "cropchar": sail.cropchar_string(structure),
@@ -56,6 +56,9 @@ def layered(vertices, labels, lights, materials, pattern, layers, height, soil_r
                "Etri.vec0": budgets.etri_rows(labels, result)}
     if sensors is not None:
         outputs["solem.dat"] = budgets.solem_rows(result["sensors"])
+    first_order = list(result["first_order"]) + ([] if sensors is None else list(result["sensors"]["first_order"]))
+    outputs["E0.dat"] = "".join("%.10f \n " % value for value in first_order)
+    outputs["B.dat"] = "".join("%.10f \n " % value for value in result["radiosity"])
     return outputs
 
 

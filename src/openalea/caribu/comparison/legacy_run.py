@@ -33,11 +33,13 @@ def run(steps, files, outputs=("Etri.vec0",)) -> dict:
     temporary directory; *steps* [(executable name, arguments)]."""
     with tempfile.TemporaryDirectory() as directory:
         for name, text in files.items():
+            Path(directory, name).parent.mkdir(parents=True, exist_ok=True)
             Path(directory, name).write_text(text)
         for name, arguments in steps:
             command = shutil.which(name) if name == "cp" else executable(name)
             subprocess.run([command, *arguments], cwd=directory, capture_output=True, check=True)
-        return {name: Path(directory, name).read_text() for name in outputs if Path(directory, name).exists()}
+        return {name: (Path(directory, name).read_bytes() if name.startswith("hd/") else
+                       Path(directory, name).read_text()) for name in outputs if Path(directory, name).exists()}
 
 
 def body(text) -> str:
@@ -83,11 +85,12 @@ def radiosity(vertices, labels, lights, materials, soil_reflectance=-1, size=153
 
 
 def layered(vertices, labels, lights, materials, pattern, layers, height, soil_reflectance=-1, size=1536,
-            sensors=None, steps=("canestrad",)) -> dict:
-    """The legacy's pure-SAIL chain (mixed radiosity with a null sphere): periodise, s2v (the layers' structure),
-    mcsail (the fluxes' profile), canestrad -8 -d 0 (direct light plus the far field): {file: text} of their
-    outputs (leafarea, band.spec, cropchar, mlsail.env, Etri.vec0, solem.dat). *steps*: stop after s2v ("s2v"),
-    mcsail ("mcsail") or canestrad."""
+            sensors=None, steps=("canestrad",), diameter=0, bias=True) -> dict:
+    """The legacy's mixed radiosity: periodise, s2v (the layers' structure), mcsail (the fluxes' profile),
+    canestrad -8 -d *diameter* (direct light, the far field and, with a diameter > 0, radiosity in the sphere;
+    `-B` without *bias*): {file: text} of their outputs (leafarea, band.spec, cropchar, mlsail.env, Etri.vec0,
+    solem.dat; with a diameter > 0, E0.dat, B.dat and the matrix files hd/diag_ff, hd/nz_ff, hd/Bfar_ff as bytes).
+    *steps*: stop after s2v ("s2v"), mcsail ("mcsail") or canestrad."""
     files = {"scene.can": formats.can_string(vertices, labels), "scene.light": formats.light_string(lights),
              "band.opt": formats.opt_string(materials, soil_reflectance),
              "pattern.8": formats.pattern_string(pattern)}
@@ -96,15 +99,20 @@ def layered(vertices, labels, lights, materials, pattern, layers, height, soil_r
     if "s2v" not in steps:
         chain += [("cp", ["band.spec", "spectral"]), ("mcsail", ["scene.light"]),
                   ("cp", ["mlsail.env", "band.env"])]
-    arguments = ["-M", "scene_8.can", "-l", "scene.light", "-p", "band.opt", "-A", "-8", "pattern.8", "-d", "0",
-                 "-e", "band.env", "-L", str(size)]
+    arguments = ["-M", "scene_8.can", "-l", "scene.light", "-p", "band.opt", "-A", "-8", "pattern.8", "-d",
+                 str(diameter), "-e", "band.env", "-L", str(size)]
+    if diameter != 0:
+        files["hd/.keep"] = ""
+        arguments += ["-f", "ff", "-t", "hd/"]
+    if not bias:
+        arguments.append("-B")
     if sensors is not None:
         files["sensors.can"] = formats.sensor_string(sensors)
         arguments += ["-C", "sensors.can"]
     if "canestrad" in steps:
         chain.append(("canestrad", arguments))
     outputs = run(chain, files, ("scene_8.can", "leafarea", "band.spec", "cropchar", "mlsail.env", "Etri.vec0",
-                                 "solem.dat"))
+                                 "solem.dat", "E0.dat", "B.dat", "hd/diag_ff", "hd/nz_ff", "hd/Bfar_ff"))
     if "Etri.vec0" in outputs:
         outputs["Etri.vec0"] = body(outputs["Etri.vec0"])
     return outputs
