@@ -82,6 +82,39 @@ def parse_opt(text) -> tuple:
     return n, soil, species
 
 
+# --- PlantGL ---
+
+def plantgl_triangles(geometry, tesselator=None) -> list:
+    """The triangles of a PlantGL geometry or shape, tesselated (PlantGL imported only here)."""
+    import openalea.plantgl.all as pgl
+    tesselator = pgl.Tesselator() if tesselator is None else tesselator
+    geometry.apply(tesselator)
+    mesh = tesselator.triangulation
+    if not mesh:
+        return []
+    points = list(map(tuple, mesh.pointList))
+    return [(points[index[0]], points[index[1]], points[index[2]]) for index in mesh.indexList]
+
+
+def plantgl_scene(scene) -> dict:
+    """{shape id: [triangles]} of a PlantGL scene (shapes without triangles left out)."""
+    import openalea.plantgl.all as pgl
+    tesselator = pgl.Tesselator()
+    triangles = {}
+    for key, shapes in scene.todict().items():
+        found = [triangle for shape in shapes for triangle in plantgl_triangles(shape, tesselator)]
+        if found:
+            triangles[key] = found
+    return triangles
+
+
+def mtg_scene(g, property_name="geometry") -> dict:
+    """{vertex: [triangles]} of an MTG's PlantGL geometries."""
+    import openalea.plantgl.all as pgl
+    tesselator = pgl.Tesselator()
+    return {vertex: plantgl_triangles(geometry, tesselator) for vertex, geometry in g.property(property_name).items()}
+
+
 # --- Writers (the legacy's text) ---
 
 def can_string(vertices, labels) -> str:

@@ -108,7 +108,7 @@ def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=
     reflectance, transmittance = face_optics(labels, optics)
     surfaces = legacy_surfaces(points)
     if bounds is None:
-        flat = points.reshape(-1, 3)
+        flat = points.reshape(-1, 3) if len(points) else np.zeros((1, 3), dtype=F32)
         bounds = flat.min(axis=0).astype(F32), flat.max(axis=0).astype(F32)
         if pattern is not None:
             low, high = periodic.pattern_bounds(pattern)
@@ -176,6 +176,8 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
         accepted &= inside
         flags = flags[accepted]
     kept = labels[accepted]
+    if not accepted.any():
+        lights = []  # nothing to light: every row rejected
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     radiosity, surfaces, sensor_radiosity, sensor_surfaces = first_order(points[accepted], kept, lights, optics, size,
                                                                          sensors=sensor_points, workers=workers,
