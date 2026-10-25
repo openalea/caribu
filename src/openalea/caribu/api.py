@@ -1,6 +1,6 @@
 """
-The legacy's entry points over the port: `raycasting` and `x_raycasting` (caribu.py's) on lists of triangles and
-materials, and `CaribuScene` (its scenes by primitive, bands, soil, units, aggregation). Their outputs are the
+The legacy's entry points over the port: `raycasting`, `x_raycasting` (direct light), `radiosity` and `x_radiosity`
+(every order of scattering in the whole scene), caribu.py's, on lists of triangles and materials, and `CaribuScene` (its scenes by primitive, bands, soil, units, aggregation). Their outputs are the
 legacy's: per triangle `index`, `label`, `area`, `Eabs`, `Ei`, `Ei_sup`, `Ei_inf` (and `sensors`).
 
 A material is a 1-tuple (ρ, opaque), a 2-tuple (ρ, τ, a symmetric leaf) or a 4-tuple (ρ_sup, τ_sup, ρ_inf, τ_inf).
@@ -15,6 +15,7 @@ import os
 import numpy as np
 
 from . import direct, formats, periodic
+from . import radiosity as radiosity_module
 from .labels import encode_labels
 
 GREEN_LEAF_PAR = (0.06, 0.07)
@@ -38,6 +39,21 @@ def species_and_labels(materials):
     numbers = np.array([number_of[material] for material in materials], dtype=np.int64)
     leaf = np.array([len(material) > 1 for material in materials], dtype=np.int64)
     return species, encode_labels(numbers, leaf=leaf, plant=1)
+
+
+def x_species_and_labels(x_materials):
+    """species_and_labels for several bands, {band: materials}: ({band: {species: material}}, labels), a species
+    per distinct tuple of the bands' materials (caribu.py's x_opt_strings_and_labels), a leaf when its first band's
+    material is translucent."""
+    bands = list(x_materials)
+    combined = list(zip(*[x_materials[band] for band in bands]))
+    species = {number + 1: materials for number, materials in enumerate(list(set(combined)))}
+    number_of = {materials: number for number, materials in species.items()}
+    numbers = np.array([number_of[materials] for materials in combined], dtype=np.int64)
+    leaf = np.array([len(materials[0]) > 1 for materials in combined], dtype=np.int64)
+    x_species = {band: {number: materials[index] for number, materials in species.items()}
+                 for index, band in enumerate(bands)}
+    return x_species, encode_labels(numbers, leaf=leaf, plant=1)
 
 
 def optics(species, soil_reflectance=-1) -> tuple:
@@ -83,11 +99,12 @@ def _outputs(labels, result, precision) -> dict:
 def _sensor_outputs(sensors, precision) -> dict:
     """The legacy's sensor columns (sensor_id, Ei0 the first order, Ei the total, area)."""
     irradiance, area = sensors["Ei"], sensors["area"]
+    first = sensors.get("Ei0", irradiance)
     identifiers = [float(number + 1) for number in range(len(area))]
     if precision == "legacy":
-        first = _printed(irradiance, "%.10f")
-        return {"sensor_id": identifiers, "Ei0": first, "Ei": list(first), "area": _printed(area, "%.6f")}
-    return {"sensor_id": identifiers, "Ei0": list(map(float, irradiance)), "Ei": list(map(float, irradiance)),
+        return {"sensor_id": identifiers, "Ei0": _printed(first, "%.10f"), "Ei": _printed(irradiance, "%.10f"),
+                "area": _printed(area, "%.6f")}
+    return {"sensor_id": identifiers, "Ei0": list(map(float, first)), "Ei": list(map(float, irradiance)),
             "area": list(map(float, area))}
 
 
@@ -125,6 +142,50 @@ def x_raycasting(triangles, x_materials, lights=(DEFAULT_LIGHT,), domain=None, s
         x_out[other]["Eabs"] = [absorptance(material) * incident
                                 for material, incident in zip(x_materials[other], out["Ei"])]
     return x_out
+
+
+# --- Radiosity ---
+
+def _radiosity_outputs(labels, result, materials, sensors, precision) -> dict:
+    columns = _outputs(labels, result, precision)
+    columns["Ei"] = get_incident(columns["Eabs"], materials)
+    out = {name: columns[name] for name in ("index", "label", "area", "Eabs", "Ei", "Ei_sup", "Ei_inf")}
+    if sensors is not None:
+        out["sensors"] = _sensor_outputs(result["sensors"], precision)
+    return out
+
+
+def radiosity(triangles, materials, lights=(DEFAULT_LIGHT,), screen_size=1536, sensors=None, debug=False,
+              precision="legacy", workers=None) -> dict:
+    """Every order of scattering between triangles of *materials* (caribu.radiosity, the whole scene in the near
+    field): raycasting's outputs, the sensors' "Ei0" their first order and "Ei" their total."""
+    if len(triangles) <= 1:
+        raise ValueError("Radiosity method needs at least two primitives")
+    if len(triangles) != len(materials):
+        raise ValueError("The number of triangles and materials should match")
+    species, labels = species_and_labels(materials)
+    sensor_points = None if sensors is None else _as_array(sensors)
+    result = radiosity_module.run(_as_array(triangles), labels, list(lights), optics(species), screen_size,
+                                  sensor_points, workers)
+    return _radiosity_outputs(labels, result, materials, sensors, precision)
+
+
+def x_radiosity(triangles, x_materials, lights=(DEFAULT_LIGHT,), screen_size=1536, sensors=None, debug=False,
+                precision="legacy", workers=None) -> dict:
+    """radiosity for several bands, {band: materials}: {band: outputs}; the form factors computed once (caribu's
+    first band computes them, the others read them)."""
+    if len(triangles) <= 1:
+        raise ValueError("Radiosity method needs at least two primitives")
+    x_species, labels = x_species_and_labels(x_materials)
+    points = _as_array(triangles)
+    sensor_points = None if sensors is None else _as_array(sensors)
+    out, counts = {}, None
+    for band, materials in x_materials.items():
+        result = radiosity_module.run(points, labels, list(lights), optics(x_species[band]), screen_size,
+                                      sensor_points, workers, counts=counts)
+        counts = result["counts"]
+        out[band] = _radiosity_outputs(labels, result, materials, sensors, precision)
+    return out
 
 
 def _as_array(triangles) -> np.ndarray:
@@ -333,10 +394,10 @@ class CaribuScene:
         """Light on the scene: (raw, aggregated), each {band: {name: {pid: values}}}, names Eabs, Ei, area (and
         Ei_inf, Ei_sup with *split_face*; "sensors" {name: {sensor id: values}} with *sensors* {id: [triangles]}).
         *direct*: first order only; *infinite*: the pattern repeated; *simplify*: no band level for a single band.
-        Scattering (direct=False: radiosity, nested radiosity with *d_sphere*, *layers*, *height*) is not yet
-        ported."""
-        if not direct:
-            raise NotImplementedError("scattering (radiosity, nested radiosity) is not yet ported")
+        *direct* False: radiosity in the whole scene (not *infinite*); nested radiosity (*infinite*, *d_sphere*,
+        *layers*, *height*) is not yet ported."""
+        if not direct and infinite:
+            raise NotImplementedError("nested radiosity (direct=False, infinite=True) is not yet ported")
         if infinite and self.pattern is None:
             raise ValueError("infinite canopy illumination needs a pattern to be defined")
         raw, aggregated = {}, {}
@@ -362,7 +423,13 @@ class CaribuScene:
             sensor_groups = [key for key, values in sensors.items() for _ in values]
             sensors = [triangle for values in sensors.values() for triangle in values]
         domain = self.pattern if infinite else None
-        if len(bands) == 1:
+        if not direct and len(bands) == 1:
+            out = {bands[0]: radiosity(triangles, materials[bands[0]], lights, screen_size, sensors,
+                                       precision=self.precision, workers=workers)}
+        elif not direct:
+            out = x_radiosity(triangles, materials, lights, screen_size, sensors, precision=self.precision,
+                              workers=workers)
+        elif len(bands) == 1:
             out = {bands[0]: raycasting(triangles, materials[bands[0]], lights, domain, screen_size, sensors,
                                         precision=self.precision, workers=workers)}
         else:

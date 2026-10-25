@@ -3,8 +3,10 @@ The port on a scene given as legacy_run takes it, its outputs as canestrad's tex
 
     etri = direct_etri(vertices, labels, lights, materials)       the port's Etri.vec0 body
     outputs = direct(..., sensors=sensors)                         and its solem.dat
+    outputs = radiosity(vertices, labels, lights, materials)       as legacy_run.radiosity
 """
 from .. import budgets, formats
+from .. import radiosity as radiosity_module
 from .. import direct as direct_module
 
 
@@ -20,6 +22,21 @@ def direct(vertices, labels, lights, materials, soil_reflectance=-1, size=1536, 
     result = direct_module.run(vertices, labels, lights, optics(materials, soil_reflectance), size, sensors,
                                pattern=pattern)
     outputs = {"Etri.vec0": budgets.etri_rows(labels, result)}
+    if sensors is not None:
+        outputs["solem.dat"] = budgets.solem_rows(result["sensors"])
+    return outputs
+
+
+def radiosity(vertices, labels, lights, materials, soil_reflectance=-1, size=1536, sensors=None) -> dict:
+    """radiosity.run on the triangles, as legacy_run.radiosity's texts (E0.dat and B.dat as canestrad prints
+    them)."""
+    result = radiosity_module.run(vertices, labels, lights, optics(materials, soil_reflectance), size, sensors)
+    first_order = result["first_order"]
+    if sensors is not None:
+        first_order = list(first_order) + list(result["sensors"]["Ei0"])
+    outputs = {"Etri.vec0": budgets.etri_rows(labels, result),
+               "E0.dat": "".join("%.10f \n " % value for value in first_order),
+               "B.dat": "".join("%.10f \n " % value for value in result["radiosity"])}
     if sensors is not None:
         outputs["solem.dat"] = budgets.solem_rows(result["sensors"])
     return outputs

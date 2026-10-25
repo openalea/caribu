@@ -1,5 +1,6 @@
 """The legacy's own tests run on the port: each legacy test module loaded with its algorithms (raycasting,
-x_raycasting, CaribuScene) rebound to the port's, its tests run when every algorithm they call is ported."""
+x_raycasting, radiosity, x_radiosity, CaribuScene) rebound to the port's, its tests run when every algorithm they
+call is ported."""
 import importlib.util
 import sys
 from pathlib import Path
@@ -9,9 +10,10 @@ import pytest
 from openalea.caribu import api
 
 LEGACY_TESTS = Path(__file__).parent / "legacy"
-PORTED = {"raycasting": api.raycasting, "x_raycasting": api.x_raycasting, "CaribuScene": api.CaribuScene,
+PORTED = {"raycasting": api.raycasting, "x_raycasting": api.x_raycasting, "radiosity": api.radiosity,
+          "x_radiosity": api.x_radiosity, "CaribuScene": api.CaribuScene,
           "green_leaf_PAR": api.GREEN_LEAF_PAR}
-NOT_YET = {"radiosity", "mixed_radiosity", "x_radiosity", "x_mixed_radiosity", "light_sources"}
+NOT_YET = {"mixed_radiosity", "x_mixed_radiosity", "light_sources"}
 # legacy tests of what stays in the legacy (its display), and those running scattering through CaribuScene.run
 LEFT = {("test_caribuscene", "test_display")}
 SCATTERING = {("test_caribuscene", "test_run_monochrome"), ("test_caribuscene", "test_run_polychrome")}

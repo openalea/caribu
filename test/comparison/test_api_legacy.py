@@ -100,3 +100,41 @@ def test_can_and_opt_files():
     port = api.CaribuScene(**arguments).run(infinite=True)
     legacy = LegacyScene(**arguments).run(infinite=True)
     assert same(port, legacy)
+
+
+def few_plants(count=2500):
+    """plants() on the scene's first *count* triangles (radiosity's form factors grow as their square)."""
+    scene = formats.read_can(data_path("f331s1_100plantes.can"))
+    triangles = [triangle for values in scene.values() for triangle in values][:count]
+    by_plant = {}
+    for index, triangle in enumerate(triangles):
+        by_plant.setdefault("plant%d" % (index % 7) if index % 11 else "stem%d" % (index % 3), []).append(triangle)
+    material = {key: ((0.13,) if key.startswith("stem") else (0.06, 0.07)) for key in by_plant}
+    return by_plant, material
+
+
+def test_radiosity_function():
+    scene, material = few_plants()
+    triangles = [t for values in scene.values() for t in values]
+    materials = [(0.06, 0.07) if k % 3 else (0.1, 0.05, 0.08, 0.02) if k % 5 else (0.2,) for k in range(len(triangles))]
+    sensors = [[(-0.3, -0.5, 0.4), (0.4, -0.5, 0.4), (-0.3, 0.2, 0.4)]]
+    lights = SKY[:4]
+    port = api.radiosity(triangles, materials, lights, screen_size=512, sensors=sensors)
+    legacy = legacy_caribu.radiosity(triangles, materials, lights, screen_size=512, sensors=sensors)
+    assert same(port, legacy)
+    with pytest.raises(ValueError):
+        api.radiosity(triangles[:1], materials[:1])
+
+
+def test_scene_radiosity_bands_soil():
+    scene, material = few_plants()
+    opt = {"par": material, "nir": {key: ((0.3,) if key.startswith("stem") else (0.4, 0.45)) for key in material}}
+    sensors = {"mid": [[(-0.3, -0.5, 0.4), (0.4, -0.5, 0.4), (-0.3, 0.2, 0.4)]]}
+    for arguments in (dict(scene=scene, light=SKY[:4], opt={"par": material}, pattern=(-0.6, -1.4, 2.1, 2.1),
+                           soil_mesh=1),
+                      dict(scene=scene, light=SKY[:4], opt=opt)):
+        port_scene, legacy_scene = api.CaribuScene(**arguments), LegacyScene(**arguments)
+        port = port_scene.run(direct=False, screen_size=512, sensors=sensors, split_face=True)
+        legacy = legacy_scene.run(direct=False, screen_size=512, sensors=sensors, split_face=True)
+        assert same(port, legacy)
+        assert same(port_scene.soil_aggregated, legacy_scene.soil_aggregated)

@@ -4,6 +4,7 @@ writes it (formats), the outputs read back as text. The reference the port is co
 
     etri = direct_etri(vertices, labels, lights, materials)       canestrad -1's Etri.vec0 body (no header)
     outputs = direct(..., sensors=sensors)                         and its solem.dat (the sensors)
+    outputs = radiosity(vertices, labels, lights, materials)       canestrad -d -1 (every order of scattering)
 """
 import os
 import shutil
@@ -59,6 +60,21 @@ def direct(vertices, labels, lights, materials, soil_reflectance=-1, size=1536, 
         files["sensors.can"] = formats.sensor_string(sensors)
         arguments += ["-C", "sensors.can"]
     outputs = run(steps + [("canestrad", arguments)], files, ("Etri.vec0", "solem.dat", "scene_8.can"))
+    outputs["Etri.vec0"] = body(outputs["Etri.vec0"])
+    return outputs
+
+
+def radiosity(vertices, labels, lights, materials, soil_reflectance=-1, size=1536, sensors=None) -> dict:
+    """canestrad -d -1 (radiosity in the whole scene, caribu's radiosity), as direct's outputs; its first order and
+    solved radiosities ("E0.dat", "B.dat", one value per face) too."""
+    files = {"scene.can": formats.can_string(vertices, labels), "scene.light": formats.light_string(lights),
+             "scene.opt": formats.opt_string(materials, soil_reflectance)}
+    arguments = ["-M", "scene.can", "-l", "scene.light", "-p", "scene.opt", "-A", "-d", "-1", "-f", "form_factors",
+                 "-L", str(size)]
+    if sensors is not None:
+        files["sensors.can"] = formats.sensor_string(sensors)
+        arguments += ["-C", "sensors.can"]
+    outputs = run([("canestrad", arguments)], files, ("Etri.vec0", "solem.dat", "E0.dat", "B.dat"))
     outputs["Etri.vec0"] = body(outputs["Etri.vec0"])
     return outputs
 

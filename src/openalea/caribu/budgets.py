@@ -75,7 +75,9 @@ def etri_rows(labels, result):
 
 
 def solem_rows(sensors) -> str:
-    """canestrad's solem.dat text of the sensors (numbered from 1): number, first-order and total irradiance (the
-    same in direct light), area."""
-    return "".join("%.0f\t %.10f\t %.10f \t%.6f\n" % (number + 1, irradiance, irradiance, area)
-                   for number, (irradiance, area) in enumerate(zip(sensors["Ei"], sensors["area"])))
+    """canestrad's solem.dat text of the sensors (numbered from 1): number, first-order and total irradiance
+    (*sensors* "Ei0" and "Ei"; the same in direct light, without "Ei0"), area."""
+    first_order = sensors.get("Ei0", sensors["Ei"])
+    return "".join("%.0f\t %.10f\t %.10f \t%.6f\n" % (number + 1, first, irradiance, area)
+                   for number, (first, irradiance, area) in enumerate(zip(first_order, sensors["Ei"],
+                                                                          sensors["area"])))
