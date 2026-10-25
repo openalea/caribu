@@ -14,12 +14,12 @@ F32 = np.float32
 
 
 def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None, resolution=52, tolerance=1e-6,
-        iterations=1000, counts=None, cache=None, prepared=None):
+        iterations=1000, counts=None, cache=None, prepared=None, device="cpu"):
     """Radiosity on the triangles: direct.run's result, its budgets from the solved radiosities; result["steps"]
     the solver's steps, result["counts"] the near field's. *resolution*: the receivers' discs, NB × NB pixels;
     *tolerance*, *iterations*: MGCR's (relative to the first residual); *counts*: a previous run's on the same
     triangles and sensors (another band), not computed again; *cache*: first_order's; *prepared*: direct.scene's
-    result."""
+    result; *device* "cuda": the near field on the GPU."""
     points, labels, accepted, _ = direct.scene(vertices, labels) if prepared is None else prepared
     kept_points, kept = points[accepted], labels[accepted]
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
@@ -39,7 +39,7 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
         sensor_normals, sensor_centres = geometry.legacy_normals(sensor_points), geometry.legacy_centres(sensor_points)
     if counts is None:
         counts = nearfield.counts(kept_points, kept, translucent, first_face, n_faces, normals, centres, radius,
-                                  sensor_points, sensor_normals, sensor_centres, resolution, workers)
+                                  sensor_points, sensor_normals, sensor_centres, resolution, workers, device=device)
     indptr, faces, values = counts
     receiver_faces = np.concatenate([first_face, n_faces + np.arange(sensor_count)]).astype(np.int64)
     receiver_translucent = np.concatenate([translucent, np.zeros(sensor_count, dtype=bool)])

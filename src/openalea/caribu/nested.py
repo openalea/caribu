@@ -32,7 +32,7 @@ def far_field_profile(points, labels, lights, optics, pattern, layers, height, p
 
 def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diameter=0., size=1536, sensors=None,
         workers=None, precision="legacy", bias=True, resolution=52, tolerance=1e-6, iterations=1000, threshold=50,
-        ratio=1., weights=None, cache=None, prepared=None):
+        ratio=1., weights=None, cache=None, prepared=None, device="cpu"):
     """Direct light and its scattering in the infinite canopy repeating *pattern* (x1, y1, x2, y2), the far field
     in *layers* up to *height*: direct.run's result, its budgets from the radiosities; result["profile"] the far
     field's fluxes, result["first_order"] B0, result["far_field"] B_far. *diameter*: the near field's sphere (0:
@@ -42,10 +42,11 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
     their distance to the sphere, hits beyond it dropped); *threshold*, *ratio*: the grid's (`grille_par`).
     *weights*: (counts, weights) of a run on the same scene in another band, the far field from them (canestrad's
     `-w`, its scaling by the last source's energy kept while *precision* is the legacy's). *cache*: first_order's;
-    *prepared*: direct.scene's result."""
+    *prepared*: direct.scene's result; *device* "cuda": the near field on the GPU."""
     if diameter != 0:
         return _nested(vertices, labels, lights, optics, pattern, layers, height, diameter, size, sensors, workers,
-                       precision, bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared)
+                       precision, bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared,
+                       device)
     points, labels, accepted, flags = direct.scene(vertices, labels, pattern) if prepared is None else prepared
     kept_points, kept = points[accepted], labels[accepted]
     profile, structure = far_field_profile(points, labels, lights, optics, pattern, layers, height, precision)
@@ -71,7 +72,7 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
 
 
 def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter, size, sensors, workers, precision,
-            bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared):
+            bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared, device):
     points, labels, accepted, flags = direct.scene(vertices, labels, pattern) if prepared is None else prepared
     kept_points, kept = points[accepted], labels[accepted]
     profile, structure = far_field_profile(points, labels, lights, optics, pattern, layers, height, precision)
@@ -101,7 +102,7 @@ def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter,
         counts, far, level_weights = nearfield.counts(
             kept_points, kept, translucent, first_face, n_faces, normals, centres, radius, sensor_points,
             sensor_normals, sensor_centres, resolution, workers, grid=cells, profile=profile, optics=receiver_optics,
-            bias=bias)
+            bias=bias, device=device)
     else:
         counts, level_weights = weights
         far = reused_far_field(level_weights, receiver_optics, receiver_translucent, profile, lights, precision)

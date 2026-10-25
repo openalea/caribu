@@ -17,11 +17,12 @@ from . import direct, nested, radiosity
 
 class Canopy:
     """A static scene: *vertices* (n, 3, 3), *labels* (n,), *pattern* (x1, y1, x2, y2) for an infinite canopy,
-    *sensors* (m, 3, 3); *size* the projections' screen (pixels), *workers* the threads."""
+    *sensors* (m, 3, 3); *size* the projections' screen (pixels), *workers* the threads; *device* "cuda": the near
+    field on the GPU (gpu.available())."""
 
-    def __init__(self, vertices, labels, pattern=None, sensors=None, size=1536, workers=None):
+    def __init__(self, vertices, labels, pattern=None, sensors=None, size=1536, workers=None, device="cpu"):
         self.vertices, self.labels, self.pattern, self.sensors = vertices, labels, pattern, sensors
-        self.size, self.workers = size, workers
+        self.size, self.workers, self.device = size, workers, device
         self.prepared = direct.scene(vertices, labels, pattern)  # the triangles as canestrad reads them
         self._lit = {}            # direction → lit areas
         self._form_factors = {}   # disc resolution → the full radiosity's counts
@@ -38,7 +39,7 @@ class Canopy:
             raise ValueError("full radiosity is for a closed scene: use nested() in an infinite canopy")
         result = radiosity.run(self.vertices, self.labels, lights, optics, self.size, self.sensors, self.workers,
                                resolution, tolerance, iterations, counts=self._form_factors.get(resolution),
-                               cache=self._lit, prepared=self.prepared)
+                               cache=self._lit, prepared=self.prepared, device=self.device)
         self._form_factors[resolution] = result["counts"]
         return result
 
@@ -51,7 +52,8 @@ class Canopy:
         reused = self._near_field.get(key) if precision == "full" else None
         result = nested.run(self.vertices, self.labels, lights, optics, self.pattern, layers, height, diameter,
                             self.size, self.sensors, self.workers, precision, bias, resolution, tolerance,
-                            iterations, threshold, ratio, weights=reused, cache=self._lit, prepared=self.prepared)
+                            iterations, threshold, ratio, weights=reused, cache=self._lit, prepared=self.prepared,
+                            device=self.device)
         if diameter != 0 and reused is None:
             self._near_field[key] = (result["counts"], result["weights"])
         return result

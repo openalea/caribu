@@ -11,6 +11,7 @@ a receiver's row counts, per emitter face, its pixels in the upper disc minus th
 The legacy's numerics are kept (float32 points and frames, double locals, its edge cases), to compare the counts
 with canestrad's own matrix files.
 """
+import math
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
@@ -60,7 +61,7 @@ def disc_heights(size=52):
 @njit(cache=True, nogil=True)
 def _sqrt(value):
     """Msqrt: the square root, 0 for a slightly negative value."""
-    return 0. if value < 0 else np.sqrt(value)
+    return 0. if value < 0 else math.sqrt(value)
 
 
 @njit(cache=True, nogil=True)
@@ -335,7 +336,7 @@ def _frame(receivers, receiver_normals, receiver_centres, r, frame):
     u0 = F32(receivers[r, 0, 0] - receivers[r, 1, 0])
     u1 = F32(receivers[r, 0, 1] - receivers[r, 1, 1])
     u2 = F32(receivers[r, 0, 2] - receivers[r, 1, 2])
-    norm = np.float64(np.sqrt(F32(F32(F32(u0 * u0) + F32(u1 * u1)) + F32(u2 * u2))))
+    norm = np.float64(F32(math.sqrt(np.float64(F32(F32(F32(u0 * u0) + F32(u1 * u1)) + F32(u2 * u2))))))  # sqrtf
     u0, u1, u2 = F32(u0 / norm), F32(u1 / norm), F32(u2 / norm)
     w0, w1, w2 = receiver_normals[r, 0], receiver_normals[r, 1], receiver_normals[r, 2]
     for axis in range(3):
@@ -386,87 +387,74 @@ def _environment(i, j, sign, frame, pixel, disc, radius, table, rows, thickness,
 
 
 @njit(cache=True, nogil=True)
-def _neighbourhood(centre, origin, side, voxels, box_sizes, infinite, period, radius, boxes, shifts):
+def _neighbourhood(centre, origin, side, voxels, box_sizes, infinite, period, radius, boxes, shifts, cells, moves,
+                   corners):
     """The boxes (up to 8, de-duplicated per box and translation, empty ones skipped but the first) whose
     diffusers may lie within the sphere around *centre* (calc_FF_Bfar), with their translations in x, y; their
-    count. The receiver's voxel as canestrad's: int(trunc(G − O) / side)."""
-    shape = voxels.shape
-    voxel = np.zeros(3, dtype=np.int64)
-    step = np.zeros(3, dtype=np.int64)
-    move = np.zeros(2, dtype=np.float32)
-    corner = np.zeros(3)
+    count. The receiver's voxel as canestrad's: int(trunc(G − O) / side). *cells* int64 (2, 3), *moves* float32
+    (2,), *corners* float64 (2, 3): work arrays."""
+    shape0, shape1, shape2 = voxels.shape[0], voxels.shape[1], voxels.shape[2]
     for i in range(3):
-        voxel[i] = int(np.float64(int(F32(centre[i] - origin[i]))) / side)
-        voxel[i] = min(max(voxel[i], 0), shape[i] - 1)  # beyond the grid (a sensor): canestrad reads anywhere
-        middle = (voxel[i] + 0.5) * side + origin[i]
+        shape = shape0 if i == 0 else (shape1 if i == 1 else shape2)
+        voxel = int(np.float64(int(F32(centre[i] - origin[i]))) / side)
+        voxel = min(max(voxel, 0), shape - 1)  # beyond the grid (a sensor): canestrad reads anywhere
+        cells[0, i] = voxel
+        middle = (voxel + 0.5) * side + origin[i]
         wraps = infinite and i != 2
-        if centre[i] < middle and (voxel[i] != 0 or wraps):
-            if voxel[i] != 0:
-                step[i] = -1
-                if i != 2:
-                    move[i] = 0.0
+        step, move, corner = 0, F32(0.), 0.0
+        if centre[i] < middle and (voxel != 0 or wraps):
+            if voxel != 0:
+                step = -1
             else:
-                step[i] = shape[i] - 1
-                if i != 2:
-                    move[i] = -period[i]
-            corner[i] = voxel[i] * side + origin[i]
-        elif centre[i] > middle and (voxel[i] != shape[i] - 1 or wraps):
-            if voxel[i] != shape[i] - 1:
-                step[i] = 1
-                if i != 2:
-                    move[i] = 0.0
+                step = shape - 1
+                move = F32(-period[i]) if i != 2 else F32(0.)
+            corner = voxel * side + origin[i]
+        elif centre[i] > middle and (voxel != shape - 1 or wraps):
+            if voxel != shape - 1:
+                step = 1
             else:
-                step[i] = -shape[i] + 1
-                if i != 2:
-                    move[i] = period[i]
-            corner[i] = (voxel[i] + 1) * side + origin[i]
-        else:
-            step[i] = 0
-            if i != 2:
-                move[i] = 0.0
-            corner[i] = 0.0
-        translated = i != 2 and move[i] != 0
-        if (step[i] != 0 or (infinite and shape[i] == 1 and translated)) and abs(centre[i] - corner[i]) > radius:
-            step[i] = 0
-            if i != 2:
-                move[i] = 0.0
-    count = 0
-    count = _add_box(voxels[voxel[0], voxel[1], voxel[2]], 0., 0., box_sizes, boxes, shifts, count)
-    axes = np.array([2, 2, 2])
+                step = -shape + 1
+                move = period[i] if i != 2 else F32(0.)
+            corner = (voxel + 1) * side + origin[i]
+        translated = i != 2 and move != 0
+        if (step != 0 or (infinite and shape == 1 and translated)) and abs(centre[i] - corner) > radius:
+            step, move = 0, F32(0.)
+        cells[1, i] = step
+        corners[0, i] = corner
+        corners[1, i] = (centre[i] - corner) * (centre[i] - corner)
+        if i != 2:
+            moves[i] = move
+    v0, v1, v2 = cells[0, 0], cells[0, 1], cells[0, 2]
+    s0, s1, s2 = cells[1, 0], cells[1, 1], cells[1, 2]
+    move0, move1 = moves[0], moves[1]
+    count = _add_box(voxels[v0, v1, v2], F32(0.), F32(0.), box_sizes, boxes, shifts, 0)
+    axis_xy = axis_yz = axis_zx = 2
     diagonal = 3
-    if step[0] != 0 or (infinite and shape[0] == 1 and move[0] != 0):
-        count = _add_box(voxels[voxel[0] + step[0], voxel[1], voxel[2]], move[0], 0., box_sizes, boxes, shifts,
-                         count)
-        axes[0] -= 1
-        axes[2] -= 1
+    if s0 != 0 or (infinite and shape0 == 1 and move0 != 0):
+        count = _add_box(voxels[v0 + s0, v1, v2], move0, F32(0.), box_sizes, boxes, shifts, count)
+        axis_xy -= 1
+        axis_zx -= 1
         diagonal -= 1
-    if step[1] != 0 or (infinite and shape[1] == 1 and move[1] != 0):
-        count = _add_box(voxels[voxel[0], voxel[1] + step[1], voxel[2]], 0., move[1], box_sizes, boxes, shifts,
-                         count)
-        axes[0] -= 1
-        axes[1] -= 1
+    if s1 != 0 or (infinite and shape1 == 1 and move1 != 0):
+        count = _add_box(voxels[v0, v1 + s1, v2], F32(0.), move1, box_sizes, boxes, shifts, count)
+        axis_xy -= 1
+        axis_yz -= 1
         diagonal -= 1
-    if step[2] != 0:
-        count = _add_box(voxels[voxel[0], voxel[1], voxel[2] + step[2]], 0., 0., box_sizes, boxes, shifts, count)
-        axes[1] -= 1
-        axes[2] -= 1
+    if s2 != 0:
+        count = _add_box(voxels[v0, v1, v2 + s2], F32(0.), F32(0.), box_sizes, boxes, shifts, count)
+        axis_yz -= 1
+        axis_zx -= 1
         diagonal -= 1
-    distance = np.zeros(3)
-    for i in range(3):
-        distance[i] = (centre[i] - corner[i]) * (centre[i] - corner[i])
     square = radius * radius
-    if axes[0] == 0 and distance[0] + distance[1] < square:
-        count = _add_box(voxels[voxel[0] + step[0], voxel[1] + step[1], voxel[2]], move[0], move[1], box_sizes,
-                         boxes, shifts, count)
-    if axes[1] == 0 and distance[1] + distance[2] < square:
-        count = _add_box(voxels[voxel[0], voxel[1] + step[1], voxel[2] + step[2]], 0., move[1], box_sizes, boxes,
-                         shifts, count)
-    if axes[2] == 0 and distance[2] + distance[0] < square:
-        count = _add_box(voxels[voxel[0] + step[0], voxel[1], voxel[2] + step[2]], move[0], 0., box_sizes, boxes,
-                         shifts, count)
-    if diagonal == 0 and distance[0] + distance[1] + distance[2] < square:
-        count = _add_box(voxels[voxel[0] + step[0], voxel[1] + step[1], voxel[2] + step[2]], move[0], move[1],
-                         box_sizes, boxes, shifts, count)
+    d0, d1, d2 = corners[1, 0], corners[1, 1], corners[1, 2]
+    if axis_xy == 0 and d0 + d1 < square:
+        count = _add_box(voxels[v0 + s0, v1 + s1, v2], move0, move1, box_sizes, boxes, shifts, count)
+    if axis_yz == 0 and d1 + d2 < square:
+        count = _add_box(voxels[v0, v1 + s1, v2 + s2], F32(0.), move1, box_sizes, boxes, shifts, count)
+    if axis_zx == 0 and d2 + d0 < square:
+        count = _add_box(voxels[v0 + s0, v1, v2 + s2], move0, F32(0.), box_sizes, boxes, shifts, count)
+    if diagonal == 0 and d0 + d1 + d2 < square:
+        count = _add_box(voxels[v0 + s0, v1 + s1, v2 + s2], move0, move1, box_sizes, boxes, shifts, count)
     return count
 
 
@@ -477,11 +465,108 @@ def _add_box(box, dx, dy, box_sizes, boxes, shifts, count):
         if box < 0 or box_sizes[box] == 0:
             return count
         for k in range(count):
-            if boxes[k] == box and shifts[k, 0] == F32(dx) and shifts[k, 1] == F32(dy):
+            if boxes[k] == box and shifts[k, 0] == dx and shifts[k, 1] == dy:
                 return count
     boxes[count] = box
-    shifts[count, 0], shifts[count, 1] = F32(dx), F32(dy)
+    shifts[count, 0], shifts[count, 1] = dx, dy
     return count + 1
+
+
+@njit(cache=True, nogil=True)
+def _candidates(r, translucent_r, soil, frame, emitters, spreads, translucent, first_face, labels, radius, bias,
+                limit, box_count, boxes, shifts, box_indptr, box_members, flags, active_face, owners, depths, size,
+                pixel, disc, work, work64):
+    """The receiver's candidates projected on its discs (calc_FF_Bfar's loop): per box, per diffuser of its list,
+    real, not the receiver, not soil–soil, selected (its translated centre within the sphere, or appart_sphere
+    without *bias*), not seen edge-on; its facing face activated (*active_face*), projected unless the anti-doublon
+    *flags* of that face forbid (once untranslated, once translated)."""
+    n_emitters = emitters.shape[0]
+    square_radius = radius * radius
+    origin0, origin1, origin2 = frame[0, 0], frame[0, 1], frame[0, 2]
+    for b in range(box_count):
+        box = boxes[b]
+        if box < 0:
+            continue
+        dx, dy = shifts[b, 0], shifts[b, 1]
+        frame[4, 0], frame[4, 1] = dx, dy
+        flag = 2 if (dx == 0 and dy == 0) else 3
+        for k in range(box_indptr[box], box_indptr[box + 1]):
+            e = box_members[k]
+            if e >= n_emitters or e == r:  # a sensor, the receiver itself
+                continue
+            if soil and labels[e] == 0:
+                continue
+            t0, t1, t2 = F32(emitters[e, 3, 0] + dx), F32(emitters[e, 3, 1] + dy), emitters[e, 3, 2]
+            if bias:
+                d0, d1, d2 = F32(origin0 - t0), F32(origin1 - t1), F32(origin2 - t2)
+                if not (np.float64(F32(F32(F32(d0 * d0) + F32(d1 * d1)) + F32(d2 * d2))) < square_radius):
+                    continue
+            else:
+                i0, i1 = F32(origin0 - dx), F32(origin1 - dy)
+                d0, d1 = F32(emitters[e, 3, 0] - i0), F32(emitters[e, 3, 1] - i1)
+                d2 = F32(emitters[e, 3, 2] - origin2)
+                distance = math.sqrt(np.float64(F32(F32(F32(d0 * d0) + F32(d1 * d1)) + F32(d2 * d2))))
+                if not (distance - np.float64(spreads[e]) < radius):
+                    continue
+            direction0, direction1, direction2 = F32(t0 - origin0), F32(t1 - origin1), F32(t2 - origin2)
+            facing = _dot(direction0, direction1, direction2, emitters[e, 4, 0], emitters[e, 4, 1],
+                          emitters[e, 4, 2])
+            if facing == 0:
+                continue
+            face = first_face[e] if (not translucent[e] or facing < 0) else first_face[e] + 1
+            active_face[e] = face
+            previous = flags[face]
+            if ((previous * flag) // 2) % 3 != 0:
+                continue
+            flags[face] = previous + flag
+            _project(e, emitters, frame, translucent_r, not translucent[e], owners, depths, size, pixel, disc,
+                     work, work64, limit)
+    frame[4, 0] = frame[4, 1] = F32(0.)
+
+
+@njit(cache=True, nogil=True)
+def _faces(translucent_r, optics, frame, owners, active_face, faces, size, pixel, disc, radius, table, rows,
+           thickness, dff, bfc, far):
+    """NFF's pass over the discs: each pixel's emitter face (*faces* (2, size, size), its last activated face, −1
+    where empty), the far field through the empty ones into far[0] (upper face) and far[1] (lower face: ρ, τ in
+    *optics* (4,)), its levels' weights into *bfc* (4, rows)."""
+    rho_upper, tau_upper, rho_lower, tau_lower = optics[0], optics[1], optics[2], optics[3]
+    far_upper = far_lower = 0.0
+    for row in range(4):
+        for level in range(rows):
+            bfc[row, level] = 0.
+    for i in range(size):
+        for j in range(size):
+            faces[0, i, j] = faces[1, i, j] = -1
+            if disc[i, j] < 0:
+                continue
+            e = owners[0, i, j]
+            upper = 0.0
+            if e >= 0:
+                faces[0, i, j] = active_face[e]
+            elif rows > 0:
+                upper = _environment(i, j, 1, frame, pixel, disc, radius, table, rows, thickness, bfc, 0) * dff
+                far_upper += upper * rho_upper
+            if translucent_r:
+                if e < 0 and rows > 0:
+                    far_lower += upper * tau_upper
+                e = owners[1, i, j]
+                if e >= 0:
+                    faces[1, i, j] = active_face[e]
+                elif rows > 0:
+                    lower = _environment(i, j, -1, frame, pixel, disc, radius, table, rows, thickness, bfc, 2) * dff
+                    far_lower += lower * rho_lower
+                    far_upper += lower * tau_lower
+    far[0], far[1] = far_upper, far_lower
+
+
+@njit(cache=True, nogil=True)
+def _clear(owners, depths, size):
+    for i in range(size):
+        for j in range(size):
+            owners[0, i, j] = owners[1, i, j] = -1
+            depths[0, i, j] = UPPER_EMPTY
+            depths[1, i, j] = LOWER_EMPTY
 
 
 @njit(cache=True, nogil=True)
@@ -491,17 +576,17 @@ def _receiver_rows(start, stop, receivers, receiver_normals, receiver_centres, r
                    period, bias, table, rows, thickness, dff):
     """The rows of receivers start..stop: (row lengths, emitter faces, net counts, far field (receivers, 2) of each
     receiver's upper and lower face, its levels' weights (receivers, 4, rows): bfc · dFF, canestrad's `-w` files
-    holding them as float32), each row's faces ascending. *emitters*: the triangles' vertices, centre and normal (n, 5, 3);
-    *spreads*: their centre's largest distance to a vertex (appart_sphere); *receiver_optics* (receivers, 4): ρ, τ
-    of the upper face, ρ, τ of the lower one; the boxes' lists of diffusers (sensors after the triangles)."""
+    holding them as float32), each row's faces ascending. *emitters*: the triangles' vertices, centre and normal
+    (n, 5, 3); *spreads*: their centre's largest distance to a vertex (appart_sphere); *receiver_optics*
+    (receivers, 4): ρ, τ of the upper face, ρ, τ of the lower one; the boxes' lists of diffusers (sensors after
+    the triangles)."""
     owners = np.full((2, size, size), -1, dtype=np.int32)
     depths = np.empty((2, size, size), dtype=np.float32)
+    faces = np.empty((2, size, size), dtype=np.int64)
     frame = np.zeros((5, 3), dtype=np.float32)
     work, work64 = workspace()
-    n_emitters = emitters.shape[0]
-    square_radius = radius * radius
     limit = np.inf if bias else -1. / radius
-    active_face = np.zeros(n_emitters, dtype=np.int64)
+    active_face = np.zeros(emitters.shape[0], dtype=np.int64)
     flags = np.zeros(n_faces, dtype=np.uint8)
     count = np.zeros(n_faces, dtype=np.int32)
     lengths = np.zeros(stop - start, dtype=np.int64)
@@ -510,103 +595,45 @@ def _receiver_rows(start, stop, receivers, receiver_normals, receiver_centres, r
     bfc = np.zeros((4, rows))
     boxes = np.zeros(8, dtype=np.int64)
     shifts = np.zeros((8, 2), dtype=np.float32)
+    cells = np.zeros((2, 3), dtype=np.int64)
+    moves = np.zeros(2, dtype=np.float32)
+    corners = np.zeros((2, 3))
     faces_out = []
     counts_out = []
     for r in range(start, stop):
-        translucent_r = receiver_translucent[r]
-        for i in range(size):
-            for j in range(size):
-                owners[0, i, j] = owners[1, i, j] = -1
-                depths[0, i, j] = UPPER_EMPTY
-                depths[1, i, j] = LOWER_EMPTY
+        _clear(owners, depths, size)
         flags[:] = 0
         _frame(receivers, receiver_normals, receiver_centres, r, frame)
-        origin0, origin1, origin2 = frame[0, 0], frame[0, 1], frame[0, 2]
-        soil = receiver_labels[r] == 0
         box_count = _neighbourhood(receiver_centres[r], origin, side, voxels, box_sizes, infinite, period, radius,
-                                   boxes, shifts)
-        for b in range(box_count):
-            dx, dy = shifts[b, 0], shifts[b, 1]
-            frame[4, 0], frame[4, 1] = dx, dy
-            flag = 2 if (dx == 0 and dy == 0) else 3
-            box = boxes[b]
-            if box < 0:
-                continue
-            for k in range(box_indptr[box], box_indptr[box + 1]):
-                e = box_members[k]
-                if e >= n_emitters or (r < n_emitters and e == r):  # a sensor, the receiver itself
-                    continue
-                if soil and labels[e] == 0:
-                    continue
-                t0, t1, t2 = F32(emitters[e, 3, 0] + dx), F32(emitters[e, 3, 1] + dy), emitters[e, 3, 2]
-                if bias:
-                    d0, d1, d2 = F32(origin0 - t0), F32(origin1 - t1), F32(origin2 - t2)
-                    if not (np.float64(F32(F32(F32(d0 * d0) + F32(d1 * d1)) + F32(d2 * d2))) < square_radius):
-                        continue
-                else:
-                    i0, i1 = F32(origin0 - dx), F32(origin1 - dy)
-                    d0, d1 = F32(emitters[e, 3, 0] - i0), F32(emitters[e, 3, 1] - i1)
-                    d2 = F32(emitters[e, 3, 2] - origin2)
-                    distance = np.sqrt(np.float64(F32(F32(F32(d0 * d0) + F32(d1 * d1)) + F32(d2 * d2))))
-                    if not (distance - np.float64(spreads[e]) < radius):
-                        continue
-                direction0, direction1, direction2 = F32(t0 - origin0), F32(t1 - origin1), F32(t2 - origin2)
-                facing = _dot(direction0, direction1, direction2, emitters[e, 4, 0], emitters[e, 4, 1],
-                              emitters[e, 4, 2])
-                if facing == 0:
-                    continue
-                face = first_face[e] if (not translucent[e] or facing < 0) else first_face[e] + 1
-                active_face[e] = face
-                previous = flags[face]
-                if ((previous * flag) // 2) % 3 != 0:  # the anti-doublon flags: once untranslated, once translated
-                    continue
-                flags[face] = previous + flag
-                _project(e, emitters, frame, translucent_r, not translucent[e], owners, depths, size, pixel, disc,
-                         work, work64, limit)
-        frame[4, 0] = frame[4, 1] = 0
-        rho_upper, tau_upper = receiver_optics[r, 0], receiver_optics[r, 1]
-        rho_lower, tau_lower = receiver_optics[r, 2], receiver_optics[r, 3]
-        far_upper = far_lower = 0.0
-        bfc[:] = 0.
-        touched = []
-        for i in range(size):
-            for j in range(size):
-                if disc[i, j] < 0:
-                    continue
-                e = owners[0, i, j]
-                upper = 0.0
-                if e >= 0:
-                    face = active_face[e]
-                    if count[face] == 0:
-                        touched.append(face)
-                    count[face] += 1
-                elif rows > 0:
-                    upper = _environment(i, j, 1, frame, pixel, disc, radius, table, rows, thickness, bfc, 0) * dff
-                    far_upper += upper * rho_upper
-                if translucent_r:
-                    if e < 0 and rows > 0:
-                        far_lower += upper * tau_upper
-                    e = owners[1, i, j]
-                    if e >= 0:
-                        face = active_face[e]
-                        if count[face] == 0:
-                            touched.append(face)
-                        count[face] -= 1
-                    elif rows > 0:
-                        lower = _environment(i, j, -1, frame, pixel, disc, radius, table, rows, thickness, bfc, 2) * dff
-                        far_lower += lower * rho_lower
-                        far_upper += lower * tau_lower
-        far[r - start, 0], far[r - start, 1] = far_upper, far_lower
+                                   boxes, shifts, cells, moves, corners)
+        _candidates(r, receiver_translucent[r], receiver_labels[r] == 0, frame, emitters, spreads, translucent,
+                    first_face, labels, radius, bias, limit, box_count, boxes, shifts, box_indptr, box_members,
+                    flags, active_face, owners, depths, size, pixel, disc, work, work64)
+        _faces(receiver_translucent[r], receiver_optics[r], frame, owners, active_face, faces, size, pixel, disc,
+               radius, table, rows, thickness, dff, bfc, far[r - start])
         for row in range(4):
             for level in range(rows):
                 weights[r - start, row, level] = bfc[row, level] * dff
+        touched = []
+        for i in range(size):
+            for j in range(size):
+                face = faces[0, i, j]
+                if face >= 0:
+                    if count[face] == 0:
+                        touched.append(face)
+                    count[face] += 1
+                face = faces[1, i, j]
+                if face >= 0:
+                    if count[face] == 0:
+                        touched.append(face)
+                    count[face] -= 1
         touched_array = np.empty(len(touched), dtype=np.int64)
         for index in range(len(touched)):
             touched_array[index] = touched[index]
         touched_array = np.sort(touched_array)
         length = 0
         previous_face = -1
-        for face in touched_array:
+        for face in touched_array:  # per face its pixels above minus those below, ascending, zeros dropped
             if face == previous_face:
                 continue
             previous_face = face
@@ -616,12 +643,12 @@ def _receiver_rows(start, stop, receivers, receiver_normals, receiver_centres, r
                 length += 1
             count[face] = 0
         lengths[r - start] = length
-    faces = np.zeros(len(faces_out), dtype=np.int64)
+    faces_array = np.zeros(len(faces_out), dtype=np.int64)
     values = np.zeros(len(counts_out), dtype=np.int64)
     for index in range(len(faces_out)):
-        faces[index] = faces_out[index]
+        faces_array[index] = faces_out[index]
         values[index] = counts_out[index]
-    return lengths, faces, values, far, weights
+    return lengths, faces_array, values, far, weights
 
 
 def grid(points, sensors, radius, pattern=None, threshold=50, ratio=1.) -> dict:
@@ -717,13 +744,15 @@ def spreads(points) -> np.ndarray:
 
 def counts(points, labels, translucent, first_face, n_faces, normals, centres, radius, sensors=None,
            sensor_normals=None, sensor_centres=None, size=52, workers=None, chunk=64, grid=None, profile=None,
-           optics=None, bias=True):
+           optics=None, bias=True, device="cpu"):
     """The near-field rows of every receiver, the accepted triangles then the sensors: (indptr, faces, counts), a
     CSR matrix of net pixel counts (rows: receivers; columns: emitter faces). *radius*: the sphere's radius around
     each receiver (emitters whose centre lies farther are left to the far field); *grid*: the candidates' boxes
     (`grid`; one box holding all by default). With a *profile* (the far field's fluxes, as canestrad reads them)
     and the receivers' *optics* (receivers, 4: ρ, τ of the upper face, of the lower one), also each receiver's
-    far field (receivers, 2) and its levels' weights (receivers, 4, levels). *bias* False: canestrad's `-B`."""
+    far field (receivers, 2) and its levels' weights (receivers, 4, levels). *bias* False: canestrad's `-B`.
+    *device* "cuda": the receivers computed on the GPU (gpu.receiver_rows, the same results), in chunks of
+    *chunk* × 64 receivers."""
     pixel, disc = disc_heights(size)
     emitters = np.concatenate([points, centres[:, None], normals[:, None]], axis=1).astype(np.float32)
     receivers, receiver_normals, receiver_centres = points, normals, centres
@@ -753,8 +782,17 @@ def counts(points, labels, translucent, first_face, n_faces, normals, centres, r
                               float(grid["side"]), grid["voxels"], grid["sizes"], grid["indptr"], grid["members"],
                               grid["infinite"], grid["period"], bias, table, rows, thickness, form_factor(size))
 
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        parts = list(executor.map(run, starts))
+    if device == "cuda":
+        from . import gpu
+        parts = gpu.receiver_rows(total, chunk * 64, receivers, receiver_normals, receiver_centres,
+                                  receiver_translucent, receiver_labels, receiver_optics, emitters, spread,
+                                  translucent, first_face, labels, n_faces, float(radius), size, pixel, disc,
+                                  grid["origin"], float(grid["side"]), grid["voxels"], grid["sizes"], grid["indptr"],
+                                  grid["members"], grid["infinite"], grid["period"], bias, table, rows, thickness,
+                                  form_factor(size))
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            parts = list(executor.map(run, starts))
     lengths = np.concatenate([part[0] for part in parts]) if parts else np.zeros(0, dtype=np.int64)
     indptr = np.concatenate([[0], np.cumsum(lengths)]).astype(np.int64)
     faces = np.concatenate([part[1] for part in parts]) if parts else np.zeros(0, dtype=np.int64)
