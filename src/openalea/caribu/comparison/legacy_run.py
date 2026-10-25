@@ -25,12 +25,14 @@ def available() -> bool:
     return executable("canestrad") is not None
 
 
-def canestrad(files, arguments, outputs=("Etri.vec0",)) -> dict:
-    """{output name: text} of canestrad run on *files* ({name: text}) with *arguments*."""
+def run(steps, files, outputs=("Etri.vec0",)) -> dict:
+    """{output name: text} of libcaribu's executables run one after the other on *files* ({name: text}) in a
+    temporary directory; *steps* [(executable name, arguments)]."""
     with tempfile.TemporaryDirectory() as directory:
         for name, text in files.items():
             Path(directory, name).write_text(text)
-        subprocess.run([executable("canestrad"), *arguments], cwd=directory, capture_output=True, check=True)
+        for name, arguments in steps:
+            subprocess.run([executable(name), *arguments], cwd=directory, capture_output=True, check=True)
         return {name: Path(directory, name).read_text() for name in outputs if Path(directory, name).exists()}
 
 
@@ -39,17 +41,24 @@ def body(text) -> str:
     return "".join(line for line in text.splitlines(keepends=True) if not line.startswith("#"))
 
 
-def direct(vertices, labels, lights, materials, soil_reflectance=-1, size=1536, sensors=None) -> dict:
+def direct(vertices, labels, lights, materials, soil_reflectance=-1, size=1536, sensors=None, pattern=None) -> dict:
     """canestrad -1 (direct light) on the triangles: {"Etri.vec0": its body, "solem.dat": the sensors' rows (with
     *sensors*)}. *materials* {species: (rho,) | (rho, tau) | (rho_sup, tau_sup, rho_inf, tau_inf)}, *lights*
-    [(E, (vx, vy, vz))], *sensors* (m, 3, 3)."""
+    [(E, (vx, vy, vz))], *sensors* (m, 3, 3), *pattern* (x1, y1, x2, y2) an infinite canopy (periodise, then
+    canestrad -8, as caribu runs them)."""
     files = {"scene.can": formats.can_string(vertices, labels), "scene.light": formats.light_string(lights),
              "scene.opt": formats.opt_string(materials, soil_reflectance)}
     arguments = ["-M", "scene.can", "-l", "scene.light", "-p", "scene.opt", "-A", "-1", "-L", str(size)]
+    steps = []
+    if pattern is not None:
+        files["pattern.8"] = formats.pattern_string(pattern)
+        steps.append(("periodise", ["-m", "scene.can", "-8", "pattern.8", "-o", "scene_8.can"]))
+        arguments[1] = "scene_8.can"
+        arguments += ["-8", "pattern.8"]
     if sensors is not None:
         files["sensors.can"] = formats.sensor_string(sensors)
         arguments += ["-C", "sensors.can"]
-    outputs = canestrad(files, arguments, ("Etri.vec0", "solem.dat"))
+    outputs = run(steps + [("canestrad", arguments)], files, ("Etri.vec0", "solem.dat", "scene_8.can"))
     outputs["Etri.vec0"] = body(outputs["Etri.vec0"])
     return outputs
 

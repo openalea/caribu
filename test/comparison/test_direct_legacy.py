@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from openalea.caribu import formats
+from openalea.caribu import formats, geometry, periodic
 from openalea.caribu.comparison import legacy_run, port_run
 from openalea.caribu.legacy.data_samples import data_path
 
@@ -85,3 +85,43 @@ def test_sensors(direction):
     port = port_run.direct(vertices, labels, lights, MATERIALS, SOIL, sensors=sensors)
     assert port["solem.dat"] == legacy["solem.dat"]
     assert port["Etri.vec0"] == legacy["Etri.vec0"]
+
+
+def adel_pattern(vertices):
+    """A pattern narrower than the Adel scene, so that periodise moves triangles and many cross its borders."""
+    low, high = vertices.reshape(-1, 3).min(axis=0), vertices.reshape(-1, 3).max(axis=0)
+    extent = high - low
+    return (float(low[0] + 0.1 * extent[0]), float(low[1] + 0.05 * extent[1]), float(high[0] - 0.1 * extent[0]),
+            float(high[1] - 0.05 * extent[1]))
+
+
+def compare_periodic(vertices, labels, lights, pattern, sensors=None):
+    legacy = legacy_run.direct(vertices, labels, lights, MATERIALS, SOIL, pattern=pattern, sensors=sensors)
+    port = port_run.direct(vertices, labels, lights, MATERIALS, SOIL, pattern=pattern, sensors=sensors)
+    rows = [line.split() for line in legacy["scene_8.can"].splitlines() if line.strip()]
+    periodised = np.array([[np.float32(value) for value in row[-9:]] for row in rows]).reshape(-1, 3, 3)
+    np.testing.assert_array_equal(periodic.periodise(geometry.as_legacy_vertices(vertices), pattern), periodised)
+    legacy_rows, port_rows = legacy["Etri.vec0"].splitlines(), port["Etri.vec0"].splitlines()
+    assert len(port_rows) == len(legacy_rows) == len(labels)
+    differing = [(number, a, b) for number, (a, b) in enumerate(zip(legacy_rows, port_rows)) if a != b]
+    assert not differing, differing[:3]
+    if sensors is not None:
+        assert port["solem.dat"] == legacy["solem.dat"]
+
+
+@pytest.mark.parametrize("direction", DIRECTIONS)
+def test_periodic_filter_scene(direction):
+    vertices, labels = mixed_scene("filterT.can")
+    compare_periodic(vertices, labels, [(1., direction)], formats.read_pattern(data_path("filter.8")))
+
+
+@pytest.mark.parametrize("direction", DIRECTIONS[1:3])
+def test_periodic_adel_scene(direction):
+    vertices, labels = mixed_scene()
+    compare_periodic(vertices, labels, [(1., direction)], adel_pattern(vertices))
+
+
+def test_periodic_adel_scene_several_lights_and_sensors():
+    vertices, labels = mixed_scene()
+    compare_periodic(vertices, labels, [(0.3 + 0.1 * k, direction) for k, direction in enumerate(DIRECTIONS)],
+                     adel_pattern(vertices), sensor_grid(vertices))

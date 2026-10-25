@@ -15,9 +15,10 @@ def optics(materials, soil_reflectance=-1) -> tuple:
     return soil, species
 
 
-def direct(vertices, labels, lights, materials, soil_reflectance=-1, size=1536, sensors=None) -> dict:
+def direct(vertices, labels, lights, materials, soil_reflectance=-1, size=1536, sensors=None, pattern=None) -> dict:
     """direct.run on the triangles, as legacy_run.direct's texts."""
-    result = direct_module.run(vertices, labels, lights, optics(materials, soil_reflectance), size, sensors)
+    result = direct_module.run(vertices, labels, lights, optics(materials, soil_reflectance), size, sensors,
+                               pattern=pattern)
     outputs = {"Etri.vec0": budgets.etri_rows(labels, result)}
     if sensors is not None:
         outputs["solem.dat"] = budgets.solem_rows(result["sensors"])

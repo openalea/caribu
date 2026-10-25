@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from numba import njit
 
-from . import budgets, geometry, projection
+from . import budgets, geometry, periodic, projection
 from .labels import is_translucent, species_of
 
 F32 = np.float32
@@ -94,12 +94,15 @@ def accumulate(radiosity, areas, energy, first_face, translucent, reflectance, t
             radiosity[face] += energy * rho
 
 
-def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=None, workers=None):
+def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=None, workers=None, pattern=None,
+                flags=None):
     """The accepted triangles' first-order radiosities (n_faces,) in canestrad's face order, their areas, and the
     sensors' (m,) irradiances (their first-order radiosities: a sensor reflects all, ρ = 1). *points*: float32
     (n, 3, 3) accepted triangles; *lights*: [(E, (vx, vy, vz))]; *bounds*: the scene's (vmin, vmax) float32, by default
     those of *points*; *sensors*: float32 (m, 3, 3) virtual sensors, seen only from above their upper face, which
-    neither shade nor scatter; *workers*: the threads projecting the sources (by default, one per processor)."""
+    neither shade nor scatter; *workers*: the threads projecting the sources (by default, one per processor). With a
+    *pattern* (xmin, ymin, xmax, ymax) the canopy is infinite: the screen spans the pattern, the triangles across its
+    borders (*flags*, periodic.border_flags') drawn with their shifted copies, the image tiled."""
     translucent = is_translucent(labels)
     first_face, n_faces = face_numbering(translucent)
     reflectance, transmittance = face_optics(labels, optics)
@@ -107,11 +110,17 @@ def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=
     if bounds is None:
         flat = points.reshape(-1, 3)
         bounds = flat.min(axis=0).astype(F32), flat.max(axis=0).astype(F32)
+        if pattern is not None:
+            low, high = periodic.pattern_bounds(pattern)
+            bounds[0][:2], bounds[1][:2] = low, high
     vmin, vmax = bounds
     normal = geometry.legacy_normals(points)
-    copies = np.zeros((len(points), 3), dtype=bool)
-    copies[:, 0] = True
-    shifts = np.zeros((3, 3), dtype=F32)
+    if pattern is None:
+        copies = np.zeros((len(points), 3), dtype=bool)
+        copies[:, 0] = True
+        shifts = np.zeros((3, 3), dtype=F32)
+    else:
+        copies, shifts = periodic.border_copies(flags), periodic.border_shifts(vmin, vmax)
     if sensors is None:
         sensors = np.zeros((0, 3, 3), dtype=F32)
     sensor_normal = geometry.legacy_normals(sensors)
@@ -123,6 +132,9 @@ def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=
         """A source's per-face sunlit areas and the sensors' (projplan)."""
         origin, v, w, u, du, dv, costeta = projection.legacy_screen(vmin, vmax, np.array(direction, dtype=F32))
         owner, depth = projection.rasterise(points, copies, shifts, origin, v, w, u, du, dv, size)
+        if pattern is not None and np.float64(u[2]) > -1 + 1e-6:
+            steps = periodic.tiling_steps(periodic.roof_pixels(vmin, vmax, origin, v, w, u, du, dv, size))
+            periodic.tile(owner, depth, periodic.translations(steps, size), periodic.distance_step(u[2], dv, size))
         pixel_area = du * dv / float(size * size) / costeta
         areas = projection.projected_areas(owner, n_faces, first_face, translucent, _facing(u, normal), pixel_area)
         seen = projection.sensor_areas(depth, sensors, _facing(u, sensor_normal), sensor_copies, shifts, origin, v,
@@ -145,23 +157,33 @@ def _facing(direction, normal):
     return (product + F32(direction[2]) * normal[:, 2]) < 0
 
 
-def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None):
+def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None, pattern=None):
     """Direct light on a scene, as canestrad -1: per input triangle (n,) its area (canestrad's, 0 if rejected), Eabs,
     Ei (sup + inf), Ei_sup, Ei_inf (float32; NaN if rejected, Ei_inf −1 for an opaque triangle) and whether it was
     accepted. *vertices* (n, 3, 3), *labels* (n,) or one for all, *lights* [(E, (vx, vy, vz))], *optics* (soil reflectance,
     {species: (rho_stem, rho_sup, tau_sup, rho_inf, tau_inf)}); *size* the z-buffer's side in pixels. With *sensors*
-    (m, 3, 3), result["sensors"] holds their irradiance "Ei" and "area". *workers*: first_order's."""
+    (m, 3, 3), result["sensors"] holds their irradiance "Ei" and "area". *workers*: first_order's. With a *pattern*
+    (x1, y1, x2, y2) the canopy is infinite (canestrad -8, after periodise): the triangles are first moved into the
+    pattern (result["points"], the scene canestrad reads), those whose centre still lies outside it rejected."""
     points = geometry.as_legacy_vertices(vertices)
     labels = np.broadcast_to(np.asarray(labels, dtype=np.int64), len(points))
+    flags = None
+    if pattern is not None:
+        points = periodic.periodise(points, pattern)
     accepted = ~geometry.rejected(points)
+    if pattern is not None:
+        inside, flags = periodic.border_flags(points, pattern)
+        accepted &= inside
+        flags = flags[accepted]
     kept = labels[accepted]
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     radiosity, surfaces, sensor_radiosity, sensor_surfaces = first_order(points[accepted], kept, lights, optics, size,
-                                                                         sensors=sensor_points, workers=workers)
+                                                                         sensors=sensor_points, workers=workers,
+                                                                         pattern=pattern, flags=flags)
     reflectance, transmittance = face_optics(kept, optics)
     names = ("Eabs", "Ei", "Ei_sup", "Ei_inf")
     values = budgets.triangle_budgets(radiosity, is_translucent(kept), reflectance, transmittance)
-    result = {"accepted": accepted, "area": np.zeros(len(labels))}
+    result = {"accepted": accepted, "area": np.zeros(len(labels)), "points": points}
     result["area"][accepted] = surfaces
     for name, value in zip(names, values):
         result[name] = np.full(len(labels), np.nan, dtype=F32)
