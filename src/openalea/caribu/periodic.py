@@ -27,6 +27,11 @@ def periodise(points, pattern) -> np.ndarray:
     """The triangles (float32 (n, 3, 3), as canestrad reads them) as periodise moves them: each translated by whole
     pattern lengths so that its centre lies in (xmin, xmax] × (ymin, ymax], the whole scene raised to z ≥ 0 when it
     goes below, written with `%.6g` and read back (float32)."""
+    return periodised(points, pattern).astype(F32)
+
+
+def periodised(points, pattern) -> np.ndarray:
+    """periodise's output as written, `%.6g` (float64, as s2v reads it)."""
     points = np.asarray(points, dtype=F32)
     low, high = pattern_bounds(pattern)
     bottom = F32(points[:, :, 2].min())
@@ -50,7 +55,7 @@ def periodise(points, pattern) -> np.ndarray:
         moved[t, :, 1] = points[t, :, 1].astype(np.float64) + shift[1]
         moved[t, :, 2] = points[t, :, 2].astype(np.float64) + lift
     written = np.array([float("%.6g" % value) for value in moved.reshape(-1)], dtype=np.float64)
-    return written.astype(F32).reshape(points.shape)
+    return written.reshape(points.shape)
 
 
 def pattern_bounds(pattern):

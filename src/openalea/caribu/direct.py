@@ -157,14 +157,9 @@ def _facing(direction, normal):
     return (product + F32(direction[2]) * normal[:, 2]) < 0
 
 
-def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None, pattern=None):
-    """Direct light on a scene, as canestrad -1: per input triangle (n,) its area (canestrad's, 0 if rejected), Eabs,
-    Ei (sup + inf), Ei_sup, Ei_inf (float32; NaN if rejected, Ei_inf −1 for an opaque triangle) and whether it was
-    accepted. *vertices* (n, 3, 3), *labels* (n,) or one for all, *lights* [(E, (vx, vy, vz))], *optics* (soil reflectance,
-    {species: (rho_stem, rho_sup, tau_sup, rho_inf, tau_inf)}); *size* the z-buffer's side in pixels. With *sensors*
-    (m, 3, 3), result["sensors"] holds their irradiance "Ei" and "area". *workers*: first_order's. With a *pattern*
-    (x1, y1, x2, y2) the canopy is infinite (canestrad -8, after periodise): the triangles are first moved into the
-    pattern (result["points"], the scene canestrad reads), those whose centre still lies outside it rejected."""
+def scene(vertices, labels, pattern=None) -> tuple:
+    """The triangles as canestrad reads them: (points float32 (n, 3, 3), labels (n,), accepted (n,), border flags
+    of the accepted ones or None); with a *pattern*, periodised first, those whose centre lies outside rejected."""
     points = geometry.as_legacy_vertices(vertices)
     labels = np.broadcast_to(np.asarray(labels, dtype=np.int64), len(points))
     flags = None
@@ -175,6 +170,32 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
         inside, flags = periodic.border_flags(points, pattern)
         accepted &= inside
         flags = flags[accepted]
+    return points, labels, accepted, flags
+
+
+def results(labels, accepted, points, surfaces, radiosity, optics) -> dict:
+    """genres on the accepted triangles' face *radiosity*: per input triangle "area", "Eabs", "Ei", "Ei_sup",
+    "Ei_inf" (float32, NaN if rejected), "accepted", "points"."""
+    kept = labels[accepted]
+    reflectance, transmittance = face_optics(kept, optics)
+    values = budgets.triangle_budgets(radiosity, is_translucent(kept), reflectance, transmittance)
+    result = {"accepted": accepted, "area": np.zeros(len(labels)), "points": points}
+    result["area"][accepted] = surfaces
+    for name, value in zip(("Eabs", "Ei", "Ei_sup", "Ei_inf"), values):
+        result[name] = np.full(len(labels), np.nan, dtype=F32)
+        result[name][accepted] = value
+    return result
+
+
+def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None, pattern=None):
+    """Direct light on a scene, as canestrad -1: per input triangle (n,) its area (canestrad's, 0 if rejected), Eabs,
+    Ei (sup + inf), Ei_sup, Ei_inf (float32; NaN if rejected, Ei_inf −1 for an opaque triangle) and whether it was
+    accepted. *vertices* (n, 3, 3), *labels* (n,) or one for all, *lights* [(E, (vx, vy, vz))], *optics* (soil reflectance,
+    {species: (rho_stem, rho_sup, tau_sup, rho_inf, tau_inf)}); *size* the z-buffer's side in pixels. With *sensors*
+    (m, 3, 3), result["sensors"] holds their irradiance "Ei" and "area". *workers*: first_order's. With a *pattern*
+    (x1, y1, x2, y2) the canopy is infinite (canestrad -8, after periodise): the triangles are first moved into the
+    pattern (result["points"], the scene canestrad reads), those whose centre still lies outside it rejected."""
+    points, labels, accepted, flags = scene(vertices, labels, pattern)
     kept = labels[accepted]
     if not accepted.any():
         lights = []  # nothing to light: every row rejected
@@ -182,14 +203,7 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
     radiosity, surfaces, sensor_radiosity, sensor_surfaces = first_order(points[accepted], kept, lights, optics, size,
                                                                          sensors=sensor_points, workers=workers,
                                                                          pattern=pattern, flags=flags)
-    reflectance, transmittance = face_optics(kept, optics)
-    names = ("Eabs", "Ei", "Ei_sup", "Ei_inf")
-    values = budgets.triangle_budgets(radiosity, is_translucent(kept), reflectance, transmittance)
-    result = {"accepted": accepted, "area": np.zeros(len(labels)), "points": points}
-    result["area"][accepted] = surfaces
-    for name, value in zip(names, values):
-        result[name] = np.full(len(labels), np.nan, dtype=F32)
-        result[name][accepted] = value
+    result = results(labels, accepted, points, surfaces, radiosity, optics)
     if sensors is not None:
         result["sensors"] = {"Ei": sensor_radiosity, "area": sensor_surfaces}
     return result

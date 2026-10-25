@@ -7,7 +7,7 @@ scene's diagonal), so every pair of triangles exchanges light through its form f
 """
 import numpy as np
 
-from . import budgets, direct, geometry, nearfield, solver
+from . import direct, geometry, nearfield, solver
 from .labels import is_translucent
 
 F32 = np.float32
@@ -19,9 +19,7 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
     the solver's steps, result["counts"] the near field's. *resolution*: the receivers' discs, NB × NB pixels;
     *tolerance*, *iterations*: MGCR's (relative to the first residual); *counts*: a previous run's on the same
     triangles and sensors (another band), not computed again."""
-    points = geometry.as_legacy_vertices(vertices)
-    labels = np.broadcast_to(np.asarray(labels, dtype=np.int64), len(points))
-    accepted = ~geometry.rejected(points)
+    points, labels, accepted, _ = direct.scene(vertices, labels)
     kept_points, kept = points[accepted], labels[accepted]
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     first, surfaces, sensor_first, sensor_surfaces = direct.first_order(kept_points, kept, lights, optics, size,
@@ -49,14 +47,8 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
     radiosities, steps = solver.mgcr(rhs, indptr, faces, values, receiver_faces, receiver_translucent,
                                      all_reflectance, all_transmittance, nearfield.form_factor(resolution), tolerance,
                                      100, iterations)
-    values_out = budgets.triangle_budgets(radiosities[:n_faces], translucent, reflectance, transmittance)
-    result = {"accepted": accepted, "area": np.zeros(len(labels)), "points": points, "steps": steps,
-              "first_order": first, "radiosity": radiosities[:n_faces],
-              "counts": (indptr, faces, values)}
-    result["area"][accepted] = surfaces
-    for name, value in zip(("Eabs", "Ei", "Ei_sup", "Ei_inf"), values_out):
-        result[name] = np.full(len(labels), np.nan, dtype=F32)
-        result[name][accepted] = value
+    result = direct.results(labels, accepted, points, surfaces, radiosities[:n_faces], optics)
+    result.update(steps=steps, first_order=first, radiosity=radiosities[:n_faces], counts=counts)
     if sensors is not None:
         result["sensors"] = {"Ei0": sensor_first, "Ei": radiosities[n_faces:], "area": sensor_surfaces}
     return result

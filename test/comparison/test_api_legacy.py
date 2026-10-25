@@ -138,3 +138,31 @@ def test_scene_radiosity_bands_soil():
         legacy = legacy_scene.run(direct=False, screen_size=512, sensors=sensors, split_face=True)
         assert same(port, legacy)
         assert same(port_scene.soil_aggregated, legacy_scene.soil_aggregated)
+
+
+def test_mixed_radiosity_function_pure_sail():
+    scene, material = plants()
+    triangles = [t for values in scene.values() for t in values]
+    materials = [(0.06, 0.07) if k % 3 else (0.1, 0.05, 0.08, 0.02) if k % 5 else (0.2,) for k in range(len(triangles))]
+    domain, lights = (-2.6, -3.3, 0.2, 0.3), SKY[:6]
+    port = api.mixed_radiosity(triangles, materials, lights, domain, 0.2, 0, 7, 1.1)
+    legacy = legacy_caribu.mixed_radiosity(triangles, materials, lights, domain, 0.2, 0, 7, 1.1)
+    assert same(port, legacy)
+
+
+@pytest.mark.parametrize("bands", [1, 2])
+def test_scene_pure_sail(bands):
+    scene, material = plants()
+    opt = {"par": material, "nir": {key: ((0.3,) if key.startswith("stem") else (0.4, 0.45)) for key in material}}
+    if bands == 1:  # a soil mesh in the single band (the legacy's several bands with a soil fail)
+        arguments = dict(scene=scene, light=SKY, pattern=(-2.6, -3.3, 0.2, 0.3), opt={"par": material},
+                         soil_mesh=1, soil_reflectance={"par": 0.15})
+    else:  # and centimetres
+        scene = {key: [[tuple(100 * c for c in point) for point in t] for t in values] for key, values in scene.items()}
+        arguments = dict(scene=scene, light=SKY, pattern=(-260., -330., 20., 30.), opt=opt,
+                         soil_reflectance={"par": 0.15, "nir": 0.3}, scene_unit="cm")
+    port_scene, legacy_scene = api.CaribuScene(**arguments), LegacyScene(**arguments)
+    port = port_scene.run(direct=False, infinite=True, d_sphere=0, layers=6, split_face=True)
+    legacy = legacy_scene.run(direct=False, infinite=True, d_sphere=0, layers=6, split_face=True)
+    assert same(port, legacy)
+    assert same(port_scene.soil_aggregated, legacy_scene.soil_aggregated)

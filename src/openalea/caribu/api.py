@@ -1,6 +1,8 @@
 """
 The legacy's entry points over the port: `raycasting`, `x_raycasting` (direct light), `radiosity` and `x_radiosity`
-(every order of scattering in the whole scene), caribu.py's, on lists of triangles and materials, and `CaribuScene` (its scenes by primitive, bands, soil, units, aggregation). Their outputs are the
+(every order of scattering in the whole scene), `mixed_radiosity` and `x_mixed_radiosity` (scattering in an
+infinite canopy: the far field of layers; the near field's sphere null, pure SAIL), caribu.py's, on lists of
+triangles and materials, and `CaribuScene` (its scenes by primitive, bands, soil, units, aggregation). Their outputs are the
 legacy's: per triangle `index`, `label`, `area`, `Eabs`, `Ei`, `Ei_sup`, `Ei_inf` (and `sensors`).
 
 A material is a 1-tuple (ρ, opaque), a 2-tuple (ρ, τ, a symmetric leaf) or a 4-tuple (ρ_sup, τ_sup, ρ_inf, τ_inf).
@@ -14,7 +16,7 @@ import os
 
 import numpy as np
 
-from . import direct, formats, periodic
+from . import direct, formats, nested, periodic
 from . import radiosity as radiosity_module
 from .labels import encode_labels
 
@@ -185,6 +187,38 @@ def x_radiosity(triangles, x_materials, lights=(DEFAULT_LIGHT,), screen_size=153
                                       sensor_points, workers, counts=counts)
         counts = result["counts"]
         out[band] = _radiosity_outputs(labels, result, materials, sensors, precision)
+    return out
+
+
+def mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, diameter, layers, height,
+                    screen_size=1536, sensors=None, debug=False, precision="legacy", workers=None) -> dict:
+    """Scattering in the infinite canopy repeating *domain* (caribu.mixed_radiosity): the far field in *layers*
+    up to *height* (s2v, mcsail), the triangles within a sphere of *diameter* in radiosity (0: none, pure SAIL;
+    > 0 not yet ported); raycasting's outputs, the sensors' "Ei0" and "Ei" (the legacy refuses sensors here)."""
+    if len(triangles) <= 1:
+        raise ValueError("Radiosity method needs at least two primitives")
+    if len(triangles) != len(materials):
+        raise ValueError("The number of triangles and materials should match")
+    species, labels = species_and_labels(materials)
+    sensor_points = None if sensors is None else _as_array(sensors)
+    result = nested.run(_as_array(triangles), labels, list(lights), optics(species, soil_reflectance), domain,
+                        layers, height, diameter, screen_size, sensor_points, workers, precision)
+    return _radiosity_outputs(labels, result, materials, sensors, precision)
+
+
+def x_mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, diameter, layers, height,
+                      sensors=None, screen_size=1536, debug=False, precision="legacy", workers=None) -> dict:
+    """mixed_radiosity for several bands, {band: materials}, *soil_reflectance* {band: ρ}: {band: outputs}."""
+    if len(triangles) <= 1:
+        raise ValueError("Radiosity method needs at least two primitives")
+    x_species, labels = x_species_and_labels(materials)
+    points = _as_array(triangles)
+    sensor_points = None if sensors is None else _as_array(sensors)
+    out = {}
+    for band, band_materials in materials.items():
+        result = nested.run(points, labels, list(lights), optics(x_species[band], soil_reflectance[band]), domain,
+                            layers, height, diameter, screen_size, sensor_points, workers, precision)
+        out[band] = _radiosity_outputs(labels, result, band_materials, sensors, precision)
     return out
 
 
@@ -394,10 +428,14 @@ class CaribuScene:
         """Light on the scene: (raw, aggregated), each {band: {name: {pid: values}}}, names Eabs, Ei, area (and
         Ei_inf, Ei_sup with *split_face*; "sensors" {name: {sensor id: values}} with *sensors* {id: [triangles]}).
         *direct*: first order only; *infinite*: the pattern repeated; *simplify*: no band level for a single band.
-        *direct* False: radiosity in the whole scene (not *infinite*); nested radiosity (*infinite*, *d_sphere*,
-        *layers*, *height*) is not yet ported."""
+        *direct* False: radiosity in the whole scene (not *infinite*), or with *infinite* the far field in
+        *layers* up to *height* (the scene's top by default) and radiosity within a sphere of diameter *d_sphere*
+        (0: pure SAIL; > 0, nested radiosity, not yet ported)."""
         if not direct and infinite:
-            raise NotImplementedError("nested radiosity (direct=False, infinite=True) is not yet ported")
+            if d_sphere < 0:
+                raise ValueError("calling radiosity should be done using direct=False and infinite=False")
+            d_sphere /= self.conv_unit
+            height = self.bbox()[1][2] if height is None else height / self.conv_unit
         if infinite and self.pattern is None:
             raise ValueError("infinite canopy illumination needs a pattern to be defined")
         raw, aggregated = {}, {}
@@ -423,7 +461,14 @@ class CaribuScene:
             sensor_groups = [key for key, values in sensors.items() for _ in values]
             sensors = [triangle for values in sensors.values() for triangle in values]
         domain = self.pattern if infinite else None
-        if not direct and len(bands) == 1:
+        if not direct and infinite and len(bands) == 1:
+            out = {bands[0]: mixed_radiosity(triangles, materials[bands[0]], lights, domain,
+                                             self.soil_reflectance[bands[0]], d_sphere, layers, height, screen_size,
+                                             sensors, precision=self.precision, workers=workers)}
+        elif not direct and infinite:
+            out = x_mixed_radiosity(triangles, materials, lights, domain, self.soil_reflectance, d_sphere, layers,
+                                    height, sensors, screen_size, precision=self.precision, workers=workers)
+        elif not direct and len(bands) == 1:
             out = {bands[0]: radiosity(triangles, materials[bands[0]], lights, screen_size, sensors,
                                        precision=self.precision, workers=workers)}
         elif not direct:

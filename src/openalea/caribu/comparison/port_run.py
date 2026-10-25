@@ -4,9 +4,11 @@ The port on a scene given as legacy_run takes it, its outputs as canestrad's tex
     etri = direct_etri(vertices, labels, lights, materials)       the port's Etri.vec0 body
     outputs = direct(..., sensors=sensors)                         and its solem.dat
     outputs = radiosity(vertices, labels, lights, materials)       as legacy_run.radiosity
+    outputs = layered(vertices, labels, lights, materials, pattern, layers, height)   as legacy_run.layered
 """
 from .. import budgets, formats
 from .. import radiosity as radiosity_module
+from .. import nested, sail
 from .. import direct as direct_module
 
 
@@ -37,6 +39,21 @@ def radiosity(vertices, labels, lights, materials, soil_reflectance=-1, size=153
     outputs = {"Etri.vec0": budgets.etri_rows(labels, result),
                "E0.dat": "".join("%.10f \n " % value for value in first_order),
                "B.dat": "".join("%.10f \n " % value for value in result["radiosity"])}
+    if sensors is not None:
+        outputs["solem.dat"] = budgets.solem_rows(result["sensors"])
+    return outputs
+
+
+def layered(vertices, labels, lights, materials, pattern, layers, height, soil_reflectance=-1, size=1536,
+            sensors=None) -> dict:
+    """nested.run with a null sphere (pure SAIL), as legacy_run.layered's texts."""
+    result = nested.run(vertices, labels, lights, optics(materials, soil_reflectance), pattern, layers, height,
+                        size=size, sensors=sensors)
+    structure = result["structure"]
+    outputs = {"leafarea": sail.leafarea_string(structure), "band.spec": sail.spec_string(structure),
+               "cropchar": sail.cropchar_string(structure),
+               "mlsail.env": sail.env_string(result["profile"], result["profile"]["thickness"]),
+               "Etri.vec0": budgets.etri_rows(labels, result)}
     if sensors is not None:
         outputs["solem.dat"] = budgets.solem_rows(result["sensors"])
     return outputs
