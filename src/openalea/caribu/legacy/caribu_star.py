@@ -10,8 +10,8 @@
 #
 # ==============================================================================
 
-from openalea.caribu.CaribuScene import CaribuScene
-from openalea.caribu.light import turtle
+from openalea.caribu.legacy.CaribuScene import CaribuScene
+from openalea.caribu.legacy.light import turtle
 
 
 def _caribu_call(scene, directions, opt=None, domain=None, convUnit=None):
@@ -141,8 +141,8 @@ def run_caribu(sources, scene, opticals='stem', optical_properties=None, output_
 
     raise DeprecationWarning('This function is deprecated, use CaribuScene / caribu_star instead')
 
-    from openalea.caribu.label import simple_canlabel
-    from openalea.caribu.file_adaptor import read_opt, build_materials
+    from openalea.caribu.legacy.label import simple_canlabel
+    from openalea.caribu.legacy.file_adaptor import read_opt, build_materials
 
     n, soil_reflectance, po = read_opt(optical_properties)
     if not isinstance(opticals, list):

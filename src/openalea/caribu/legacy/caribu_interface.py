@@ -1,6 +1,6 @@
 from openalea.plantgl import all as pgl
-from openalea.caribu.CaribuScene import CaribuScene
-import openalea.caribu.sky_tools.turtle as turtle
+from openalea.caribu.legacy.CaribuScene import CaribuScene
+import openalea.caribu.legacy.sky_tools.turtle as turtle
 from math import radians, sin , cos
 from six.moves import zip
 

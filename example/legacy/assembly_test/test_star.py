@@ -1,4 +1,4 @@
-from openalea.caribu.caribu_star import *
+from openalea.caribu.legacy.caribu_star import *
 from openalea.adel.astk_interface import AdelWheat
 from openalea.astk.plant_interface import *
 from openalea.adel.data_samples import adel_one_leaf
@@ -6,7 +6,7 @@ from openalea.adel.mtg_interpreter import mtg_interpreter
 from openalea.caribu.lightString import lightString
 from openalea.plantgl.all import * 
 from math import pi
-from openalea.caribu.CaribuScene import CaribuScene
+from openalea.caribu.legacy.CaribuScene import CaribuScene
 from nose.tools import assert_almost_equal, assert_not_almost_equals
 
 # broken : xysr not there

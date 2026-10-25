@@ -20,16 +20,16 @@ from pathlib import Path
 
 from openalea.plantgl.all import Scene as pglScene, Viewer
 
-from openalea.caribu.file_adaptor import read_can, read_light, read_pattern, \
+from openalea.caribu.legacy.file_adaptor import read_can, read_light, read_pattern, \
     read_opt, build_materials
-from openalea.caribu.plantgl_adaptor import scene_to_cscene, mtg_to_cscene
-from openalea.caribu.caribu import raycasting, radiosity, mixed_radiosity, \
+from openalea.caribu.legacy.plantgl_adaptor import scene_to_cscene, mtg_to_cscene
+from openalea.caribu.legacy.caribu import raycasting, radiosity, mixed_radiosity, \
     x_raycasting, x_radiosity, x_mixed_radiosity, opt_string_and_labels, \
     triangles_string, pattern_string, write_scene
-from openalea.caribu.display import jet_colors, generate_scene, nan_to_zero
-from openalea.caribu.caribu_shell import vperiodise, Path
+from openalea.caribu.legacy.display import jet_colors, generate_scene, nan_to_zero
+from openalea.caribu.legacy.caribu_shell import vperiodise, Path
 from functools import reduce
-from openalea.caribu.caributriangleset import AbstractCaribuTriangleSet, CaribuTriangleSet 
+from openalea.caribu.legacy.caributriangleset import AbstractCaribuTriangleSet, CaribuTriangleSet 
 
 import tempfile
 

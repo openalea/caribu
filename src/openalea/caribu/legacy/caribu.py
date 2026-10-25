@@ -13,8 +13,8 @@
 Core pythonic functions to call caribu shell.
 """
 
-from openalea.caribu.label import Label
-from openalea.caribu.caribu_shell import Caribu
+from openalea.caribu.legacy.label import Label
+from openalea.caribu.legacy.caribu_shell import Caribu
 
 green_leaf_PAR = (0.06, 0.07)
 green_stem_PAR = (0.13,)

@@ -12,7 +12,7 @@
 """ Adaptors for historical caribu input files
 """
 
-from openalea.caribu.label import Label
+from openalea.caribu.legacy.label import Label
 
 
 def read_light(file_path):

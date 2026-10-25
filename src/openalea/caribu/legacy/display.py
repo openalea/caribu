@@ -17,7 +17,7 @@ from matplotlib import pyplot
 
 
 import openalea.plantgl.all as pgl
-from openalea.caribu.colormap import ColorMap
+from openalea.caribu.legacy.colormap import ColorMap
 
 
 def nan_to_zero(values):

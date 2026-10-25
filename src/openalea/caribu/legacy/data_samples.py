@@ -15,5 +15,5 @@ from pathlib import Path
 
 
 def data_path(filename):
-    datadir = Path(__file__).parent / 'data'
+    datadir = Path(__file__).parent.parent / 'data'             # the package's data, shared with the port
     return datadir / filename

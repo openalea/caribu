@@ -8,8 +8,8 @@ if run_test:
     from tools import assert_almost_equal
 
     import openalea.plantgl.all as pgl
-    from openalea.caribu.CaribuScene import CaribuScene
-    from openalea.caribu.data_samples import data_path
+    from openalea.caribu.legacy.CaribuScene import CaribuScene
+    from openalea.caribu.legacy.data_samples import data_path
 
 
     def test_instantiation_from_files():

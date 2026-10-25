@@ -4,9 +4,9 @@ They generally have an additional copyscene argument, that pass caribuscene by c
 
 """
 
-from openalea.caribu.CaribuScene import CaribuScene
-from openalea.caribu.display import generate_scene
-from openalea.caribu.caribu import opt_string_and_labels, triangles_string
+from openalea.caribu.legacy.CaribuScene import CaribuScene
+from openalea.caribu.legacy.display import generate_scene
+from openalea.caribu.legacy.caribu import opt_string_and_labels, triangles_string
 
 
 # caribuscene instance used to access doc strings of class methods

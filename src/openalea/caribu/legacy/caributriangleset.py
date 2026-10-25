@@ -1,4 +1,4 @@
-from openalea.caribu.display import generate_scene
+from openalea.caribu.legacy.display import generate_scene
 
 import numpy
 

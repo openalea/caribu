@@ -1,4 +1,4 @@
-from openalea.caribu.caribu_star import *
+from openalea.caribu.legacy.caribu_star import *
 from openalea.adel.astk_interface import AdelWheat
 from openalea.astk.plant_interface import *
 from openalea.astk.plantgl_utils import *

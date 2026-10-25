@@ -1,3 +1,4 @@
+name: caribu
 channels:
   - openalea3/label/dev
   - openalea3/label/rc
@@ -6,9 +7,26 @@ channels:
 dependencies:
   - python
   - pandoc
+  # metafspm's dependencies; metafspm itself is installed by hand, until it is published:
+  #   pip install -e ../metafspm        (from the caribu repository's parent directory)
+  - pyyaml
+  - numpy
+  - numba
+  - scipy
+  - pandas
+  - openalea.mtg
+  # the legacy (openalea.caribu.legacy) and the comparisons: the C++ executables and PlantGL's scenes
   - openalea.libcaribu
   - openalea.plantgl
   - openalea.widgets
+  # drawings, tests, the tutorial
+  - matplotlib-base
+  - pytest
+  - jupyter
+  - nbconvert
+  # GPU (optional, not needed): numba's CUDA target needs a CUDA toolkit, e.g.
+  #   - cuda-nvcc
+  #   - cuda-nvrtc
   - pip
   - pip:
       - -e ..[doc,test]
