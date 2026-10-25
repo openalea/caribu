@@ -20,7 +20,7 @@ F32 = np.float32
 EMPTY_DEPTH = np.float32(99999999999.9)
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _normalise(x, y, z):
     """Vecteur::normalise: the norm, the float32 square root (C++'s sqrt(float)) of the float32 components' float32 sum
     of squares, each component divided by it in double and stored as float32."""
@@ -28,7 +28,7 @@ def _normalise(x, y, z):
     return F32(np.float64(x) / norm), F32(np.float64(y) / norm), F32(np.float64(z) / norm)
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def legacy_screen(vmin, vmax, direction):
     """canestrad's screen for the propagation *direction* (float32 (3,)) over the scene's bounds *vmin*, *vmax*
     (float32 (3,)): (origin (3,) f32, v, w, u (3,) f32 the image axes and the beam, du, dv the screen's extents,
@@ -108,7 +108,7 @@ def legacy_screen(vmin, vmax, direction):
     return origin, v, w, u, du, dv, costeta
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _to_image(point_x, point_y, point_z, shift, origin, v, w, u):
     """Homogene::chgt_base of (point + shift − origin), float32, left to right."""
     x = F32(F32(point_x + shift[0]) - origin[0])
@@ -119,7 +119,7 @@ def _to_image(point_x, point_y, point_z, shift, origin, v, w, u):
             F32(F32(F32(u[0] * x) + F32(u[1] * y)) + F32(u[2] * z)))
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _colour_triangle(owner, depth, triangle, a, b, c, size, extent_x, extent_y, count_only):
     """colorie_triangle: rows and columns whose pixel centre lies in the triangle (apex *a*, base *b*-*c*, a flat
     base), the nearest along the beam kept (strict <: the first drawn wins ties). a, b, c: double (3,). With
@@ -166,7 +166,7 @@ def _colour_triangle(owner, depth, triangle, a, b, c, size, extent_x, extent_y, 
     return count
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _draw(owner, depth, triangle, points, shift, origin, v, w, u, du, dv, size, count_only):
     """One triangle (float32 (3, 3)) translated by *shift*, projected and split along its middle vertex into
     flat-based triangles as projplan, each coloured (or its visible pixels counted). Returns the count."""
@@ -216,7 +216,7 @@ def _draw(owner, depth, triangle, points, shift, origin, v, w, u, du, dv, size, 
     return count
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def rasterise(points, copies, shifts, origin, v, w, u, du, dv, size):
     """(T, T) the index of the triangle owning each pixel (-1: none), and the depth buffer: each triangle of *points*
     (float32 (n, 3, 3), in scene order) drawn once per copy of *copies* (n, 3) bool (the original, +dx, +dy:
@@ -230,7 +230,7 @@ def rasterise(points, copies, shifts, origin, v, w, u, du, dv, size):
     return owner, depth
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def sensor_areas(depth, points, seen, copies, shifts, origin, v, w, u, du, dv, size, pixel_area):
     """Each sensor's sunlit area (horizontal equivalent) on the scene's depth buffer: the pixels where it would be
     in front of every triangle (projplan's virtual sensors, after the scene). *seen*: whether the beam meets its
@@ -248,7 +248,7 @@ def sensor_areas(depth, points, seen, copies, shifts, origin, v, w, u, du, dv, s
     return areas
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def projected_areas(owner, n_faces, first_face, translucent, lit_upper, pixel_area):
     """Per face, its sunlit area (horizontal equivalent): +pixel_area per pixel for the lit face, −pixel_area for a
     leaf's other face (its transmitted light), summed in projplan's pixel order. *first_face*: each triangle's first

@@ -10,6 +10,7 @@ Faces are numbered as canestrad's diffusers: one per opaque triangle, two per le
 of the accepted triangles. The legacy's numerics are kept (legacy_surfaces: Polygone::surface on float32 points).
 """
 import math
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 from numba import njit
@@ -20,12 +21,12 @@ from .labels import is_translucent, species_of
 F32 = np.float32
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _legacy_norm(x, y, z):
     return np.float64(np.sqrt(F32(x * x + y * y + z * z)))
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def legacy_surfaces(points):
     """Each triangle's area as Polygone::surface computes it on float32 points: |P0P1| |P0P2| sin(angle) / 2, the
     angle the arc cosine of the unit edges' float32 dot product."""
@@ -75,7 +76,7 @@ def face_optics(labels, optics):
     return reflectance, transmittance
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def accumulate(radiosity, areas, energy, first_face, translucent, reflectance, transmittance, surfaces):
     """Adds a source's contribution to *radiosity* (n_faces,): E ρ A / S on the lit face, E τ(lit face) |A| / S on a
     leaf's other face (A < 0 there), in canestrad's order of operations."""
@@ -93,12 +94,12 @@ def accumulate(radiosity, areas, energy, first_face, translucent, reflectance, t
             radiosity[face] += energy * rho
 
 
-def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=None):
+def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=None, workers=None):
     """The accepted triangles' first-order radiosities (n_faces,) in canestrad's face order, their areas, and the
     sensors' (m,) irradiances (their first-order radiosities: a sensor reflects all, ρ = 1). *points*: float32
     (n, 3, 3) accepted triangles; *lights*: [(E, (vx, vy, vz))]; *bounds*: the scene's (vmin, vmax) float32, by default
     those of *points*; *sensors*: float32 (m, 3, 3) virtual sensors, seen only from above their upper face, which
-    neither shade nor scatter."""
+    neither shade nor scatter; *workers*: the threads projecting the sources (by default, one per processor)."""
     translucent = is_translucent(labels)
     first_face, n_faces = face_numbering(translucent)
     reflectance, transmittance = face_optics(labels, optics)
@@ -111,26 +112,30 @@ def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=
     copies = np.zeros((len(points), 3), dtype=bool)
     copies[:, 0] = True
     shifts = np.zeros((3, 3), dtype=F32)
-    radiosity = np.zeros(n_faces)
     if sensors is None:
         sensors = np.zeros((0, 3, 3), dtype=F32)
     sensor_normal = geometry.legacy_normals(sensors)
     sensor_surfaces = legacy_surfaces(sensors)
     sensor_copies = np.zeros((len(sensors), 3), dtype=bool)
     sensor_copies[:, 0] = True
-    sensor_radiosity = np.zeros(len(sensors))
-    for energy, direction in lights:
+
+    def lit_areas(direction):
+        """A source's per-face sunlit areas and the sensors' (projplan)."""
         origin, v, w, u, du, dv, costeta = projection.legacy_screen(vmin, vmax, np.array(direction, dtype=F32))
-        lit_upper = _facing(u, normal)
         owner, depth = projection.rasterise(points, copies, shifts, origin, v, w, u, du, dv, size)
         pixel_area = du * dv / float(size * size) / costeta
-        areas = projection.projected_areas(owner, n_faces, first_face, translucent, lit_upper, pixel_area)
-        accumulate(radiosity, areas, float(energy), first_face, translucent, reflectance, transmittance, surfaces)
-        if len(sensors):
-            sensor_areas = projection.sensor_areas(depth, sensors, _facing(u, sensor_normal), sensor_copies, shifts,
-                                                   origin, v, w, u, du, dv, size, pixel_area)
-            lit = sensor_areas != 0.0
-            sensor_radiosity[lit] += float(energy) * (sensor_areas[lit] / sensor_surfaces[lit])
+        areas = projection.projected_areas(owner, n_faces, first_face, translucent, _facing(u, normal), pixel_area)
+        seen = projection.sensor_areas(depth, sensors, _facing(u, sensor_normal), sensor_copies, shifts, origin, v,
+                                       w, u, du, dv, size, pixel_area)
+        return areas, seen
+
+    radiosity, sensor_radiosity = np.zeros(n_faces), np.zeros(len(sensors))
+    # the sources' projections in parallel (numba releases the GIL), their contributions summed in the sources' order
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        for (energy, _), (areas, seen) in zip(lights, executor.map(lit_areas, [direction for _, direction in lights])):
+            accumulate(radiosity, areas, float(energy), first_face, translucent, reflectance, transmittance, surfaces)
+            lit = seen != 0.0
+            sensor_radiosity[lit] += float(energy) * (seen[lit] / sensor_surfaces[lit])
     return radiosity, surfaces, sensor_radiosity, sensor_surfaces
 
 
@@ -140,19 +145,19 @@ def _facing(direction, normal):
     return (product + F32(direction[2]) * normal[:, 2]) < 0
 
 
-def run(vertices, labels, lights, optics, size=1536, sensors=None):
+def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None):
     """Direct light on a scene, as canestrad -1: per input triangle (n,) its area (canestrad's, 0 if rejected), Eabs,
     Ei (sup + inf), Ei_sup, Ei_inf (float32; NaN if rejected, Ei_inf −1 for an opaque triangle) and whether it was
     accepted. *vertices* (n, 3, 3), *labels* (n,) or one for all, *lights* [(E, (vx, vy, vz))], *optics* (soil reflectance,
     {species: (rho_stem, rho_sup, tau_sup, rho_inf, tau_inf)}); *size* the z-buffer's side in pixels. With *sensors*
-    (m, 3, 3), result["sensors"] holds their irradiance "Ei" and "area"."""
+    (m, 3, 3), result["sensors"] holds their irradiance "Ei" and "area". *workers*: first_order's."""
     points = geometry.as_legacy_vertices(vertices)
     labels = np.broadcast_to(np.asarray(labels, dtype=np.int64), len(points))
     accepted = ~geometry.rejected(points)
     kept = labels[accepted]
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     radiosity, surfaces, sensor_radiosity, sensor_surfaces = first_order(points[accepted], kept, lights, optics, size,
-                                                                         sensors=sensor_points)
+                                                                         sensors=sensor_points, workers=workers)
     reflectance, transmittance = face_optics(kept, optics)
     names = ("Eabs", "Ei", "Ei_sup", "Ei_inf")
     values = budgets.triangle_budgets(radiosity, is_translucent(kept), reflectance, transmittance)

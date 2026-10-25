@@ -58,7 +58,7 @@ def rejected(vertices) -> np.ndarray:
     return out
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def legacy_normals(points) -> np.ndarray:
     """(n, 3) float32: each triangle's unit normal as canestrad computes it (Polygone::calcul_normale_cst_equ):
     (P1 − P0) × (P2 − P0) in float32, divided by its float32 norm."""
@@ -75,7 +75,7 @@ def legacy_normals(points) -> np.ndarray:
     return normal
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def legacy_centres(points) -> np.ndarray:
     """(n, 3) float32: each triangle's isobarycentre as canestrad's (float32 sums, divided by 3 in double)."""
     centre = np.zeros((points.shape[0], 3), dtype=np.float32)
