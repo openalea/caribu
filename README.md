@@ -43,6 +43,40 @@ building light sources from meteorological data
 Ref: Wout Verhoef (1984), Light scattering by leaf layers with application to canopy reflectance modeling: the SAIL model. Remote Sensing of Environment, 16, 125-141
 
 
+## The Python port
+
+This branch is Caribu in Python (numpy, numba): the projection, radiosity, nested radiosity, s2v, mcsail and
+periodise of libcaribu's C++, without executables or files. The previous package is frozen in
+`openalea.caribu.legacy`; it drives libcaribu and is the port's reference in the tests.
+
+```python
+from openalea.caribu import api, lights
+
+sky = lights.turtle_lights("46", "soc", energy=1.)             # or lights.Sky(4, 5).diffuse(...), sun_light(...)
+out = api.raycasting(triangles, materials, sky, domain=None)   # direct light
+out = api.radiosity(triangles, materials, sky)                 # every order of scattering
+out = api.mixed_radiosity(triangles, materials, sky, domain, soil_reflectance=0.15, diameter=0.5, layers=10,
+                          height=1.)                            # nested radiosity in an infinite canopy
+raw, aggregated = api.CaribuScene(scene, light=sky, pattern=domain, opt={"par": material}).run(direct=False,
+                                                                                                infinite=True)
+```
+
+- **Exactness first.** With `precision="legacy"` (the default), every output equals the legacy's to its printed
+  digits: canestrad's Etri.vec0, E0.dat, B.dat, solem.dat, its matrix files, s2v's and mcsail's files, the API's
+  dicts, on the filter and the 100-plant Adel scenes (`test/comparison`). The legacy's own tests run on the port.
+  Its quirks are reproduced and listed (`devplan_metafspm.md`), to be corrected one by one.
+- **Speed** (100-plant Adel scene, 34,647 triangles, 46 sources, a laptop CPU; legacy → port): direct 1.9 s →
+  0.3 s; infinite 3.1 → 0.5; pure SAIL 3.3 → 0.6; nested radiosity (D = 0.5) 11.3 → 1.4; full radiosity of the
+  whole scene 307 → 62. `openalea.caribu.canopy.Canopy` keeps what depends only on the geometry: a second band or
+  a new hour costs 0.03 s (direct) or 0.12 s (nested).
+- **GPU:** `device="cuda"` computes the near field (radiosity's form factors) with numba.cuda, from the CPU
+  kernels' own functions; tested under numba's CUDA simulator.
+- **Light sources:** `lights` holds the turtle skies, the sector sky (soc, uoc), the sun's position, Spitters'
+  diffuse fraction and Kaplanis' hourly radiation.
+- **Examples:** `example/light_modes.py` (the models compared), `example/day_course.py` (a day hour by hour).
+
+Tests: `pytest test` (the comparisons with the legacy need libcaribu, in the environment below).
+
 ## Installation
 
 ### Users
