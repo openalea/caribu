@@ -8,6 +8,9 @@ reproduces its validity tests on those points (Polygone::init): coincident verti
 Rejected triangles keep their place in the outputs (area 0, energies NaN).
 """
 import numpy as np
+from numba import njit
+
+F32 = np.float32
 
 
 def as_legacy_vertices(vertices) -> np.ndarray:
@@ -53,3 +56,31 @@ def rejected(vertices) -> np.ndarray:
     cross = np.cross(first_unit, second_unit).astype(np.float32)
     out |= ~(np.sqrt(np.sum(cross * cross, axis=1, dtype=np.float32)) > 0)
     return out
+
+
+@njit(cache=True)
+def legacy_normals(points) -> np.ndarray:
+    """(n, 3) float32: each triangle's unit normal as canestrad computes it (Polygone::calcul_normale_cst_equ):
+    (P1 − P0) × (P2 − P0) in float32, divided by its float32 norm."""
+    normal = np.zeros((points.shape[0], 3), dtype=np.float32)
+    for t in range(points.shape[0]):
+        first = points[t, 1] - points[t, 0]
+        second = points[t, 2] - points[t, 0]
+        x = F32(F32(first[1] * second[2]) - F32(first[2] * second[1]))
+        y = F32(F32(first[2] * second[0]) - F32(first[0] * second[2]))
+        z = F32(F32(first[0] * second[1]) - F32(first[1] * second[0]))
+        norm = np.float64(np.sqrt(F32(F32(F32(x * x) + F32(y * y)) + F32(z * z))))
+        if norm > 0:
+            normal[t, 0], normal[t, 1], normal[t, 2] = F32(x / norm), F32(y / norm), F32(z / norm)
+    return normal
+
+
+@njit(cache=True)
+def legacy_centres(points) -> np.ndarray:
+    """(n, 3) float32: each triangle's isobarycentre as canestrad's (float32 sums, divided by 3 in double)."""
+    centre = np.zeros((points.shape[0], 3), dtype=np.float32)
+    for t in range(points.shape[0]):
+        for q in range(3):
+            total = F32(F32(F32(0.) + points[t, 0, q]) + points[t, 1, q]) + points[t, 2, q]
+            centre[t, q] = F32(np.float64(F32(total)) / 3.0)
+    return centre

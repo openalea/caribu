@@ -3,6 +3,7 @@ libcaribu's executables run on a scene given as arrays, in a temporary directory
 writes it (formats), the outputs read back as text. The reference the port is compared with.
 
     etri = direct_etri(vertices, labels, lights, materials)       canestrad -1's Etri.vec0 body (no header)
+    outputs = direct(..., sensors=sensors)                         and its solem.dat (the sensors)
 """
 import os
 import shutil
@@ -38,10 +39,21 @@ def body(text) -> str:
     return "".join(line for line in text.splitlines(keepends=True) if not line.startswith("#"))
 
 
-def direct_etri(vertices, labels, lights, materials, soil_reflectance=-1, size=1536) -> str:
-    """canestrad -1 (direct light) on the triangles: its Etri.vec0 body. *materials* {species: (rho,) | (rho, tau) |
-    (rho_sup, tau_sup, rho_inf, tau_inf)}, *lights* [(E, (vx, vy, vz))]."""
+def direct(vertices, labels, lights, materials, soil_reflectance=-1, size=1536, sensors=None) -> dict:
+    """canestrad -1 (direct light) on the triangles: {"Etri.vec0": its body, "solem.dat": the sensors' rows (with
+    *sensors*)}. *materials* {species: (rho,) | (rho, tau) | (rho_sup, tau_sup, rho_inf, tau_inf)}, *lights*
+    [(E, (vx, vy, vz))], *sensors* (m, 3, 3)."""
     files = {"scene.can": formats.can_string(vertices, labels), "scene.light": formats.light_string(lights),
              "scene.opt": formats.opt_string(materials, soil_reflectance)}
     arguments = ["-M", "scene.can", "-l", "scene.light", "-p", "scene.opt", "-A", "-1", "-L", str(size)]
-    return body(canestrad(files, arguments)["Etri.vec0"])
+    if sensors is not None:
+        files["sensors.can"] = formats.sensor_string(sensors)
+        arguments += ["-C", "sensors.can"]
+    outputs = canestrad(files, arguments, ("Etri.vec0", "solem.dat"))
+    outputs["Etri.vec0"] = body(outputs["Etri.vec0"])
+    return outputs
+
+
+def direct_etri(vertices, labels, lights, materials, soil_reflectance=-1, size=1536) -> str:
+    """direct's Etri.vec0 body."""
+    return direct(vertices, labels, lights, materials, soil_reflectance, size)["Etri.vec0"]

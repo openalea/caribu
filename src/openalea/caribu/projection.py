@@ -120,9 +120,11 @@ def _to_image(point_x, point_y, point_z, shift, origin, v, w, u):
 
 
 @njit(cache=True)
-def _colour_triangle(owner, depth, triangle, a, b, c, size, extent_x, extent_y):
+def _colour_triangle(owner, depth, triangle, a, b, c, size, extent_x, extent_y, count_only):
     """colorie_triangle: rows and columns whose pixel centre lies in the triangle (apex *a*, base *b*-*c*, a flat
-    base), the nearest along the beam kept (strict <: the first drawn wins ties). a, b, c: double (3,)."""
+    base), the nearest along the beam kept (strict <: the first drawn wins ties). a, b, c: double (3,). With
+    *count_only* (colorie_capteur, a sensor) the pixels where it would be the nearest are counted, nothing drawn.
+    Returns that count."""
     k0 = (size - 1) / extent_x
     k1 = (size - 1) / extent_y
     slope_left = (b[0] - a[0]) / (b[1] - a[1])
@@ -131,8 +133,9 @@ def _colour_triangle(owner, depth, triangle, a, b, c, size, extent_x, extent_y):
         first, last = int(a[1] * k1 + 0.5), int(b[1] * k1 - 0.5)
     else:
         first, last = int(b[1] * k1 + 0.5), int(a[1] * k1 - 0.5)
+    count = 0
     if last < 0 or first >= size or first > last:
-        return
+        return count
     first, last = max(0, first), min(size - 1, last)
     vab = (b[2] - a[2]) / (b[1] - a[1])
     vbc = (c[2] - b[2]) / (b[1] - a[1])
@@ -151,71 +154,98 @@ def _colour_triangle(owner, depth, triangle, a, b, c, size, extent_x, extent_y):
             z = z_left
             for i in range(i_left, i_right + 1):
                 if z < depth[i, j]:
-                    depth[i, j] = F32(z)
-                    owner[i, j] = triangle
+                    if count_only:
+                        count += 1
+                    else:
+                        depth[i, j] = F32(z)
+                        owner[i, j] = triangle
                 z = z + dz
         x_left += slope_left
         x_right += slope_right
         z_left += vab
+    return count
+
+
+@njit(cache=True)
+def _draw(owner, depth, triangle, points, shift, origin, v, w, u, du, dv, size, count_only):
+    """One triangle (float32 (3, 3)) translated by *shift*, projected and split along its middle vertex into
+    flat-based triangles as projplan, each coloured (or its visible pixels counted). Returns the count."""
+    pp = np.zeros((4, 3), dtype=np.float32)
+    a, b, c = np.zeros(3), np.zeros(3), np.zeros(3)
+    for q in range(3):
+        pp[q, 0], pp[q, 1], pp[q, 2] = _to_image(points[q, 0], points[q, 1], points[q, 2], shift, origin, v, w, u)
+    j = 1 if pp[1, 1] > pp[2, 1] else 2
+    k = 0 if pp[0, 1] > pp[j, 1] else j
+    i = (k + 1) % 3
+    j = (i + 1) % 3
+    i = i if pp[i, 1] < pp[j, 1] else j
+    j = 3 - i - k
+    count = 0
+    if i == k or (pp[i, 0] == pp[j, 0] and pp[j, 0] == pp[k, 0]) or (pp[i, 1] == pp[j, 1] and pp[j, 1] == pp[k, 1]):
+        return count
+    up = down = False
+    last = 0
+    if pp[i, 1] == pp[j, 1]:
+        i = i if pp[i, 0] < pp[j, 0] else j
+        j = 3 - i - k
+        up = pp[i, 0] != pp[j, 0]
+    elif pp[j, 1] == pp[k, 1]:
+        k = k if pp[j, 0] < pp[k, 0] else j
+        j = 3 - i - k
+        down = pp[j, 0] != pp[k, 0]
+    else:
+        pp[3, 1] = pp[j, 1]
+        slope = np.float64(F32(F32(pp[3, 1] - pp[i, 1]) / F32(pp[k, 1] - pp[i, 1])))
+        pp[3, 0] = F32(slope * np.float64(F32(pp[k, 0] - pp[i, 0])) + np.float64(pp[i, 0]))
+        pp[3, 2] = F32(slope * np.float64(F32(pp[k, 2] - pp[i, 2])) + np.float64(pp[i, 2]))
+        up = down = pp[j, 0] != pp[3, 0]
+        if pp[3, 0] > pp[j, 0]:
+            last, i, j = i, j, 3
+        else:
+            last, i = i, 3
+    if up:
+        for q in range(3):
+            a[q], b[q], c[q] = pp[i, q], pp[j, q], pp[k, q]
+        count += _colour_triangle(owner, depth, triangle, c, a, b, size, du, dv, count_only)
+    if down:
+        if up:
+            k, j, i = j, i, last
+        for q in range(3):
+            a[q], b[q], c[q] = pp[i, q], pp[j, q], pp[k, q]
+        count += _colour_triangle(owner, depth, triangle, a, b, c, size, du, dv, count_only)
+    return count
 
 
 @njit(cache=True)
 def rasterise(points, copies, shifts, origin, v, w, u, du, dv, size):
     """(T, T) the index of the triangle owning each pixel (-1: none), and the depth buffer: each triangle of *points*
     (float32 (n, 3, 3), in scene order) drawn once per copy of *copies* (n, 3) bool (the original, +dx, +dy:
-    periodic border copies) translated by *shifts* (3, 3) float32, split along its middle vertex into flat-based
-    triangles as projplan."""
+    periodic border copies) translated by *shifts* (3, 3) float32."""
     depth = np.full((size, size), EMPTY_DEPTH, dtype=np.float32)
     owner = np.full((size, size), -1, dtype=np.int64)
-    pp = np.zeros((4, 3), dtype=np.float32)
-    a, b, c = np.zeros(3), np.zeros(3), np.zeros(3)
     for t in range(points.shape[0]):
         for copy in range(3):
-            if not copies[t, copy]:
-                continue
-            for q in range(3):
-                pp[q, 0], pp[q, 1], pp[q, 2] = _to_image(points[t, q, 0], points[t, q, 1], points[t, q, 2],
-                                                         shifts[copy], origin, v, w, u)
-            j = 1 if pp[1, 1] > pp[2, 1] else 2
-            k = 0 if pp[0, 1] > pp[j, 1] else j
-            i = (k + 1) % 3
-            j = (i + 1) % 3
-            i = i if pp[i, 1] < pp[j, 1] else j
-            j = 3 - i - k
-            if i == k or (pp[i, 0] == pp[j, 0] and pp[j, 0] == pp[k, 0]) or (pp[i, 1] == pp[j, 1]
-                                                                          and pp[j, 1] == pp[k, 1]):
-                continue
-            up = down = False
-            last = 0
-            if pp[i, 1] == pp[j, 1]:
-                i = i if pp[i, 0] < pp[j, 0] else j
-                j = 3 - i - k
-                up = pp[i, 0] != pp[j, 0]
-            elif pp[j, 1] == pp[k, 1]:
-                k = k if pp[j, 0] < pp[k, 0] else j
-                j = 3 - i - k
-                down = pp[j, 0] != pp[k, 0]
-            else:
-                pp[3, 1] = pp[j, 1]
-                slope = np.float64(F32(F32(pp[3, 1] - pp[i, 1]) / F32(pp[k, 1] - pp[i, 1])))
-                pp[3, 0] = F32(slope * np.float64(F32(pp[k, 0] - pp[i, 0])) + np.float64(pp[i, 0]))
-                pp[3, 2] = F32(slope * np.float64(F32(pp[k, 2] - pp[i, 2])) + np.float64(pp[i, 2]))
-                up = down = pp[j, 0] != pp[3, 0]
-                if pp[3, 0] > pp[j, 0]:
-                    last, i, j = i, j, 3
-                else:
-                    last, i = i, 3
-            if up:
-                for q in range(3):
-                    a[q], b[q], c[q] = pp[i, q], pp[j, q], pp[k, q]
-                _colour_triangle(owner, depth, t, c, a, b, size, du, dv)
-            if down:
-                if up:
-                    k, j, i = j, i, last
-                for q in range(3):
-                    a[q], b[q], c[q] = pp[i, q], pp[j, q], pp[k, q]
-                _colour_triangle(owner, depth, t, a, b, c, size, du, dv)
+            if copies[t, copy]:
+                _draw(owner, depth, t, points[t], shifts[copy], origin, v, w, u, du, dv, size, False)
     return owner, depth
+
+
+@njit(cache=True)
+def sensor_areas(depth, points, seen, copies, shifts, origin, v, w, u, du, dv, size, pixel_area):
+    """Each sensor's sunlit area (horizontal equivalent) on the scene's depth buffer: the pixels where it would be
+    in front of every triangle (projplan's virtual sensors, after the scene). *seen*: whether the beam meets its
+    upper face (only then is it counted). As canestrad, the area is added after each copy with the count so far."""
+    areas = np.zeros(points.shape[0])
+    owner = np.zeros((1, 1), dtype=np.int64)
+    for s in range(points.shape[0]):
+        if not seen[s]:
+            continue
+        pixels = 0
+        for copy in range(3):
+            if copies[s, copy]:
+                pixels += _draw(owner, depth, s, points[s], shifts[copy], origin, v, w, u, du, dv, size, True)
+                areas[s] += pixels * pixel_area
+    return areas
 
 
 @njit(cache=True)

@@ -72,3 +72,10 @@ def etri_rows(labels, result):
         rows.append(layout % (number, label, *(result[name][number] for name in
                                               ("area", "Eabs", "Ei", "Ei_sup", "Ei_inf"))))
     return "".join(rows)
+
+
+def solem_rows(sensors) -> str:
+    """canestrad's solem.dat text of the sensors (numbered from 1): number, first-order and total irradiance (the
+    same in direct light), area."""
+    return "".join("%.0f\t %.10f\t %.10f \t%.6f\n" % (number + 1, irradiance, irradiance, area)
+                   for number, (irradiance, area) in enumerate(zip(sensors["Ei"], sensors["area"])))
