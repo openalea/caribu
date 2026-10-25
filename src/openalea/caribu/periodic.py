@@ -47,7 +47,7 @@ def periodised(points, pattern) -> np.ndarray:
     return np.array(text.split(), dtype=np.float64).reshape(points.shape)
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _moved(points, centres, low, high, lengths, lift):
     """Each triangle translated by whole pattern lengths, its centre into (low, high] (periodise's walk, its
     comparisons in double), the scene raised by *lift* (float64)."""
@@ -74,7 +74,7 @@ def pattern_bounds(pattern):
     return np.array([min(x1, x2), min(y1, y2)], dtype=F32), np.array([max(x1, x2), max(y1, y2)], dtype=F32)
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _periodise_centres(points):
     """periodise's Polygone::centre: float32 sums, divided by 3 in double, stored as float32."""
     centre = np.zeros((points.shape[0], 3), dtype=np.float32)
@@ -136,21 +136,25 @@ def tiling_steps(roof) -> np.ndarray:
     tr[0:2] the pattern's y side, tr[2:4] its x side, then their opposites (each the mean of two opposite edges,
     rounded as C's round)."""
     steps = np.zeros(8, dtype=np.int64)
-    steps[0] = _c_round(((roof[3, 0] - roof[0, 0]) + (roof[2, 0] - roof[1, 0])) / 2.)
-    steps[1] = _c_round(((roof[3, 1] - roof[0, 1]) + (roof[2, 1] - roof[1, 1])) / 2.)
-    steps[2] = _c_round(((roof[1, 0] - roof[0, 0]) + (roof[2, 0] - roof[3, 0])) / 2.)
-    steps[3] = _c_round(((roof[1, 1] - roof[0, 1]) + (roof[2, 1] - roof[3, 1])) / 2.)
+    r = [[int(value) for value in row] for row in roof]
+
+    def side(a, b, c, d, axis):  # (a − b) + (c − d) in C's int, then halved in double and rounded
+        return _c_round(_int32(_int32(r[a][axis] - r[b][axis]) + _int32(r[c][axis] - r[d][axis])) / 2.)
+    steps[0] = side(3, 0, 2, 1, 0)
+    steps[1] = side(3, 0, 2, 1, 1)
+    steps[2] = side(1, 0, 2, 3, 0)
+    steps[3] = side(1, 0, 2, 3, 1)
     steps[4], steps[5], steps[6], steps[7] = -steps[2], -steps[3], -steps[0], -steps[1]
     return steps
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _outside(x, y, step_x, step_y, size):
     """infinitise's out(): the walk stops once the translated image has left the screen along each axis it moves on."""
     return (step_x == 0 or abs(x) >= size) and (step_y == 0 or abs(y) >= size)
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def translations(steps, size):
     """(k, 2) int: the image translations infinitise's walk (pave, lateral) visits that overlap the screen, the
     untranslated image left out. A pave walk goes along tr[0:2] (and from its first step back along tr[6:8]), at each
@@ -176,7 +180,7 @@ def translations(steps, size):
     return result
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def tile(owner, depth, shifts, distance_step):
     """infinitise without duplication: the image translated by each of *shifts* ((k, 2) pixels), its depth increased
     by *distance_step* per pixel of the second shift; where a translated pixel lies in front, the pixel is in a
@@ -210,9 +214,22 @@ def roof_pixels(vmin, vmax, origin, v, w, u, du, dv, size) -> np.ndarray:
     zero = np.zeros(3, dtype=F32)
     for index, (x, y) in enumerate(corners):
         image_x, image_y, _ = _to_image(F32(x), F32(y), F32(vmax[2]), zero, origin, v, w, u)
-        roof[index, 0] = int(np.float64(F32(image_x * F32(size))) / du)
-        roof[index, 1] = int(np.float64(F32(image_y * F32(size))) / dv)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            roof[index, 0] = _c_int(np.float64(F32(image_x * F32(size))) / np.float64(du))
+            roof[index, 1] = _c_int(np.float64(F32(image_y * F32(size))) / np.float64(dv))
     return roof
+
+
+def _c_int(value):
+    """C's (int) of a double on x86-64: truncated, INT_MIN when NaN or beyond the int range (a horizontal beam)."""
+    if not math.isfinite(value) or not -2 ** 31 <= value < 2 ** 31:
+        return -2 ** 31
+    return int(value)
+
+
+def _int32(value):
+    """An int's 32-bit wrap (C's int arithmetic on x86-64)."""
+    return (int(value) + 2 ** 31) % 2 ** 32 - 2 ** 31
 
 
 def distance_step(direction_z, dv, size) -> float:

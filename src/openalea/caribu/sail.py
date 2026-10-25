@@ -27,7 +27,7 @@ DEGREES = 57.29577951       # s2v's 180 / π
 
 # --- Structure (s2v) ---
 
-@njit(cache=True)
+@njit(cache=True, error_model="numpy")
 def _layer(z, tops, layer_count):
     """classe: the layer of height z (0 the top; *tops* each layer's top, cumulated from the bottom), −10 below 0."""
     if z < 0:
@@ -38,7 +38,7 @@ def _layer(z, tops, layer_count):
     return layer_count - 1
 
 
-@njit(cache=True)
+@njit(cache=True, error_model="numpy")
 def _zenith_class(p, class_count):
     """normal: the zenith of the triangle's normal (0 for a horizontal triangle), its class of 90 / class_count
     degrees. The normal's cross product written out as s2v's, its float32 vertices (Patch) mixed with doubles: the
@@ -53,7 +53,7 @@ def _zenith_class(p, class_count):
     return min(class_count - 1, int(zenith / (90.0 / class_count)))
 
 
-@njit(cache=True)
+@njit(cache=True, error_model="numpy")
 def _structure(points, species, leaf, band_optics, period_x, period_y, tops, layer_count, class_count):
     """The areas per (species, layer, zenith class) and per band their sums × (ρ, τ) per (species, layer), the
     triangles in order, each split depth-first (repart) while its vertices fall in different cells; *points*

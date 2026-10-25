@@ -15,7 +15,7 @@ from .labels import is_translucent
 F32 = np.float32
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def triangle_budgets(radiosity, translucent, reflectance, transmittance):
     """Per accepted triangle (n,) arrays (Eabs, Ei, Ei_sup, Ei_inf) as float32, from the faces' radiosities
     (n_faces,): Ei the total incident (sup + inf for a leaf), Ei_inf −1 for an opaque triangle."""

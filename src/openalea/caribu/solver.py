@@ -16,7 +16,7 @@ from numba import njit
 MACHINE_EPSILON = 2.2204460492503130808e-16
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def product(x, out, indptr, faces, values, receiver_faces, receiver_translucent, reflectance, transmittance, dff):
     """hd_mv_mlt: out = A x, row by row of the receivers (*receiver_faces*: each receiver's first face)."""
     for r in range(indptr.shape[0] - 1):
@@ -40,7 +40,7 @@ def product(x, out, indptr, faces, values, receiver_faces, receiver_translucent,
     return out
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _norm(vector):
     total = 0.0
     for i in range(vector.shape[0]):
@@ -48,7 +48,7 @@ def _norm(vector):
     return np.sqrt(total)
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _inner(a, b):
     total = 0.0
     for i in range(a.shape[0]):
@@ -56,7 +56,7 @@ def _inner(a, b):
     return total
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _add_scaled(out, vector, scale):
     """v_mltadd(out, vector, scale, out): out += scale · vector (a copy when scale is 0, a plain sum when 1)."""
     if scale == 0.0:
@@ -65,7 +65,7 @@ def _add_scaled(out, vector, scale):
         out[i] = out[i] + vector[i] if scale == 1.0 else out[i] + scale * vector[i]
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _upper_solve(matrix, rhs, size):
     """Usolve on the leading size × size block of an upper triangular matrix."""
     out = np.zeros(size)
@@ -81,7 +81,7 @@ def _upper_solve(matrix, rhs, size):
     return out
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def mgcr(rhs, indptr, faces, values, receiver_faces, receiver_translucent, reflectance, transmittance, dff,
          tolerance=1e-6, krylov=100, limit=1000):
     """hd_mgcr from x = 0: (x, steps)."""

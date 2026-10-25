@@ -7,18 +7,19 @@ from pathlib import Path
 
 import pytest
 
-from openalea.caribu import api
+from openalea.caribu import api, lights
 
 LEGACY_TESTS = Path(__file__).parent / "legacy"
 PORTED = {"raycasting": api.raycasting, "x_raycasting": api.x_raycasting, "radiosity": api.radiosity,
           "x_radiosity": api.x_radiosity, "mixed_radiosity": api.mixed_radiosity,
           "x_mixed_radiosity": api.x_mixed_radiosity, "CaribuScene": api.CaribuScene,
+          "light_sources": lights.light_sources,
           "green_leaf_PAR": api.GREEN_LEAF_PAR}
-NOT_YET = {"light_sources"}
+NOT_YET = set()
 # legacy tests of what stays in the legacy (its display)
 LEFT = {("test_caribuscene", "test_display")}
 MODULES = ["test_null_triangle", "test_simple_triangle", "test_triangle_faces", "test_material", "test_domain",
-           "test_caribu", "test_multi_band", "test_caribuscene", "test_caribu_sensors"]
+           "test_caribu", "test_multi_band", "test_caribuscene", "test_caribu_sensors", "test_light"]
 
 
 def _load(name):

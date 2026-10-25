@@ -189,3 +189,14 @@ def test_scene_nested_bands():
     port = api.CaribuScene(**arguments).run(direct=False, infinite=True, layers=6, split_face=True)
     legacy = LegacyScene(**arguments).run(direct=False, infinite=True, layers=6, split_face=True)
     assert same(port, legacy)
+
+
+@pytest.mark.parametrize("domain", [None, (-2, -2, 2, 2)])
+def test_horizontal_beam(domain):
+    """A beam along the horizon (cos θ = 0): canestrad's IEEE divisions (inf, nan) and C's int of a NaN kept."""
+    from math import sqrt
+    for triangle in ([(0, 0, 0), (sqrt(2), 0, 0), (0, sqrt(2), 0)], [(0, 0, 0), (0, sqrt(2), 0), (0, 0, sqrt(2))]):
+        for light in ((100, (-1, 0, 0)), (0, (-1, 0, 0))):
+            port = api.raycasting([triangle], [api.GREEN_LEAF_PAR], [light], domain)
+            legacy = legacy_caribu.raycasting([triangle], [legacy_caribu.green_leaf_PAR], [light], domain)
+            assert same(port, legacy)

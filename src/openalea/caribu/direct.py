@@ -21,12 +21,12 @@ from .labels import is_translucent, species_of
 F32 = np.float32
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _legacy_norm(x, y, z):
     return np.float64(np.sqrt(F32(x * x + y * y + z * z)))
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def legacy_surfaces(points):
     """Each triangle's area as Polygone::surface computes it on float32 points: |P0P1| |P0P2| sin(angle) / 2, the
     angle the arc cosine of the unit edges' float32 dot product."""
@@ -76,7 +76,7 @@ def face_optics(labels, optics):
     return reflectance, transmittance
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def accumulate(radiosity, areas, energy, first_face, translucent, reflectance, transmittance, surfaces):
     """Adds a source's contribution to *radiosity* (n_faces,): E ρ A / S on the lit face, E τ(lit face) |A| / S on a
     leaf's other face (A < 0 there), in canestrad's order of operations."""
@@ -136,7 +136,8 @@ def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=
         if pattern is not None and np.float64(u[2]) > -1 + 1e-6:
             steps = periodic.tiling_steps(periodic.roof_pixels(vmin, vmax, origin, v, w, u, du, dv, size))
             periodic.tile(owner, depth, periodic.translations(steps, size), periodic.distance_step(u[2], dv, size))
-        pixel_area = du * dv / float(size * size) / costeta
+        with np.errstate(divide="ignore", invalid="ignore"):  # a horizontal beam: canestrad's IEEE division
+            pixel_area = np.float64(du * dv / float(size * size)) / np.float64(costeta)
         areas = projection.projected_areas(owner, n_faces, first_face, translucent, _facing(u, normal), pixel_area)
         seen = projection.sensor_areas(depth, sensors, _facing(u, sensor_normal), sensor_copies, shifts, origin, v,
                                        w, u, du, dv, size, pixel_area)

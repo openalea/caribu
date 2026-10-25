@@ -58,39 +58,39 @@ def disc_heights(size=52):
     return pixel, table
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _sqrt(value):
     """Msqrt: the square root, 0 for a slightly negative value."""
     return 0. if value < 0 else math.sqrt(value)
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _dot(a0, a1, a2, b0, b1, b2):
     """Vecteur::prod_scalaire, in float32."""
     return F32(F32(F32(a0 * b0) + F32(a1 * b1)) + F32(a2 * b2))
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _sphere(x, y, z):
     """loc2sph: a point to (x/r, y/r, r), float32, r the double square root of its float32 squared norm."""
     r = F32(_sqrt(np.float64(F32(F32(F32(x * x) + F32(y * y)) + F32(z * z)))))
     return F32(x / r), F32(y / r), r
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _crossing(a0, a1, a2, b0, b1, b2):
     """Pz0: where segment a–b (float32) crosses z = 0 (k in float32, as the C++ computes it)."""
     k = np.float64(F32(b2 / F32(b2 - a2)))
     return F32(k * a0 + (1. - k) * b0), F32(k * a1 + (1. - k) * b1), F32(0.)
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _determinant(m00, m01, m02, m10, m11, m12, m20, m21, m22):
     """solve3's determinant, its terms in its order."""
     return m00 * (m11 * m22 - (m21 * m12)) - m01 * (m10 * m22 - (m20 * m12)) + m02 * (m10 * m21 - (m20 * m11))
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _solve3(m00, m01, m02, m10, m11, m12, m20, m21, m22, b0, b1, b2):
     """solve3: Cramer's rule in double, (solvable, x0, x1, x2)."""
     determinant = _determinant(m00, m01, m02, m10, m11, m12, m20, m21, m22)
@@ -101,7 +101,7 @@ def _solve3(m00, m01, m02, m10, m11, m12, m20, m21, m22, b0, b1, b2):
             _determinant(m00, m01, b0, m10, m11, b1, m20, m21, b2) / determinant)
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _edge_plane(a0, a1, a2, b0, b1, b2):
     """init_MPE: the plane through the origin and edge a–b (float32), normalised on its first non-zero coefficient,
     (degenerate, e0, e1, e2)."""
@@ -123,7 +123,7 @@ PROJECTED, MIDDLE, APEX, CORNERS, SPHERICAL = 0, 3, 5, 8, 11
 MATRIX, PLANE, EDGES, RECTANGLE, BOUNDS = 0, 3, 4, 7, 8
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def workspace():
     """_project's work arrays: float32 (14, 3), the projected vertices, the plane's crossings, the parts' apexes and
     corners, their spherical coordinates; float64 (9, 4), the emitter plane's system and solution, the edges'
@@ -131,14 +131,14 @@ def workspace():
     return np.zeros((14, 3), dtype=np.float32), np.zeros((9, 4))
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _copy(work, row, source_row):
     """work[row] = work[source_row], element by element (no array view)."""
     for k in range(3):
         work[row, k] = work[source_row, k]
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _project(emitter, emitters, frame, receiver_translucent, emitter_opaque, owners, depths, size, pixel, disc,
              work, work64, limit):
     """proj_ortho: the emitter triangle (float32 emitters[emitter], its vertices, centre and normal; translated by
@@ -329,7 +329,7 @@ def _project(emitter, emitters, frame, receiver_translucent, emitter_opaque, own
 
 # --- The receivers ---
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _frame(receivers, receiver_normals, receiver_centres, r, frame):
     """init_proj: receiver r's frame into *frame*: its origin (centre), u = P0 − P1 normalised, v = w × u, w its
     normal (float32), then no shift."""
@@ -349,7 +349,7 @@ def _frame(receivers, receiver_normals, receiver_centres, r, frame):
     frame[3, 0], frame[3, 1], frame[3, 2] = w0, w1, w2
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _level(table, rows, level, column):
     """Tenv(level, column) of canestrad's column-major profile table (E−, E+, heights); beyond the table, the top
     level's."""
@@ -357,7 +357,7 @@ def _level(table, rows, level, column):
     return table[index] if index < table.shape[0] else table[rows - 1 + rows * column]
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _environment(i, j, sign, frame, pixel, disc, radius, table, rows, thickness, weights, weight_row):
     """env: the far field's flux seen through pixel (i, j) of the upper (*sign* 1) or lower (−1) hemisphere: the
     profile's E− (looking up) or E+ (looking down) where the pixel's direction leaves the sphere (float32 Point
@@ -386,7 +386,7 @@ def _environment(i, j, sign, frame, pixel, disc, radius, table, rows, thickness,
     return layer * _level(table, rows, level, column) + (1 - layer) * _level(table, rows, level + 1, column)
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _neighbourhood(centre, origin, side, voxels, box_sizes, infinite, period, radius, boxes, shifts, cells, moves,
                    corners):
     """The boxes (up to 8, de-duplicated per box and translation, empty ones skipped but the first) whose
@@ -458,7 +458,7 @@ def _neighbourhood(centre, origin, side, voxels, box_sizes, infinite, period, ra
     return count
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _add_box(box, dx, dy, box_sizes, boxes, shifts, count):
     """addbox: a box and its translation, unless empty (but the first) or already there."""
     if count != 0:
@@ -472,7 +472,7 @@ def _add_box(box, dx, dy, box_sizes, boxes, shifts, count):
     return count + 1
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _candidates(r, translucent_r, soil, frame, emitters, spreads, translucent, first_face, labels, radius, bias,
                 limit, box_count, boxes, shifts, box_indptr, box_members, flags, active_face, owners, depths, size,
                 pixel, disc, work, work64):
@@ -524,7 +524,7 @@ def _candidates(r, translucent_r, soil, frame, emitters, spreads, translucent, f
     frame[4, 0] = frame[4, 1] = F32(0.)
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _faces(translucent_r, optics, frame, owners, active_face, faces, size, pixel, disc, radius, table, rows,
            thickness, dff, bfc, far):
     """NFF's pass over the discs: each pixel's emitter face (*faces* (2, size, size), its last activated face, −1
@@ -560,7 +560,7 @@ def _faces(translucent_r, optics, frame, owners, active_face, faces, size, pixel
     far[0], far[1] = far_upper, far_lower
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _clear(owners, depths, size):
     for i in range(size):
         for j in range(size):
@@ -569,7 +569,7 @@ def _clear(owners, depths, size):
             depths[1, i, j] = LOWER_EMPTY
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=True, nogil=True, error_model="numpy")
 def _receiver_rows(start, stop, receivers, receiver_normals, receiver_centres, receiver_translucent,
                    receiver_labels, receiver_optics, emitters, spreads, translucent, first_face, labels, n_faces,
                    radius, size, pixel, disc, origin, side, voxels, box_sizes, box_indptr, box_members, infinite,

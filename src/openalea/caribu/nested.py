@@ -139,7 +139,7 @@ def reused_far_field(weights, receiver_optics, receiver_translucent, profile, li
                    energy)
 
 
-@njit(cache=True)
+@njit(cache=True, error_model="numpy")
 def _reused(weights, receiver_optics, receiver_translucent, downward, upward, energy):
     count = weights.shape[0]
     flat = np.zeros(2 * count + 1)  # Cenv by face, after a slot for the slip's write before the first
