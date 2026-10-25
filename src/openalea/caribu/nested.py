@@ -10,6 +10,7 @@ its neighbours (nested radiosity, Chelle, Andrieu & Bouatouch 1998).
                                                                                       plus the far field's light
 """
 import numpy as np
+from numba import njit
 
 from . import direct, geometry, nearfield, sail, solver
 from .labels import is_translucent
@@ -31,7 +32,7 @@ def far_field_profile(points, labels, lights, optics, pattern, layers, height, p
 
 def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diameter=0., size=1536, sensors=None,
         workers=None, precision="legacy", bias=True, resolution=52, tolerance=1e-6, iterations=1000, threshold=50,
-        ratio=1., weights=None):
+        ratio=1., weights=None, cache=None, prepared=None):
     """Direct light and its scattering in the infinite canopy repeating *pattern* (x1, y1, x2, y2), the far field
     in *layers* up to *height*: direct.run's result, its budgets from the radiosities; result["profile"] the far
     field's fluxes, result["first_order"] B0, result["far_field"] B_far. *diameter*: the near field's sphere (0:
@@ -40,17 +41,18 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
     files' printed digits (s2v's, mcsail's), as canestrad reads them. *bias* False: canestrad's `-B` (emitters by
     their distance to the sphere, hits beyond it dropped); *threshold*, *ratio*: the grid's (`grille_par`).
     *weights*: (counts, weights) of a run on the same scene in another band, the far field from them (canestrad's
-    `-w`, its scaling by the last source's energy kept while *precision* is the legacy's)."""
+    `-w`, its scaling by the last source's energy kept while *precision* is the legacy's). *cache*: first_order's;
+    *prepared*: direct.scene's result."""
     if diameter != 0:
         return _nested(vertices, labels, lights, optics, pattern, layers, height, diameter, size, sensors, workers,
-                       precision, bias, resolution, tolerance, iterations, threshold, ratio, weights)
-    points, labels, accepted, flags = direct.scene(vertices, labels, pattern)
+                       precision, bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared)
+    points, labels, accepted, flags = direct.scene(vertices, labels, pattern) if prepared is None else prepared
     kept_points, kept = points[accepted], labels[accepted]
     profile, structure = far_field_profile(points, labels, lights, optics, pattern, layers, height, precision)
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     first, surfaces, sensor_first, sensor_surfaces = direct.first_order(
         kept_points, kept, lights if accepted.any() else [], optics, size, sensors=sensor_points, workers=workers,
-        pattern=pattern, flags=flags)
+        pattern=pattern, flags=flags, cache=cache)
     translucent = is_translucent(kept)
     first_face, n_faces = direct.face_numbering(translucent)
     reflectance, transmittance = direct.face_optics(kept, optics)
@@ -69,14 +71,14 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
 
 
 def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter, size, sensors, workers, precision,
-            bias, resolution, tolerance, iterations, threshold, ratio, weights):
-    points, labels, accepted, flags = direct.scene(vertices, labels, pattern)
+            bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared):
+    points, labels, accepted, flags = direct.scene(vertices, labels, pattern) if prepared is None else prepared
     kept_points, kept = points[accepted], labels[accepted]
     profile, structure = far_field_profile(points, labels, lights, optics, pattern, layers, height, precision)
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     first, surfaces, sensor_first, sensor_surfaces = direct.first_order(
         kept_points, kept, lights if accepted.any() else [], optics, size, sensors=sensor_points, workers=workers,
-        pattern=pattern, flags=flags)
+        pattern=pattern, flags=flags, cache=cache)
     translucent = is_translucent(kept)
     first_face, n_faces = direct.face_numbering(translucent)
     reflectance, transmittance = direct.face_optics(kept, optics)
@@ -123,33 +125,44 @@ def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter,
 
 
 def reused_far_field(weights, receiver_optics, receiver_translucent, profile, lights, precision="legacy"):
-    """hd_calc_Bfar: each receiver's far field from its levels' *weights* (another band's run) and this band's
-    profile and optics: (receivers, 2). While *precision* is the legacy's, its scaling by the last source's energy
-    (Eclt) is kept with its index slip: a translucent receiver's faces are scaled, an opaque one's only when the
-    next receiver is opaque too (the slip scales the previous face; the last receiver is never scaled)."""
-    downward, upward = np.asarray(profile["downward"]), np.asarray(profile["upward"])
-    energy = float(lights[-1][0]) if (precision == "legacy" and len(lights)) else 1.
-    flat = np.zeros(2 * len(weights) + 1)  # Cenv by face, after a slot for the slip's write before the first
+    """hd_calc_Bfar: each receiver's far field from its levels' *weights* (another band's or call's run) and this
+    band's profile and optics: (receivers, 2). While *precision* is the legacy's, the weights are canestrad's
+    float32 and its scaling by the last source's energy (Eclt) is kept with its index slip: a translucent
+    receiver's faces are scaled, an opaque one's only when the next receiver is opaque too (the slip scales the
+    previous face; the last receiver is never scaled)."""
+    legacy = precision == "legacy"
+    energy = float(lights[-1][0]) if (legacy and len(lights)) else 1.
+    weights = np.asarray(weights).astype(np.float32).astype(np.float64) if legacy else np.asarray(weights)
+    return _reused(weights, np.asarray(receiver_optics, dtype=np.float64), np.asarray(receiver_translucent),
+                   np.asarray(profile["downward"], dtype=np.float64), np.asarray(profile["upward"], dtype=np.float64),
+                   energy)
+
+
+@njit(cache=True)
+def _reused(weights, receiver_optics, receiver_translucent, downward, upward, energy):
+    count = weights.shape[0]
+    flat = np.zeros(2 * count + 1)  # Cenv by face, after a slot for the slip's write before the first
     index = 1
-    for r in range(len(weights)):
-        rho_upper, tau_upper, rho_lower, tau_lower = receiver_optics[r]
-        for level in range(len(downward)):
-            flux = float(weights[r, 0, level]) * downward[level] + float(weights[r, 1, level]) * upward[level]
+    for r in range(count):
+        rho_upper, tau_upper = receiver_optics[r, 0], receiver_optics[r, 1]
+        rho_lower, tau_lower = receiver_optics[r, 2], receiver_optics[r, 3]
+        for level in range(downward.shape[0]):
+            flux = weights[r, 0, level] * downward[level] + weights[r, 1, level] * upward[level]
             flat[index] += rho_upper * flux
             if receiver_translucent[r]:
                 flat[index + 1] += tau_upper * flux
         if receiver_translucent[r]:
-            for level in range(len(downward)):
-                flux = float(weights[r, 2, level]) * downward[level] + float(weights[r, 3, level]) * upward[level]
+            for level in range(downward.shape[0]):
+                flux = weights[r, 2, level] * downward[level] + weights[r, 3, level] * upward[level]
                 flat[index] += tau_lower * flux
                 flat[index + 1] += rho_lower * flux
             index += 1
             flat[index] *= energy
         flat[index - 1] *= energy
         index += 1
-    far = np.zeros((len(weights), 2))
+    far = np.zeros((count, 2))
     index = 1
-    for r in range(len(weights)):
+    for r in range(count):
         far[r, 0] = flat[index]
         if receiver_translucent[r]:
             far[r, 1] = flat[index + 1]

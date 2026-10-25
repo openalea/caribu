@@ -14,16 +14,18 @@ F32 = np.float32
 
 
 def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None, resolution=52, tolerance=1e-6,
-        iterations=1000, counts=None):
+        iterations=1000, counts=None, cache=None, prepared=None):
     """Radiosity on the triangles: direct.run's result, its budgets from the solved radiosities; result["steps"]
     the solver's steps, result["counts"] the near field's. *resolution*: the receivers' discs, NB × NB pixels;
     *tolerance*, *iterations*: MGCR's (relative to the first residual); *counts*: a previous run's on the same
-    triangles and sensors (another band), not computed again."""
-    points, labels, accepted, _ = direct.scene(vertices, labels)
+    triangles and sensors (another band), not computed again; *cache*: first_order's; *prepared*: direct.scene's
+    result."""
+    points, labels, accepted, _ = direct.scene(vertices, labels) if prepared is None else prepared
     kept_points, kept = points[accepted], labels[accepted]
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     first, surfaces, sensor_first, sensor_surfaces = direct.first_order(kept_points, kept, lights, optics, size,
-                                                                        sensors=sensor_points, workers=workers)
+                                                                        sensors=sensor_points, workers=workers,
+                                                                        cache=cache)
     translucent = is_translucent(kept)
     first_face, n_faces = direct.face_numbering(translucent)
     reflectance, transmittance = direct.face_optics(kept, optics)

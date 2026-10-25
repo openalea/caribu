@@ -95,14 +95,15 @@ def accumulate(radiosity, areas, energy, first_face, translucent, reflectance, t
 
 
 def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=None, workers=None, pattern=None,
-                flags=None):
+                flags=None, cache=None):
     """The accepted triangles' first-order radiosities (n_faces,) in canestrad's face order, their areas, and the
     sensors' (m,) irradiances (their first-order radiosities: a sensor reflects all, ρ = 1). *points*: float32
     (n, 3, 3) accepted triangles; *lights*: [(E, (vx, vy, vz))]; *bounds*: the scene's (vmin, vmax) float32, by default
     those of *points*; *sensors*: float32 (m, 3, 3) virtual sensors, seen only from above their upper face, which
     neither shade nor scatter; *workers*: the threads projecting the sources (by default, one per processor). With a
     *pattern* (xmin, ymin, xmax, ymax) the canopy is infinite: the screen spans the pattern, the triangles across its
-    borders (*flags*, periodic.border_flags') drawn with their shifted copies, the image tiled."""
+    borders (*flags*, periodic.border_flags') drawn with their shifted copies, the image tiled. *cache*: a dict of
+    each direction's lit areas, filled and reused (the same scene, size and sensors: the caller's to keep so)."""
     translucent = is_translucent(labels)
     first_face, n_faces = face_numbering(translucent)
     reflectance, transmittance = face_optics(labels, optics)
@@ -141,10 +142,14 @@ def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=
                                        w, u, du, dv, size, pixel_area)
         return areas, seen
 
+    directions = [tuple(float(value) for value in direction) for _, direction in lights]
+    cache = {} if cache is None else cache
+    missing = [direction for direction in dict.fromkeys(directions) if direction not in cache]
     radiosity, sensor_radiosity = np.zeros(n_faces), np.zeros(len(sensors))
     # the sources' projections in parallel (numba releases the GIL), their contributions summed in the sources' order
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        for (energy, _), (areas, seen) in zip(lights, executor.map(lit_areas, [direction for _, direction in lights])):
+        cache.update(zip(missing, executor.map(lit_areas, missing)))
+        for (energy, _), (areas, seen) in zip(lights, (cache[direction] for direction in directions)):
             accumulate(radiosity, areas, float(energy), first_face, translucent, reflectance, transmittance, surfaces)
             lit = seen != 0.0
             sensor_radiosity[lit] += float(energy) * (seen[lit] / sensor_surfaces[lit])
@@ -187,22 +192,24 @@ def results(labels, accepted, points, surfaces, radiosity, optics) -> dict:
     return result
 
 
-def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None, pattern=None):
+def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None, pattern=None, cache=None,
+        prepared=None):
     """Direct light on a scene, as canestrad -1: per input triangle (n,) its area (canestrad's, 0 if rejected), Eabs,
     Ei (sup + inf), Ei_sup, Ei_inf (float32; NaN if rejected, Ei_inf −1 for an opaque triangle) and whether it was
     accepted. *vertices* (n, 3, 3), *labels* (n,) or one for all, *lights* [(E, (vx, vy, vz))], *optics* (soil reflectance,
     {species: (rho_stem, rho_sup, tau_sup, rho_inf, tau_inf)}); *size* the z-buffer's side in pixels. With *sensors*
     (m, 3, 3), result["sensors"] holds their irradiance "Ei" and "area". *workers*: first_order's. With a *pattern*
     (x1, y1, x2, y2) the canopy is infinite (canestrad -8, after periodise): the triangles are first moved into the
-    pattern (result["points"], the scene canestrad reads), those whose centre still lies outside it rejected."""
-    points, labels, accepted, flags = scene(vertices, labels, pattern)
+    pattern (result["points"], the scene canestrad reads), those whose centre still lies outside it rejected.
+    *cache*: first_order's; *prepared*: scene's result on these vertices, labels and pattern."""
+    points, labels, accepted, flags = scene(vertices, labels, pattern) if prepared is None else prepared
     kept = labels[accepted]
     if not accepted.any():
         lights = []  # nothing to light: every row rejected
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     radiosity, surfaces, sensor_radiosity, sensor_surfaces = first_order(points[accepted], kept, lights, optics, size,
                                                                          sensors=sensor_points, workers=workers,
-                                                                         pattern=pattern, flags=flags)
+                                                                         pattern=pattern, flags=flags, cache=cache)
     result = results(labels, accepted, points, surfaces, radiosity, optics)
     if sensors is not None:
         result["sensors"] = {"Ei": sensor_radiosity, "area": sensor_surfaces}

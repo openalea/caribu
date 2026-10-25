@@ -38,9 +38,9 @@ def compare(vertices, labels, layers, diameter, sensors=None, bias=True, matrice
         weights = np.frombuffer(legacy["hd/Bfar_ff"][8:], dtype=np.float32)
         translucent = np.concatenate([is_translucent(np.asarray(labels)[result["accepted"]]),
                                       np.zeros(0 if sensors is None else len(sensors), dtype=bool)])
-        port_weights = np.concatenate([np.concatenate([w[0:2].T.reshape(-1)] + ([w[2:4].T.reshape(-1)] if upper else []))
-                                       for w, upper in zip(result["weights"], translucent)])
-        np.testing.assert_array_equal(weights, port_weights)
+        port_weights = np.concatenate([np.concatenate([w[0:2].T.reshape(-1)] + ([w[2:4].T.reshape(-1)] if leaf else []))
+                                       for w, leaf in zip(result["weights"], translucent)])
+        np.testing.assert_array_equal(weights, port_weights.astype(np.float32))  # canestrad writes float32
 
 
 @pytest.mark.parametrize("diameter, bias", [(6., True), (12., True), (12., False), (40., True)])

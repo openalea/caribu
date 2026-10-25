@@ -490,8 +490,8 @@ def _receiver_rows(start, stop, receivers, receiver_normals, receiver_centres, r
                    radius, size, pixel, disc, origin, side, voxels, box_sizes, box_indptr, box_members, infinite,
                    period, bias, table, rows, thickness, dff):
     """The rows of receivers start..stop: (row lengths, emitter faces, net counts, far field (receivers, 2) of each
-    receiver's upper and lower face, its levels' weights (receivers, 4, rows) as canestrad stores them, float32
-    bfc · dFF), each row's faces ascending. *emitters*: the triangles' vertices, centre and normal (n, 5, 3);
+    receiver's upper and lower face, its levels' weights (receivers, 4, rows): bfc · dFF, canestrad's `-w` files
+    holding them as float32), each row's faces ascending. *emitters*: the triangles' vertices, centre and normal (n, 5, 3);
     *spreads*: their centre's largest distance to a vertex (appart_sphere); *receiver_optics* (receivers, 4): ρ, τ
     of the upper face, ρ, τ of the lower one; the boxes' lists of diffusers (sensors after the triangles)."""
     owners = np.full((2, size, size), -1, dtype=np.int32)
@@ -506,7 +506,7 @@ def _receiver_rows(start, stop, receivers, receiver_normals, receiver_centres, r
     count = np.zeros(n_faces, dtype=np.int32)
     lengths = np.zeros(stop - start, dtype=np.int64)
     far = np.zeros((stop - start, 2))
-    weights = np.zeros((stop - start, 4, rows), dtype=np.float32)
+    weights = np.zeros((stop - start, 4, rows))
     bfc = np.zeros((4, rows))
     boxes = np.zeros(8, dtype=np.int64)
     shifts = np.zeros((8, 2), dtype=np.float32)
@@ -599,7 +599,7 @@ def _receiver_rows(start, stop, receivers, receiver_normals, receiver_centres, r
         far[r - start, 0], far[r - start, 1] = far_upper, far_lower
         for row in range(4):
             for level in range(rows):
-                weights[r - start, row, level] = F32(bfc[row, level] * dff)
+                weights[r - start, row, level] = bfc[row, level] * dff
         touched_array = np.empty(len(touched), dtype=np.int64)
         for index in range(len(touched)):
             touched_array[index] = touched[index]
@@ -762,7 +762,7 @@ def counts(points, labels, translucent, first_face, n_faces, normals, centres, r
     if profile is None:
         return indptr, faces, values
     far = np.concatenate([part[3] for part in parts]) if parts else np.zeros((0, 2))
-    weights = np.concatenate([part[4] for part in parts]) if parts else np.zeros((0, 4, rows), dtype=F32)
+    weights = np.concatenate([part[4] for part in parts]) if parts else np.zeros((0, 4, rows))
     return (indptr, faces, values), far, weights
 
 

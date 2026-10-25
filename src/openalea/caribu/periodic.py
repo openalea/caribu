@@ -39,23 +39,33 @@ def periodised(points, pattern) -> np.ndarray:
     bottom = F32(np.float64(bottom) - np.float64(F32(top - bottom)) / 100.0)
     lowest = (0.01 * np.float64(top) + np.float64(bottom)) / 1.01
     lift = -lowest if lowest < 0 else 0.
-    length = [np.float64(F32(high[axis] - low[axis])) for axis in range(2)]
-    centres = _periodise_centres(points)
+    lengths = np.array([np.float64(F32(high[axis] - low[axis])) for axis in range(2)])
+    moved = _moved(points, _periodise_centres(points), low.astype(np.float64), high.astype(np.float64), lengths,
+                   lift)
+    values = moved.reshape(-1)
+    text = ("%.6g " * len(values)) % tuple(values.tolist())  # one formatting call, then one parse
+    return np.array(text.split(), dtype=np.float64).reshape(points.shape)
+
+
+@njit(cache=True, nogil=True)
+def _moved(points, centres, low, high, lengths, lift):
+    """Each triangle translated by whole pattern lengths, its centre into (low, high] (periodise's walk, its
+    comparisons in double), the scene raised by *lift* (float64)."""
     moved = np.empty(points.shape, dtype=np.float64)
-    for t in range(len(points)):
-        shift = [0., 0.]
+    for t in range(points.shape[0]):
+        shift = np.zeros(2)
         for axis in range(2):
             centre, m = np.float64(centres[t, axis]), 0
-            while centre <= np.float64(low[axis]) + m * length[axis]:
+            while centre <= low[axis] + m * lengths[axis]:
                 m -= 1
-            while centre > np.float64(high[axis]) + m * length[axis]:
+            while centre > high[axis] + m * lengths[axis]:
                 m += 1
-            shift[axis] = -m * length[axis]
-        moved[t, :, 0] = points[t, :, 0].astype(np.float64) + shift[0]
-        moved[t, :, 1] = points[t, :, 1].astype(np.float64) + shift[1]
-        moved[t, :, 2] = points[t, :, 2].astype(np.float64) + lift
-    written = np.array([float("%.6g" % value) for value in moved.reshape(-1)], dtype=np.float64)
-    return written.reshape(points.shape)
+            shift[axis] = -m * lengths[axis]
+        for vertex in range(3):
+            moved[t, vertex, 0] = np.float64(points[t, vertex, 0]) + shift[0]
+            moved[t, vertex, 1] = np.float64(points[t, vertex, 1]) + shift[1]
+            moved[t, vertex, 2] = np.float64(points[t, vertex, 2]) + lift
+    return moved
 
 
 def pattern_bounds(pattern):
