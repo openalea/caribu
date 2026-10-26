@@ -109,14 +109,14 @@ def scene(models, environment_scenario=None, translator=None, PARi=500.):
 
 
 def caribu_scene(triangles, labels, mode="direct", **run):
-    """CaribuScene (full precision) on the same triangles, a primitive per element, Wheat-BRIDGES' optics."""
+    """CaribuScene (full precision, the corrections) on the same triangles, a primitive per element, Wheat-BRIDGES' optics."""
     materials = {"LeafElement": (0.10, 0.05), "StemElement": (0.10,)}
     primitives = {}
     for vertices, owner in zip(triangles.vertices.tolist(), triangles.owner.tolist()):
         primitives.setdefault(owner, []).append(vertices)
     opt = {"par": {owner: materials[labels[owner]] for owner in primitives}}
     caribu = api.CaribuScene(scene=primitives, light=SKY, pattern=(0, 0, XRANGE, YRANGE), opt=opt, precision="full",
-                             soil_reflectance={"par": 0.15})
+                             soil_reflectance={"par": 0.15}, corrections="recommended")
     _, aggregated = caribu.run(direct=mode == "direct", infinite=True, **run)
     return aggregated["par"]
 

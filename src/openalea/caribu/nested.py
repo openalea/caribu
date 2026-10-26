@@ -32,7 +32,7 @@ def far_field_profile(points, labels, lights, optics, pattern, layers, height, p
 
 def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diameter=0., size=1536, sensors=None,
         workers=None, precision="legacy", bias=True, resolution=52, tolerance=1e-6, iterations=1000, threshold=50,
-        ratio=1., weights=None, cache=None, prepared=None, device="cpu"):
+        ratio=1., weights=None, cache=None, prepared=None, device="cpu", corrections=frozenset()):
     """Direct light and its scattering in the infinite canopy repeating *pattern* (x1, y1, x2, y2), the far field
     in *layers* up to *height*: direct.run's result, its budgets from the radiosities; result["profile"] the far
     field's fluxes, result["first_order"] B0, result["far_field"] B_far. *diameter*: the near field's sphere (0:
@@ -42,18 +42,20 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
     their distance to the sphere, hits beyond it dropped); *threshold*, *ratio*: the grid's (`grille_par`).
     *weights*: (counts, weights) of a run on the same scene in another band, the far field from them (canestrad's
     `-w`, its scaling by the last source's energy kept while *precision* is the legacy's). *cache*: first_order's;
-    *prepared*: direct.scene's result; *device* "cuda": the near field on the GPU."""
+    *prepared*: direct.scene's result; *device* "cuda": the near field on the GPU; *corrections*:
+    corrections.resolve's names."""
     if diameter != 0:
         return _nested(vertices, labels, lights, optics, pattern, layers, height, diameter, size, sensors, workers,
                        precision, bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared,
-                       device)
-    points, labels, accepted, flags = direct.scene(vertices, labels, pattern) if prepared is None else prepared
+                       device, corrections)
+    points, labels, accepted, flags = (direct.scene(vertices, labels, pattern, corrections) if prepared is None
+                                       else prepared)
     kept_points, kept = points[accepted], labels[accepted]
     profile, structure = far_field_profile(points, labels, lights, optics, pattern, layers, height, precision)
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     first, surfaces, sensor_first, sensor_surfaces = direct.first_order(
         kept_points, kept, lights if accepted.any() else [], optics, size, sensors=sensor_points, workers=workers,
-        pattern=pattern, flags=flags, cache=cache)
+        pattern=pattern, flags=flags, cache=cache, corrections=corrections)
     translucent = is_translucent(kept)
     first_face, n_faces = direct.face_numbering(translucent)
     reflectance, transmittance = direct.face_optics(kept, optics)
@@ -72,14 +74,15 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
 
 
 def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter, size, sensors, workers, precision,
-            bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared, device):
-    points, labels, accepted, flags = direct.scene(vertices, labels, pattern) if prepared is None else prepared
+            bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared, device, corrections):
+    points, labels, accepted, flags = (direct.scene(vertices, labels, pattern, corrections) if prepared is None
+                                       else prepared)
     kept_points, kept = points[accepted], labels[accepted]
     profile, structure = far_field_profile(points, labels, lights, optics, pattern, layers, height, precision)
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     first, surfaces, sensor_first, sensor_surfaces = direct.first_order(
         kept_points, kept, lights if accepted.any() else [], optics, size, sensors=sensor_points, workers=workers,
-        pattern=pattern, flags=flags, cache=cache)
+        pattern=pattern, flags=flags, cache=cache, corrections=corrections)
     translucent = is_translucent(kept)
     first_face, n_faces = direct.face_numbering(translucent)
     reflectance, transmittance = direct.face_optics(kept, optics)

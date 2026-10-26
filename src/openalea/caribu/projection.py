@@ -119,12 +119,37 @@ def _to_image(point_x, point_y, point_z, shift, origin, v, w, u):
             F32(F32(F32(u[0] * x) + F32(u[1] * y)) + F32(u[2] * z)))
 
 
+# pattern_cell's layout: on (1), the screen's origin, v, w, u, the pixel scales k0, k1, the cell's low and high corners
+CELL = 19
+
+
+def pattern_cell(origin, v, w, u, du, dv, size, low, high) -> np.ndarray:
+    """(CELL,) the pattern as a cell of the infinite canopy's lattice, for the pixel counts of the correction
+    "border_copies": a pixel counts for a triangle only when its visible point lies in [low − h, high − h) in x and
+    y, h half a pixel's pitch (a half-open cell: each point of the periodic canopy counted once, whatever the beam;
+    under a vertical beam, the screen's last row and column, which repeat its first ones, left out)."""
+    half = 0.5 * min(du, dv) / (size - 1)
+    return np.concatenate([[1.], origin, v, w, u, [(size - 1) / du, (size - 1) / dv],
+                           [low[0] - half, low[1] - half, high[0] - half, high[1] - half]]).astype(np.float64)
+
+
 @njit(cache=True, nogil=True, error_model="numpy")
-def _colour_triangle(owner, depth, triangle, a, b, c, size, extent_x, extent_y, count_only):
+def _in_cell(i, j, z, cell):
+    """Whether pixel (i, j)'s point at depth *z* lies in the cell (pattern_cell's): the rasteriser's sample, column i
+    at i / k0, row j on its scanline (j + 0.5) / k1."""
+    x, y = i / cell[13], (j + 0.5) / cell[14]
+    point_x = cell[1] + x * cell[4] + y * cell[7] + z * cell[10]
+    point_y = cell[2] + x * cell[5] + y * cell[8] + z * cell[11]
+    return cell[15] <= point_x < cell[17] and cell[16] <= point_y < cell[18]
+
+
+@njit(cache=True, nogil=True, error_model="numpy")
+def _colour_triangle(owner, depth, triangle, a, b, c, size, extent_x, extent_y, count_only, cell):
     """colorie_triangle: rows and columns whose pixel centre lies in the triangle (apex *a*, base *b*-*c*, a flat
     base), the nearest along the beam kept (strict <: the first drawn wins ties). a, b, c: double (3,). With
-    *count_only* (colorie_capteur, a sensor) the pixels where it would be the nearest are counted, nothing drawn.
-    Returns that count."""
+    *count_only* (colorie_capteur, a sensor) the pixels where it would be the nearest are counted, nothing drawn,
+    and with a *cell* (pattern_cell's, its first value 1) only those whose point lies in the pattern. Returns that
+    count."""
     k0 = (size - 1) / extent_x
     k1 = (size - 1) / extent_y
     slope_left = (b[0] - a[0]) / (b[1] - a[1])
@@ -155,7 +180,8 @@ def _colour_triangle(owner, depth, triangle, a, b, c, size, extent_x, extent_y, 
             for i in range(i_left, i_right + 1):
                 if z < depth[i, j]:
                     if count_only:
-                        count += 1
+                        if cell[0] == 0. or _in_cell(i, j, z, cell):
+                            count += 1
                     else:
                         depth[i, j] = F32(z)
                         owner[i, j] = triangle
@@ -167,7 +193,7 @@ def _colour_triangle(owner, depth, triangle, a, b, c, size, extent_x, extent_y, 
 
 
 @njit(cache=True, nogil=True, error_model="numpy")
-def _draw(owner, depth, triangle, points, shift, origin, v, w, u, du, dv, size, count_only):
+def _draw(owner, depth, triangle, points, shift, origin, v, w, u, du, dv, size, count_only, cell):
     """One triangle (float32 (3, 3)) translated by *shift*, projected and split along its middle vertex into
     flat-based triangles as projplan, each coloured (or its visible pixels counted). Returns the count."""
     pp = np.zeros((4, 3), dtype=np.float32)
@@ -206,60 +232,66 @@ def _draw(owner, depth, triangle, points, shift, origin, v, w, u, du, dv, size, 
     if up:
         for q in range(3):
             a[q], b[q], c[q] = pp[i, q], pp[j, q], pp[k, q]
-        count += _colour_triangle(owner, depth, triangle, c, a, b, size, du, dv, count_only)
+        count += _colour_triangle(owner, depth, triangle, c, a, b, size, du, dv, count_only, cell)
     if down:
         if up:
             k, j, i = j, i, last
         for q in range(3):
             a[q], b[q], c[q] = pp[i, q], pp[j, q], pp[k, q]
-        count += _colour_triangle(owner, depth, triangle, a, b, c, size, du, dv, count_only)
+        count += _colour_triangle(owner, depth, triangle, a, b, c, size, du, dv, count_only, cell)
     return count
 
 
 @njit(cache=True, nogil=True, error_model="numpy")
-def rasterise(points, copies, shifts, origin, v, w, u, du, dv, size):
+def rasterise(points, shifts, counts, origin, v, w, u, du, dv, size):
     """(T, T) the index of the triangle owning each pixel (-1: none), and the depth buffer: each triangle of *points*
-    (float32 (n, 3, 3), in scene order) drawn once per copy of *copies* (n, 3) bool (the original, +dx, +dy:
-    periodic border copies) translated by *shifts* (3, 3) float32."""
+    (float32 (n, 3, 3), in scene order) drawn once per copy, its *counts* (n,) first *shifts* (n, k, 3) float32 in
+    order (the original, then its periodic border copies: periodic.copy_shifts)."""
+    cell = np.zeros(CELL)
     depth = np.full((size, size), EMPTY_DEPTH, dtype=np.float32)
     owner = np.full((size, size), -1, dtype=np.int64)
     for t in range(points.shape[0]):
-        for copy in range(3):
-            if copies[t, copy]:
-                _draw(owner, depth, t, points[t], shifts[copy], origin, v, w, u, du, dv, size, False)
+        for copy in range(counts[t]):
+            _draw(owner, depth, t, points[t], shifts[t, copy], origin, v, w, u, du, dv, size, False, cell)
     return owner, depth
 
 
 @njit(cache=True, nogil=True, error_model="numpy")
-def sensor_areas(depth, points, seen, copies, shifts, origin, v, w, u, du, dv, size, pixel_area):
+def sensor_areas(depth, points, seen, shifts, counts, origin, v, w, u, du, dv, size, pixel_area, cumulative, cell):
     """Each sensor's sunlit area (horizontal equivalent) on the scene's depth buffer: the pixels where it would be
-    in front of every triangle (projplan's virtual sensors, after the scene). *seen*: whether the beam meets its
-    upper face (only then is it counted). As canestrad, the area is added after each copy with the count so far."""
+    in front of every triangle (projplan's virtual sensors, after the scene), each copy of *shifts*, *counts*
+    (rasterise's) counted. *seen*: whether the beam meets its upper face (only then is it counted). *cumulative*
+    (canestrad's): the area added after each copy with the count so far (the first copies counted again). *cell*:
+    pattern_cell's, the pixels counted only where the sensor's point lies in the pattern (none: zeros)."""
     areas = np.zeros(points.shape[0])
     owner = np.zeros((1, 1), dtype=np.int64)
     for s in range(points.shape[0]):
         if not seen[s]:
             continue
         pixels = 0
-        for copy in range(3):
-            if copies[s, copy]:
-                pixels += _draw(owner, depth, s, points[s], shifts[copy], origin, v, w, u, du, dv, size, True)
+        for copy in range(counts[s]):
+            drawn = _draw(owner, depth, s, points[s], shifts[s, copy], origin, v, w, u, du, dv, size, True, cell)
+            if cumulative:
+                pixels += drawn
                 areas[s] += pixels * pixel_area
+            else:
+                areas[s] += drawn * pixel_area
     return areas
 
 
 @njit(cache=True, nogil=True, error_model="numpy")
-def projected_areas(owner, n_faces, first_face, translucent, lit_upper, pixel_area):
+def projected_areas(owner, n_faces, first_face, translucent, lit_upper, pixel_area, depth, cell):
     """Per face, its sunlit area (horizontal equivalent): +pixel_area per pixel for the lit face, −pixel_area for a
     leaf's other face (its transmitted light), summed in projplan's pixel order. *first_face*: each triangle's first
     face number (a leaf's: its upper face, the next its lower one); *lit_upper*: whether the beam meets a leaf's upper
-    face (direction · normal < 0)."""
+    face (direction · normal < 0). With a *cell* (pattern_cell's), only the pixels whose visible point (at its
+    *depth*) lies in the pattern."""
     areas = np.zeros(n_faces)
     size = owner.shape[0]
     for i in range(size):
         for j in range(size):
             t = owner[i, j]
-            if t < 0:
+            if t < 0 or (cell[0] != 0. and not _in_cell(i, j, np.float64(depth[i, j]), cell)):
                 continue
             face = first_face[t]
             if translucent[t]:

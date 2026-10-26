@@ -16,6 +16,7 @@ import os
 
 import numpy as np
 
+from . import corrections as corrections_module
 from . import direct, formats, lights, nested, periodic
 from . import radiosity as radiosity_module
 from .labels import encode_labels
@@ -113,44 +114,60 @@ def _sensor_outputs(sensors, precision) -> dict:
 # --- Direct light ---
 
 def raycasting(triangles, materials, lights=(DEFAULT_LIGHT,), domain=None, screen_size=1536, sensors=None,
-               debug=False, precision="legacy", workers=None) -> dict:
+               debug=False, precision="legacy", workers=None, corrections=None) -> dict:
     """Direct light on triangles of *materials* (caribu.raycasting): per triangle index, label, area, Eabs, Ei,
     Ei_sup, Ei_inf, and "sensors" when *sensors* are given. *domain* (xmin, ymin, xmax, ymax): an infinite canopy
-    repeating it. *debug*: the legacy's (it kept its files), without effect here."""
+    repeating it. *debug*: the legacy's (it kept its files), without effect here. *corrections*: the legacy's
+    behaviours corrected (corrections.resolve; "recommended" with precision "full"), Ei then Ei_sup + Ei_inf."""
     if len(triangles) != len(materials):
         raise ValueError("The number of triangles and materials should match")
+    chosen = corrections_module.resolve(corrections, precision)
     species, labels = species_and_labels(materials)
     sensor_points = None if sensors is None else _as_array(sensors)
     result = direct.run(_as_array(triangles), labels, list(lights), optics(species), screen_size,
-                        sensor_points, workers, pattern=domain)
-    columns = _outputs(labels, result, precision)
-    columns["Ei"] = get_incident(columns["Eabs"], materials)
-    out = {name: columns[name] for name in ("index", "label", "area", "Eabs", "Ei", "Ei_sup", "Ei_inf")}
-    if sensors is not None:
-        out["sensors"] = _sensor_outputs(result["sensors"], precision)
-    return out
+                        sensor_points, workers, pattern=domain, corrections=chosen)
+    return _radiosity_outputs(labels, result, materials, sensors, precision, chosen)
 
 
 def x_raycasting(triangles, x_materials, lights=(DEFAULT_LIGHT,), domain=None, screen_size=1536, sensors=None,
-                 debug=False, precision="legacy", workers=None) -> dict:
+                 debug=False, precision="legacy", workers=None, corrections=None) -> dict:
     """raycasting for several bands, {band: materials}: the projections are the same for all, so the last band is
-    computed and the others' Eabs follow from its Ei (their absorptance times it), as caribu.x_raycasting."""
+    computed and the others' Eabs follow from its Ei (their absorptance times it), as caribu.x_raycasting. With
+    *corrections*, from its faces' Ei_sup and Ei_inf (each face's absorptance: an asymmetric leaf's too)."""
     x_materials = dict(x_materials)
     band, materials = x_materials.popitem()
-    out = raycasting(triangles, materials, lights, domain, screen_size, sensors, debug, precision, workers)
+    out = raycasting(triangles, materials, lights, domain, screen_size, sensors, debug, precision, workers,
+                     corrections)
     x_out = {band: out}
     for other in x_materials:
         x_out[other] = {name: values for name, values in out.items() if name != "Eabs"}
-        x_out[other]["Eabs"] = [absorptance(material) * incident
-                                for material, incident in zip(x_materials[other], out["Ei"])]
+        if corrections_module.resolve(corrections, precision):
+            x_out[other]["Eabs"] = [face_absorbed(material, upper, lower) for material, upper, lower
+                                    in zip(x_materials[other], out["Ei_sup"], out["Ei_inf"])]
+        else:
+            x_out[other]["Eabs"] = [absorptance(material) * incident
+                                    for material, incident in zip(x_materials[other], out["Ei"])]
     return x_out
+
+
+def face_absorbed(material, upper, lower) -> float:
+    """The light a triangle of *material* absorbs per area from its faces' irradiances (an opaque one's upper face
+    only)."""
+    if len(material) == 1:
+        return (1 - material[0]) * upper
+    rho_upper, tau_upper, rho_lower, tau_lower = material if len(material) == 4 else material * 2
+    return (1 - rho_upper - tau_upper) * upper + (1 - rho_lower - tau_lower) * lower
 
 
 # --- Radiosity ---
 
-def _radiosity_outputs(labels, result, materials, sensors, precision) -> dict:
+def _radiosity_outputs(labels, result, materials, sensors, precision, corrections=frozenset()) -> dict:
+    """The legacy's output columns, its Ei Eabs / absorptance (Ei_sup + Ei_inf with corrections)."""
     columns = _outputs(labels, result, precision)
-    columns["Ei"] = get_incident(columns["Eabs"], materials)
+    if not corrections:
+        columns["Ei"] = get_incident(columns["Eabs"], materials)
+    else:
+        columns["Ei"] = np.asarray(result["Ei"], dtype=np.float64).tolist()
     out = {name: columns[name] for name in ("index", "label", "area", "Eabs", "Ei", "Ei_sup", "Ei_inf")}
     if sensors is not None:
         out["sensors"] = _sensor_outputs(result["sensors"], precision)
@@ -158,40 +175,43 @@ def _radiosity_outputs(labels, result, materials, sensors, precision) -> dict:
 
 
 def radiosity(triangles, materials, lights=(DEFAULT_LIGHT,), screen_size=1536, sensors=None, debug=False,
-              precision="legacy", workers=None) -> dict:
+              precision="legacy", workers=None, corrections=None) -> dict:
     """Every order of scattering between triangles of *materials* (caribu.radiosity, the whole scene in the near
     field): raycasting's outputs, the sensors' "Ei0" their first order and "Ei" their total."""
     if len(triangles) <= 1:
         raise ValueError("Radiosity method needs at least two primitives")
     if len(triangles) != len(materials):
         raise ValueError("The number of triangles and materials should match")
+    chosen = corrections_module.resolve(corrections, precision)
     species, labels = species_and_labels(materials)
     sensor_points = None if sensors is None else _as_array(sensors)
     result = radiosity_module.run(_as_array(triangles), labels, list(lights), optics(species), screen_size,
-                                  sensor_points, workers)
-    return _radiosity_outputs(labels, result, materials, sensors, precision)
+                                  sensor_points, workers, corrections=chosen)
+    return _radiosity_outputs(labels, result, materials, sensors, precision, chosen)
 
 
 def x_radiosity(triangles, x_materials, lights=(DEFAULT_LIGHT,), screen_size=1536, sensors=None, debug=False,
-                precision="legacy", workers=None) -> dict:
+                precision="legacy", workers=None, corrections=None) -> dict:
     """radiosity for several bands, {band: materials}: {band: outputs}; the form factors computed once (caribu's
     first band computes them, the others read them)."""
     if len(triangles) <= 1:
         raise ValueError("Radiosity method needs at least two primitives")
+    chosen = corrections_module.resolve(corrections, precision)
     x_species, labels = x_species_and_labels(x_materials)
     points = _as_array(triangles)
     sensor_points = None if sensors is None else _as_array(sensors)
     out, counts = {}, None
     for band, materials in x_materials.items():
         result = radiosity_module.run(points, labels, list(lights), optics(x_species[band]), screen_size,
-                                      sensor_points, workers, counts=counts)
+                                      sensor_points, workers, counts=counts, corrections=chosen)
         counts = result["counts"]
-        out[band] = _radiosity_outputs(labels, result, materials, sensors, precision)
+        out[band] = _radiosity_outputs(labels, result, materials, sensors, precision, chosen)
     return out
 
 
 def mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, diameter, layers, height,
-                    screen_size=1536, sensors=None, debug=False, precision="legacy", workers=None) -> dict:
+                    screen_size=1536, sensors=None, debug=False, precision="legacy", workers=None,
+                    corrections=None) -> dict:
     """Scattering in the infinite canopy repeating *domain* (caribu.mixed_radiosity): the far field in *layers*
     up to *height* (s2v, mcsail), the triangles within a sphere of *diameter* in radiosity (0: none, pure SAIL);
     raycasting's outputs, the sensors' "Ei0" and "Ei" (the legacy refuses sensors here)."""
@@ -199,20 +219,23 @@ def mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, diam
         raise ValueError("Radiosity method needs at least two primitives")
     if len(triangles) != len(materials):
         raise ValueError("The number of triangles and materials should match")
+    chosen = corrections_module.resolve(corrections, precision)
     species, labels = species_and_labels(materials)
     sensor_points = None if sensors is None else _as_array(sensors)
     result = nested.run(_as_array(triangles), labels, list(lights), optics(species, soil_reflectance), domain,
-                        layers, height, diameter, screen_size, sensor_points, workers, precision)
-    return _radiosity_outputs(labels, result, materials, sensors, precision)
+                        layers, height, diameter, screen_size, sensor_points, workers, precision, corrections=chosen)
+    return _radiosity_outputs(labels, result, materials, sensors, precision, chosen)
 
 
 def x_mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, diameter, layers, height,
-                      sensors=None, screen_size=1536, debug=False, precision="legacy", workers=None) -> dict:
+                      sensors=None, screen_size=1536, debug=False, precision="legacy", workers=None,
+                      corrections=None) -> dict:
     """mixed_radiosity for several bands, {band: materials}, *soil_reflectance* {band: ρ}: {band: outputs}; the
     near field's form factors and the far field's weights computed in the first band, reused in the others (as
     caribu's `-f`, `-w`)."""
     if len(triangles) <= 1:
         raise ValueError("Radiosity method needs at least two primitives")
+    chosen = corrections_module.resolve(corrections, precision)
     x_species, labels = x_species_and_labels(materials)
     points = _as_array(triangles)
     sensor_points = None if sensors is None else _as_array(sensors)
@@ -220,10 +243,10 @@ def x_mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, di
     for band, band_materials in materials.items():
         result = nested.run(points, labels, list(lights), optics(x_species[band], soil_reflectance[band]), domain,
                             layers, height, diameter, screen_size, sensor_points, workers, precision,
-                            weights=reused)
+                            weights=reused, corrections=chosen)
         if diameter != 0 and reused is None:
             reused = (result["counts"], result["weights"])
-        out[band] = _radiosity_outputs(labels, result, band_materials, sensors, precision)
+        out[band] = _radiosity_outputs(labels, result, band_materials, sensors, precision, chosen)
     return out
 
 
@@ -280,7 +303,7 @@ class CaribuScene:
     units = {"mm": 0.001, "cm": 0.01, "dm": 0.1, "m": 1, "dam": 10, "hm": 100, "km": 1000}
 
     def __init__(self, scene=None, light=None, pattern=None, opt=None, soil_reflectance=None, soil_mesh=None,
-                 z_soil=None, scene_unit="m", precision="legacy"):
+                 z_soil=None, scene_unit="m", precision="legacy", corrections=None):
         """*scene* {pid: [triangles]}, a `.can` path (its labels as primitives), a PlantGL scene (its shapes) or an
         MTG (its "geometry" property); *light* [(E, (vx, vy, vz))] or a
         `.light` path; *pattern* (xmin, ymin, xmax, ymax), ((xmin, ymin), (xmax, ymax)) or a `.8` path; *opt*
@@ -291,6 +314,7 @@ class CaribuScene:
             raise ValueError("unrecognised scene unit: " + scene_unit)
         self.conv_unit = self.units[scene_unit]
         self.precision = precision
+        self.corrections = corrections_module.resolve(corrections, precision)
         self.scene = None
         if scene is not None:
             if isinstance(scene, dict):
@@ -466,25 +490,23 @@ class CaribuScene:
             sensor_groups = [key for key, values in sensors.items() for _ in values]
             sensors = [triangle for values in sensors.values() for triangle in values]
         domain = self.pattern if infinite else None
+        common = dict(precision=self.precision, workers=workers, corrections=self.corrections)
         if not direct and infinite and len(bands) == 1:
             out = {bands[0]: mixed_radiosity(triangles, materials[bands[0]], lights, domain,
                                              self.soil_reflectance[bands[0]], d_sphere, layers, height, screen_size,
-                                             sensors, precision=self.precision, workers=workers)}
+                                             sensors, **common)}
         elif not direct and infinite:
             out = x_mixed_radiosity(triangles, materials, lights, domain, self.soil_reflectance, d_sphere, layers,
-                                    height, sensors, screen_size, precision=self.precision, workers=workers)
+                                    height, sensors, screen_size, **common)
         elif not direct and len(bands) == 1:
-            out = {bands[0]: radiosity(triangles, materials[bands[0]], lights, screen_size, sensors,
-                                       precision=self.precision, workers=workers)}
+            out = {bands[0]: radiosity(triangles, materials[bands[0]], lights, screen_size, sensors, **common)}
         elif not direct:
-            out = x_radiosity(triangles, materials, lights, screen_size, sensors, precision=self.precision,
-                              workers=workers)
+            out = x_radiosity(triangles, materials, lights, screen_size, sensors, **common)
         elif len(bands) == 1:
             out = {bands[0]: raycasting(triangles, materials[bands[0]], lights, domain, screen_size, sensors,
-                                        precision=self.precision, workers=workers)}
+                                        **common)}
         else:
-            out = x_raycasting(triangles, materials, lights, domain, screen_size, sensors, precision=self.precision,
-                               workers=workers)
+            out = x_raycasting(triangles, materials, lights, domain, screen_size, sensors, **common)
         keys = sorted(set(groups))
         for band in bands:
             output = _convert(out[band], self.conv_unit)

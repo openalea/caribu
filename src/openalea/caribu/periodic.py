@@ -23,25 +23,31 @@ from . import geometry
 F32 = np.float32
 
 
-def periodise(points, pattern) -> np.ndarray:
+def periodise(points, pattern, corrections=frozenset()) -> np.ndarray:
     """The triangles (float32 (n, 3, 3), as canestrad reads them) as periodise moves them: each translated by whole
     pattern lengths so that its centre lies in (xmin, xmax] × (ymin, ymax], the whole scene raised to z ≥ 0 when it
-    goes below, written with `%.6g` and read back (float32)."""
-    return periodised(points, pattern).astype(F32)
+    goes below, written with `%.6g` and read back (float32). Correction "periodise": the moved coordinates kept
+    (float32), the scene lifted to exactly min z = 0."""
+    return periodised(points, pattern, corrections).astype(F32)
 
 
-def periodised(points, pattern) -> np.ndarray:
+def periodised(points, pattern, corrections=frozenset()) -> np.ndarray:
     """periodise's output as written, `%.6g` (float64, as s2v reads it)."""
     points = np.asarray(points, dtype=F32)
     low, high = pattern_bounds(pattern)
     bottom = F32(points[:, :, 2].min())
     top = F32(points[:, :, 2].max())
-    bottom = F32(np.float64(bottom) - np.float64(F32(top - bottom)) / 100.0)
-    lowest = (0.01 * np.float64(top) + np.float64(bottom)) / 1.01
-    lift = -lowest if lowest < 0 else 0.
+    if "periodise" in corrections:
+        lift = -np.float64(bottom) if bottom < 0 else 0.
+    else:
+        bottom = F32(np.float64(bottom) - np.float64(F32(top - bottom)) / 100.0)
+        lowest = (0.01 * np.float64(top) + np.float64(bottom)) / 1.01
+        lift = -lowest if lowest < 0 else 0.
     lengths = np.array([np.float64(F32(high[axis] - low[axis])) for axis in range(2)])
     moved = _moved(points, _periodise_centres(points), low.astype(np.float64), high.astype(np.float64), lengths,
                    lift)
+    if "periodise" in corrections:
+        return moved.astype(F32).astype(np.float64)
     values = moved.reshape(-1)
     text = ("%.6g " * len(values)) % tuple(values.tolist())  # one formatting call, then one parse
     return np.array(text.split(), dtype=np.float64).reshape(points.shape)
@@ -126,6 +132,38 @@ def border_shifts(vmin, vmax) -> np.ndarray:
     return shifts
 
 
+def copy_shifts(points, flags, pattern, corrected=False):
+    """(shifts (n, 9, 3) float32, counts (n,) int): each triangle's copies to draw, in order, the original first.
+    The legacy's (border_copies, border_shifts): the original, +dx, +dy. *corrected* (correction "border_copies"):
+    a copy on each side the triangle crosses, −dx beyond xmax and +dx below xmin (the same in y), and the corner's
+    when it crosses both axes, so that its parts beyond the pattern are drawn where the pattern repeats them."""
+    low, high = pattern_bounds(pattern)
+    length = (F32(high[0] - low[0]), F32(high[1] - low[1]))
+    shifts = np.zeros((len(points), 9, 3), dtype=F32)
+    counts = np.ones(len(points), dtype=np.int64)
+    if not corrected:
+        legacy = border_shifts(np.r_[low, F32(0)], np.r_[high, F32(0)])
+        for t, copies in enumerate(border_copies(flags)):
+            shifts[t, :int(copies.sum())] = legacy[copies]
+            counts[t] = int(copies.sum())
+        return shifts, counts
+    beyond = points[:, :, :2] > high[None, None, :]
+    below = points[:, :, :2] < low[None, None, :]
+    for t in range(len(points)):
+        moves = [[F32(0)], [F32(0)]]
+        for axis in range(2):
+            if beyond[t, :, axis].any():
+                moves[axis].append(F32(-length[axis]))
+            if below[t, :, axis].any():
+                moves[axis].append(length[axis])
+        ordered = [(dx, dy) for dx in moves[0][1:] for dy in (F32(0),)] + [(F32(0), dy) for dy in moves[1][1:]]
+        ordered += [(dx, dy) for dx in moves[0][1:] for dy in moves[1][1:]]
+        for index, (dx, dy) in enumerate([(F32(0), F32(0))] + ordered):
+            shifts[t, index, 0], shifts[t, index, 1] = dx, dy
+        counts[t] = 1 + len(ordered)
+    return shifts, counts
+
+
 def _c_round(value):
     """C's round: half away from zero."""
     return int(math.copysign(math.floor(abs(value) + 0.5), value))
@@ -181,12 +219,16 @@ def translations(steps, size):
 
 
 @njit(cache=True, nogil=True, error_model="numpy")
-def tile(owner, depth, shifts, distance_step):
+def tile(owner, depth, shifts, distance_step, own_copies=False):
     """infinitise without duplication: the image translated by each of *shifts* ((k, 2) pixels), its depth increased
     by *distance_step* per pixel of the second shift; where a translated pixel lies in front, the pixel is in a
-    neighbouring pattern's shade (owner −1) and takes its depth. In place."""
+    neighbouring pattern's shade (owner −1) and takes its depth. With *own_copies* (the correction "border_copies":
+    each triangle's wrapped parts drawn by its copies, the pixels counted in the pattern's cell only) a translate
+    never replaces its own triangle: it is the same surface, which the copy draws exactly (the steps are rounded to
+    pixels). In place."""
     size = depth.shape[0]
     original = depth.copy()
+    original_owner = owner.copy()
     # a pixel ends in the shade when any translate lies in front of the original image, whatever their order: the
     # rows are walked in memory order, each translate's row in turn
     for k in range(size):
@@ -195,11 +237,11 @@ def tile(owner, depth, shifts, distance_step):
             if k - i < 0 or k - i >= size:
                 continue
             offset = distance_step * j
-            source = original[k - i]
+            source, source_owner = original[k - i], original_owner[k - i]
             target, owners = depth[k], owner[k]
             for l in range(max(j, 0), size + min(j, 0)):
                 value = np.float64(source[l - j]) + offset
-                if value < target[l]:
+                if value < target[l] and not (own_copies and source_owner[l - j] == owners[l]):
                     target[l] = F32(value)
                     owners[l] = -1
 

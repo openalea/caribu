@@ -30,6 +30,7 @@ from openalea.metafspm.data_structure.configs import ScalesConfig as scales
 from openalea.metafspm.solve.decorator import rate
 
 from . import api, lights
+from . import corrections as corrections_module
 from .canopy import Canopy
 from .labels import encode_labels
 
@@ -98,6 +99,9 @@ class CaribuLight(FunctionalComponent):
     screen_size: int = parameter(unit="pixel", description="The projections' screen side", by="Caribu", default=1536)
     precision: str = parameter(unit="", description="'full' the computed values, 'legacy' the legacy's printed "
                                                     "digits", by="Caribu", default="full")
+    corrections: str = parameter(unit="", description="The legacy's behaviours corrected: 'recommended' (all), a "
+                                 "tuple of names (openalea.caribu.corrections), or () for none (with precision "
+                                 "'legacy')", by="Caribu", default="recommended")
     device: str = parameter(unit="", description="'cpu' or 'cuda' (radiosity's near field)", by="Caribu",
                             default="cpu")
 
@@ -235,9 +239,11 @@ class CaribuLight(FunctionalComponent):
         infinite = self.mode == "nested" or (self.infinite and self.mode == "direct")
         pattern = self.pattern(vertices) if infinite else None
         if (kept is None or kept.size != screen_size or kept.pattern != pattern
+                or kept.corrections != corrections_module.resolve(self.corrections, self.precision)
                 or kept.vertices.shape != vertices.shape or not np.array_equal(kept.vertices, vertices)
                 or not np.array_equal(kept.labels, labels)):
-            kept = Canopy(vertices, labels, pattern=pattern, size=screen_size, device=self.device)
+            kept = Canopy(vertices, labels, pattern=pattern, size=screen_size, device=self.device,
+                          corrections=self.corrections)
             self.__dict__["_canopy"] = kept
         return kept
 
