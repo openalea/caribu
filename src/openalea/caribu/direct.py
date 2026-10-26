@@ -1,6 +1,6 @@
 """
 The first-order radiosities: each face's light from the sources only, before any scattering (canestrad's main light
-loop, B.6 of the description). A source of irradiance E (on a horizontal plane) and its beam give each face a sunlit
+loop; doc/legacy.rst). A source of irradiance E (on a horizontal plane) and its beam give each face a sunlit
 area A (projection.projected_areas); the face then re-emits
 
     B0 = Σ_sources E · ρ · A / S          for the lit face (ρ its reflectance, S the triangle's area)

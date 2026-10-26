@@ -1,6 +1,6 @@
 """
 Radiosity on a closed (non-periodic) scene: the direct light, then every order of scattering between the triangles
-(canestrad -d −1, B.7 and C of the description). The sphere of the near field holds the whole scene (its radius the
+(canestrad -d −1; doc/legacy.rst). The sphere of the near field holds the whole scene (its radius the
 scene's diagonal), so every pair of triangles exchanges light through its form factors.
 
     result = run(vertices, labels, lights, optics)      as direct.run, the radiosities of the full system

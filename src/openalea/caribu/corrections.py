@@ -1,5 +1,5 @@
 """
-The corrections of the legacy's behaviours (devplan, C10): each a name, applied when given in a model's
+The corrections of the legacy's behaviours (doc/legacy.rst's quirk registry): each a name, applied when given in a model's
 *corrections*; none by default in the legacy API, all of them ("recommended") in the metafspm component. With
 precision "legacy", the legacy's printed digits, none applies: it stays the bit-for-bit reference.
 """

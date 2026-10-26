@@ -1,6 +1,6 @@
 """
 The near field of radiosity: what each receiver sees of its neighbours (canestrad's calc_FF_Bfar, proj_ortho and NFF,
-C.2–C.5 of the description). Each receiver's hemispheres are drawn on an NB × NB disc (the Nusselt analogue: a
+doc/legacy.rst). Each receiver's hemispheres are drawn on an NB × NB disc (the Nusselt analogue: a
 direction's orthographic projection on the receiver's plane), the upper one, and the lower one for a leaf; every
 emitter within the sphere is projected, the nearest kept per pixel. A pixel holds the form factor dFF = 4 / (π NB²);
 a receiver's row counts, per emitter face, its pixels in the upper disc minus those in the lower one.

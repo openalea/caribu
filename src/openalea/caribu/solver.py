@@ -1,6 +1,6 @@
 """
-The radiosity system and its solution (canestrad's hd_mv_mlt and hd_mgcr over meschach, C.6–C.8 of the
-description). From the near-field counts (nearfield.counts), each face's row:
+The radiosity system and its solution (canestrad's hd_mv_mlt and hd_mgcr over meschach;
+doc/legacy.rst). From the near-field counts (nearfield.counts), each face's row:
 
     opaque face i:   B_i − ρ_i Σ_j c_ij dFF B_j                                           = B0_i
     leaf, upper:     B_sup − Σ_j (c_ij > 0 ? ρ_sup : τ_inf) c_ij dFF B_j                   = B0_sup

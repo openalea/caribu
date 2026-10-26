@@ -3,8 +3,8 @@ Light sources as caribu takes them, [(E, (vx, vy, vz))]: E the irradiance of a h
 beam's direction. The sky as the turtle's 16 or 46 directions or as sectors of azimuth × zenith, each weighted by
 the standard (soc) or uniform (uoc) overcast sky's luminance; the sun's position from the day, hour and latitude;
 the diffuse fraction of hourly global radiation (Spitters et al. 1986); hourly global radiation from the daily one
-(Kaplanis 2006). The legacy's light.py and sky_tools, their conventions kept (listed with their quirks in the
-devplan, for the corrections step):
+(Kaplanis 2006). The legacy's light.py and sky_tools, their conventions kept (their quirks in doc/legacy.rst,
+Q-L01 to Q-L06; the correction "sky" fixes them):
 
     lights = turtle_lights("46", "soc", energy=1.)                     the turtle sky
     sky = Sky(4, 5); sky.diffuse(1., "soc"); lights = sky.lights()      GenSky, GetLight

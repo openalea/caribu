@@ -1,5 +1,5 @@
 """
-From radiosities to the triangles' light budgets (canestrad's genres, B.9 of the description). A face of reflectance
+From radiosities to the triangles' light budgets (canestrad's genres; doc/legacy.rst). A face of reflectance
 ρ and radiosity B receives Ei = B / ρ (opaque) and absorbs Eabs = Ei − B. A leaf's two faces exchange light through
 it: B_sup = ρ_sup Ei_sup + τ_inf Ei_inf, B_inf = ρ_inf Ei_inf + τ_sup Ei_sup, solved for (Ei_sup, Ei_inf); it absorbs
 Eabs = Ei_sup + Ei_inf − (B_sup + B_inf). Energies are surfacic densities (per unit area of the triangle).

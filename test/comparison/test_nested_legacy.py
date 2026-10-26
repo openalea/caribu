@@ -8,7 +8,7 @@ from openalea.caribu import nested
 from openalea.caribu.comparison import legacy_run, port_run
 from openalea.caribu.labels import is_translucent
 
-from test_direct_legacy import DIRECTIONS, MATERIALS, SOIL, mixed_scene, sensor_grid
+from test_direct_legacy import MATERIALS, SOIL, mixed_scene, sensor_grid
 from test_sail_legacy import LIGHTS, narrow_pattern
 
 pytestmark = pytest.mark.skipif(not legacy_run.available(), reason="libcaribu's executables are not installed")

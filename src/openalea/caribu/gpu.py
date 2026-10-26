@@ -17,6 +17,9 @@ import numpy as np
 from numba import cuda, njit
 
 from . import nearfield
+# what _receivers calls: the CPU functions here, for reading and for static checkers; _kernel compiles the kernel
+# with their CUDA device versions in its place
+from .nearfield import _candidates, _clear, _faces, _frame, _neighbourhood
 
 F32 = np.float32
 DEVICE_FUNCTIONS = ("_sqrt", "_dot", "_sphere", "_crossing", "_determinant", "_solve3", "_edge_plane", "_copy",

@@ -1,7 +1,7 @@
 """
-The far field: the canopy as a turbid medium of horizontal layers (s2v, A.7.2 of the description), the fluxes
-through it by the multilayer SAIL model (mcsail: Verhoef 1984, 1985; A.7.3), and their light on the triangles
-when no near field is kept (canestrad's sail_pur, Ross 1981; A.7.5).
+The far field: the canopy as a turbid medium of horizontal layers (s2v), the fluxes
+through it by the multilayer SAIL model (mcsail: Verhoef 1984, 1985), and their light on the triangles
+when no near field is kept (canestrad's sail_pur, Ross 1981; doc/legacy.rst, doc/equations.rst).
 
     structure = layers(points, labels, 10, height, pattern, [optics])   per layer (top first) the leaf angle
                                                                          frequencies, LAI, ρ and τ of each band

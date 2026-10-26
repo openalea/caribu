@@ -1,5 +1,4 @@
 """lights against the legacy's light.py and sky_tools: equal values on a grid of inputs."""
-import math
 
 import numpy as np
 import pytest
@@ -7,7 +6,6 @@ import pytest
 from openalea.caribu import lights
 from openalea.caribu.legacy import light as legacy_light
 from openalea.caribu.legacy.sky_tools import GenSky, GetLight, GetLightsSun, Gensun, Sky as legacy_sky
-from openalea.caribu.legacy.sky_tools import Sun as legacy_sun
 from openalea.caribu.legacy.sky_tools import mergeNskies, spitters_horaire
 
 

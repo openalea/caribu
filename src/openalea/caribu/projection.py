@@ -1,6 +1,6 @@
 """
 Direct light: for each source, the scene seen along the beam on an orthographic z-buffer of T × T pixels; the pixels
-each triangle owns give its sunlit area (canestrad's Canopy::projplan and colorie_triangle, B.6 of the description).
+each triangle owns give its sunlit area (canestrad's Canopy::projplan and colorie_triangle; doc/legacy.rst).
 
 The legacy's numerics are reproduced, to compare pixel counts exactly: points and vectors in float32 (canestrad's
 `reel`), its locals in double, the same operation order; the screen on the scene's bounds, lifted one length unit
@@ -11,7 +11,6 @@ first drawn winning ties; the sunlit (horizontal-equivalent) area of a pixel `Ap
     owner = rasterise(points, screen, size)                   (T, T) triangle index, -1 where no triangle
     areas = projected_areas(owner, ...)                       per face, +Apix lit, -Apix for a leaf's other face
 """
-import math
 
 import numpy as np
 from numba import njit

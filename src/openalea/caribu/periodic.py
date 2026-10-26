@@ -1,6 +1,6 @@
 """
 The infinite (toric) canopy: a pattern (xmin, ymin, xmax, ymax) repeated in x and y, light entering it from every
-side (B.5 and B.6 of the description).
+side (doc/legacy.rst).
 
     points = periodise(points, pattern)          each triangle moved into the pattern by whole pattern lengths
                                                  (periodise), the scene lifted to z ≥ 0
