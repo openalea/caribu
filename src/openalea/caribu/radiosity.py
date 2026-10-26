@@ -39,7 +39,8 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
         sensor_normals, sensor_centres = geometry.legacy_normals(sensor_points), geometry.legacy_centres(sensor_points)
     if counts is None:
         counts = nearfield.counts(kept_points, kept, translucent, first_face, n_faces, normals, centres, radius,
-                                  sensor_points, sensor_normals, sensor_centres, resolution, workers, device=device)
+                                  sensor_points, sensor_normals, sensor_centres, resolution, workers, device=device,
+                                  options=nearfield.options(corrections))
     indptr, faces, values = counts
     receiver_faces = np.concatenate([first_face, n_faces + np.arange(sensor_count)]).astype(np.int64)
     receiver_translucent = np.concatenate([translucent, np.zeros(sensor_count, dtype=bool)])

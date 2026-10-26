@@ -1,5 +1,6 @@
 """The near field's CUDA kernel under numba's CUDA simulator (in a subprocess: the simulator is chosen before numba
-is imported) equals the CPU kernel: counts, far field and weights, full and nested radiosity."""
+is imported) equals the CPU kernel: counts, far field and weights, full and nested radiosity, with the corrections'
+option bits too."""
 import os
 import subprocess
 import sys
@@ -31,7 +32,10 @@ SCRIPT = textwrap.dedent("""
                             ("nested", dict(grid=nearfield.grid(kept_points, sensors, 0.2, pattern), profile=profile,
                                             optics=optics_rows)),
                             ("nested -B", dict(grid=nearfield.grid(kept_points, sensors, 0.2, pattern),
-                                               profile=profile, optics=optics_rows, bias=False))):
+                                               profile=profile, optics=optics_rows, bias=False)),
+                            ("nested corrected", dict(grid=nearfield.grid(kept_points, sensors, 0.2, pattern),
+                                                      profile=profile, optics=optics_rows,
+                                                      options=nearfield.options(nearfield.OPTION_NAMES)))):
         radius = 2.0 if case == "full" else 0.2
         cpu = nearfield.counts(kept_points, kept, translucent, first_face, n_faces, normals, centres, radius,
                                sensors, sensor_normals, sensor_centres, size=12, **arguments)
@@ -49,4 +53,4 @@ def test_cuda_kernel_under_the_simulator():
     done = subprocess.run([sys.executable, "-c", SCRIPT], env=environment, capture_output=True, text=True,
                           timeout=1800)
     assert done.returncode == 0, done.stderr[-3000:]
-    assert done.stdout.count("equal") == 3, done.stdout
+    assert done.stdout.count("equal") == 4, done.stdout

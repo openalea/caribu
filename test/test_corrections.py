@@ -47,7 +47,7 @@ def test_border_copies(x, y, direction):
     tiling's translates only shading). The legacy loses the parts beyond xmax or ymax, or off its screen."""
     leaf = square(x, y, 0.3)
     lights = [(1., direction)]
-    corrected = mean_irradiance(lit(leaf, lights, ["border_copies", "pixel_area"], size=1536))
+    corrected = mean_irradiance(lit(leaf, lights, ["border_copies", "tiling", "pixel_area"], size=1536))
     assert corrected == pytest.approx(1., abs=3e-3)                # the raster's quantisation of its sides
     if (x + 0.3 > 1 or y + 0.3 > 1) and direction[2] == -1.:
         assert mean_irradiance(lit(leaf, lights, size=1536)) < 0.7
@@ -119,5 +119,91 @@ def test_border_copies_conserve_the_light_entering_the_pattern():
     labels = np.r_[np.full(len(leaves), LEAF), np.full(2, encode_labels(1, leaf=0))]
     for direction in ((0., 0., -1.), (0.5, 0.3, -0.8), (-0.6, 0.2, -0.5)):
         result = direct.run(vertices, labels, [(1., direction)], OPTICS, size=1536, pattern=PATTERN,
-                            corrections=corrections.resolve(("border_copies", "pixel_area")))
+                            corrections=corrections.resolve(("border_copies", "tiling", "pixel_area")))
         assert float(np.nansum(result["Ei"] * result["area"])) == pytest.approx(1., abs=3e-3)
+
+
+def random_canopy(count=300, side=0.4, seed=3):
+    """Small leaves scattered in a pattern of *side* (m), from 5 to 60 cm high."""
+    random = np.random.default_rng(seed)
+    centres = np.c_[random.uniform(0, side, (count, 2)), random.uniform(0.05, 0.6, count)]
+    return np.array([[c, c + random.normal(0, 0.03, 3), c + random.normal(0, 0.03, 3)] for c in centres])
+
+
+def test_voxel_floor_and_tiling_make_the_results_independent_of_the_unit():
+    """The same canopy in metres and in centimetres lit alike: the legacy finds most near neighbours in cm only
+    (its receiver's voxel int(trunc(G − O) / side)), and its tiling's steps, rounded to pixels then repeated,
+    place the neighbouring patterns differently."""
+    from openalea.caribu import lights, nested
+    vertices = random_canopy()
+    sky = lights.turtle_lights("16", "soc", 1.)
+    results = {}
+    for name, chosen in (("legacy", ()), ("corrected", "recommended")):
+        for scale in (1., 100.):
+            results[name, scale] = nested.run(
+                vertices * scale, LEAF, sky, OPTICS, (0, 0, 0.4 * scale, 0.4 * scale), 5, 0.65 * scale, 0.1 * scale,
+                precision="full", corrections=corrections.resolve(chosen), size=512)
+    pairs = {key: len(result["counts"][1]) for key, result in results.items()}
+    assert pairs["legacy", 1.] < pairs["legacy", 100.] / 5
+    assert abs(pairs["corrected", 1.] - pairs["corrected", 100.]) <= 2
+    difference = {name: np.abs(np.asarray(results[name, 1.]["Eabs"], float)
+                               - np.asarray(results[name, 100.]["Eabs"], float)) for name in ("legacy", "corrected")}
+    assert difference["corrected"].mean() < 2e-4 < difference["legacy"].mean()
+
+
+def test_face_counts():
+    """An emitter across the receiver's plane, seen by both its discs: the legacy nets the two counts (the
+    receiver's upper face then gets ρ of the difference, its lower face nothing), each disc's count kept apart."""
+    from openalea.caribu import geometry, nearfield
+    receiver = [(-0.05, -0.05, 0.5), (0.05, -0.05, 0.5), (0., 0.05, 0.5)]
+    emitter = [(0.1, -0.05, 0.42), (0.1, 0.05, 0.42), (0.1, 0., 0.6)]         # vertical, from below to above
+    points = np.array([receiver, emitter], dtype=np.float32)
+    translucent = np.array([True, True])
+    first_face = np.array([0, 2])
+    rows = {}
+    for name, bits in (("legacy", 0), ("corrected", nearfield.FACE_COUNTS)):
+        indptr, faces, values = nearfield.counts(points, np.array([LEAF, LEAF]), translucent, first_face, 4,
+                                                 geometry.legacy_normals(points), geometry.legacy_centres(points),
+                                                 1., options=bits)
+        rows[name] = list(zip(faces[indptr[0]:indptr[1]].tolist(), values[indptr[0]:indptr[1]].tolist()))
+    (face, net), = rows["legacy"]
+    above, below = rows["corrected"]
+    assert above[0] == below[0] == face and above[1] > 0 > below[1] and above[1] + below[1] == net
+
+
+def test_projected_face():
+    """An emitter seen in the sphere both as itself and as its periodic image, from its two sides: each pixel takes
+    the face of the copy drawn there (the legacy: the face of the last copy activated, for both)."""
+    from openalea.caribu import geometry, nearfield
+    pattern = (0., 0., 0.5, 0.5)
+    receiver = [(0.03, 0.2, 0.5), (0.07, 0.2, 0.5), (0.05, 0.3, 0.5)]
+    emitter = [(0.3, 0.2, 0.45), (0.3, 0.3, 0.45), (0.3, 0.25, 0.55)]        # vertical, facing x
+    points = np.array([receiver, emitter], dtype=np.float32)
+    normals, centres = geometry.legacy_normals(points), geometry.legacy_centres(points)
+    translucent = np.array([True, True])
+    first_face = np.array([0, 2])
+    cells = nearfield.grid(points, None, 0.3, pattern)
+    seen = {}
+    for name, bits in (("legacy", 0), ("corrected", nearfield.PROJECTED_FACE)):
+        indptr, faces, values = nearfield.counts(points, np.array([LEAF, LEAF]), translucent, first_face, 4, normals,
+                                                 centres, 0.3, grid=cells, options=bits)
+        seen[name] = set(faces[indptr[0]:indptr[1]].tolist())
+    assert len(seen["legacy"]) == 1 and seen["corrected"] == {2, 3}
+
+
+def test_profile_interpolation_and_bounds():
+    """sail_pur between two levels: the nearer level weighs more; above the top the top's fluxes, below the soil
+    the soil's (the legacy: the weights inverted, the next column's values beyond the top)."""
+    from openalea.caribu import sail
+    profile = {"height": np.array([0., 1., 2.]), "downward": np.array([1., 2., 4.]),
+               "upward": np.array([0.5, 0.25, 0.125]), "thickness": 1.}
+    flat_up = np.array([[0., 0., 1.]], dtype=np.float32)
+
+    def received(height, chosen=("profile_interpolation", "profile_bounds")):
+        centre = np.array([[0., 0., height]], dtype=np.float32)
+        return sail.far_field(centre, flat_up, np.array([False]), np.array([0]), 1, np.array([1.]),
+                              np.array([0.]), profile, frozenset(chosen))[0]
+    assert received(1.25) == pytest.approx(0.75 * 2 + 0.25 * 4)               # E− at 1.25: a horizontal upper face
+    assert received(1.25, ()) == pytest.approx(0.25 * 2 + 0.75 * 4)
+    assert received(2.5) == pytest.approx(4.) and received(-0.5) == pytest.approx(1.)
+    assert received(2.5, ("profile_interpolation",)) != pytest.approx(4.)

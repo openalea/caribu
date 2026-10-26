@@ -104,8 +104,8 @@ def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=
     *pattern* (xmin, ymin, xmax, ymax) the canopy is infinite: the screen spans the pattern, the triangles across its
     borders (*flags*, periodic.border_flags') drawn with their shifted copies, the image tiled. *cache*: a dict of
     each direction's lit areas, filled and reused (the same scene, size, sensors and corrections: the caller's to
-    keep so). *corrections* (corrections.resolve's): "border_copies", "sensor_copies", "pixel_area", "upward_beams",
-    "triangle_area"."""
+    keep so). *corrections* (corrections.resolve's): "border_copies", "tiling", "sensor_copies", "pixel_area",
+    "upward_beams", "triangle_area"."""
     translucent = is_translucent(labels)
     first_face, n_faces = face_numbering(translucent)
     reflectance, transmittance = face_optics(labels, optics)
@@ -139,9 +139,13 @@ def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=
         origin, v, w, u, du, dv, costeta = projection.legacy_screen(vmin, vmax, np.array(direction, dtype=F32))
         owner, depth = projection.rasterise(points, shifts, counts, origin, v, w, u, du, dv, size)
         if pattern is not None and np.float64(u[2]) > -1 + 1e-6:
-            steps = periodic.tiling_steps(periodic.roof_pixels(vmin, vmax, origin, v, w, u, du, dv, size))
-            periodic.tile(owner, depth, periodic.translations(steps, size), periodic.distance_step(u[2], dv, size),
-                          "border_copies" in corrections)
+            if "tiling" in corrections:
+                shifts_in_pixels, offsets = periodic.lattice_translations(pattern, v, w, u, du, dv, size)
+                periodic.tile_offsets(owner, depth, shifts_in_pixels, offsets, "border_copies" in corrections)
+            else:
+                steps = periodic.tiling_steps(periodic.roof_pixels(vmin, vmax, origin, v, w, u, du, dv, size))
+                periodic.tile(owner, depth, periodic.translations(steps, size),
+                              periodic.distance_step(u[2], dv, size), "border_copies" in corrections)
         with np.errstate(divide="ignore", invalid="ignore"):  # a horizontal beam: canestrad's IEEE division
             pixel_area = np.float64(du * dv / (pitch * pitch)) / np.float64(costeta)
         cell = np.zeros(projection.CELL)

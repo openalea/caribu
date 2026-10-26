@@ -5,6 +5,8 @@ precision "legacy", the legacy's printed digits, none applies: it stays the bit-
 """
 NAMES = {
     "border_copies": "a triangle across the pattern's borders copied on each side it crosses, corners included",
+    "tiling": "the neighbouring patterns' images placed by the lattice's exact vectors, each translate rounded on its "
+              "own, its depth offset exact",
     "sensor_copies": "sensors copied across the borders as triangles, each copy's pixels counted once",
     "pixel_area": "a pixel's area the pitch's, du dv / (T - 1)^2",
     "upward_beams": "a source whose beam goes up or along the ground lights nothing",

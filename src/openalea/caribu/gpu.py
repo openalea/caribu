@@ -36,8 +36,8 @@ def available() -> bool:
 def _receivers(start, count, receivers, receiver_normals, receiver_centres, receiver_translucent, receiver_labels,
                receiver_optics, emitters, spreads, translucent, first_face, labels, radius, size, pixel, disc, origin,
                side, voxels, box_sizes, box_indptr, box_members, infinite, period, bias, limit, table, rows, thickness,
-               dff, owners, depths, faces, frames, works, works64, active_faces, flags, boxes, shifts, cells, moves,
-               corners, bfcs, far, weights):
+               dff, options, owners, depths, faces, frames, works, works64, active_faces, flags, boxes, shifts, cells,
+               moves, corners, bfcs, far, weights):
     """A receiver per thread: its discs' faces, far field and levels' weights (nearfield._receiver_rows' body),
     in its own slices of the work arrays."""
     k = cuda.grid(1)
@@ -51,12 +51,12 @@ def _receivers(start, count, receivers, receiver_normals, receiver_centres, rece
     frame = frames[k]
     _frame(receivers, receiver_normals, receiver_centres, r, frame)
     box_count = _neighbourhood(receiver_centres[r], origin, side, voxels, box_sizes, infinite, period, radius,
-                               boxes[k], shifts[k], cells[k], moves[k], corners[k])
+                               boxes[k], shifts[k], cells[k], moves[k], corners[k], options)
     _candidates(r, receiver_translucent[r], receiver_labels[r] == 0, frame, emitters, spreads, translucent,
                 first_face, labels, radius, bias, limit, box_count, boxes[k], shifts[k], box_indptr, box_members,
-                flags_k, active_faces[k], owners[k], depths[k], size, pixel, disc, works[k], works64[k])
+                flags_k, active_faces[k], owners[k], depths[k], size, pixel, disc, works[k], works64[k], options)
     _faces(receiver_translucent[r], receiver_optics[r], frame, owners[k], active_faces[k], faces[k], size, pixel,
-           disc, radius, table, rows, thickness, dff, bfcs[k], far[k])
+           disc, radius, table, rows, thickness, dff, bfcs[k], far[k], options)
     for row in range(4):
         for level in range(rows):
             weights[k, row, level] = bfcs[k, row, level] * dff
@@ -78,9 +78,11 @@ def _kernel():
 
 
 @njit(cache=True)
-def _count_rows(faces, n_faces, size):
-    """The rows of a chunk's face images (receivers, 2, size, size): (lengths, faces, counts), as _receiver_rows."""
+def _count_rows(faces, n_faces, size, separate):
+    """The rows of a chunk's face images (receivers, 2, size, size): (lengths, faces, counts), as _receiver_rows
+    (*separate*: its FACE_COUNTS)."""
     count = np.zeros(n_faces, dtype=np.int64)
+    count_lower = np.zeros(n_faces, dtype=np.int64)
     lengths = np.zeros(faces.shape[0], dtype=np.int64)
     out_faces, out_counts = [0], [0]
     out_faces.pop()
@@ -97,9 +99,12 @@ def _count_rows(faces, n_faces, size):
                     count[face] += 1
                 face = faces[k, 1, i, j]
                 if face >= 0:
-                    if count[face] == 0:
+                    if count[face] == 0 and count_lower[face] == 0:
                         touched.append(face)
-                    count[face] -= 1
+                    if separate:
+                        count_lower[face] += 1
+                    else:
+                        count[face] -= 1
         ordered = np.sort(np.array(touched, dtype=np.int64)) if len(touched) else np.zeros(0, dtype=np.int64)
         previous = -1
         for face in ordered:
@@ -110,14 +115,18 @@ def _count_rows(faces, n_faces, size):
                 out_faces.append(face)
                 out_counts.append(count[face])
                 lengths[k] += 1
-            count[face] = 0
+            if count_lower[face] != 0:
+                out_faces.append(face)
+                out_counts.append(-count_lower[face])
+                lengths[k] += 1
+            count[face] = count_lower[face] = 0
     return lengths, np.array(out_faces, dtype=np.int64), np.array(out_counts, dtype=np.int64)
 
 
 def receiver_rows(total, chunk, receivers, receiver_normals, receiver_centres, receiver_translucent, receiver_labels,
                   receiver_optics, emitters, spreads, translucent, first_face, labels, n_faces, radius, size, pixel,
                   disc, origin, side, voxels, box_sizes, box_indptr, box_members, infinite, period, bias, table, rows,
-                  thickness, dff, threads=64):
+                  thickness, dff, options=0, threads=64):
     """nearfield's rows of every receiver computed on the GPU, *chunk* receivers per launch: [(lengths, faces,
     counts, far, weights)] per chunk, as nearfield._receiver_rows'."""
     kernel = _kernel()
@@ -144,8 +153,9 @@ def receiver_rows(total, chunk, receivers, receiver_normals, receiver_centres, r
         blocks = (count + threads - 1) // threads
         kernel[blocks, threads](start, count, *constant[:9], constant[9], constant[10], float(radius), size,
                                 discs[0], discs[1], discs[2], float(side), *cells_arrays, bool(infinite), profile[0],
-                                bool(bias), float(limit), profile[1], rows, float(thickness), float(dff), *work)
+                                bool(bias), float(limit), profile[1], rows, float(thickness), float(dff), int(options),
+                                *work)
         faces = work[2].copy_to_host()
-        lengths, row_faces, values = _count_rows(faces, n_faces, size)
+        lengths, row_faces, values = _count_rows(faces, n_faces, size, bool(options & nearfield.FACE_COUNTS))
         parts.append((lengths, row_faces, values, work[14].copy_to_host(), work[15].copy_to_host()[:, :, :rows]))
     return parts

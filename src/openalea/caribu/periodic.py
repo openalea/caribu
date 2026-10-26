@@ -246,6 +246,61 @@ def tile(owner, depth, shifts, distance_step, own_copies=False):
                     owners[l] = -1
 
 
+def lattice_translations(pattern, v, w, u, du, dv, size):
+    """The correction "tiling": ((k, 2) int pixel shifts, (k,) depth offsets) of the neighbouring patterns' images
+    overlapping the screen, the untranslated left out. Each translate a·(Lx, 0, 0) + b·(0, Ly, 0) of the lattice is
+    placed by its exact image vector, rounded once (infinitise rounds the steps, then repeats them), its depth offset
+    u · translation exact (infinitise's tan θ · dv / T per row)."""
+    low, high = pattern_bounds(pattern)
+    lengths = np.float64(high[0] - low[0]), np.float64(high[1] - low[1])
+    scales = (size - 1) / np.float64(du), (size - 1) / np.float64(dv)
+    vectors, depths = [], []
+    for axis in range(2):
+        translation = np.zeros(3)
+        translation[axis] = lengths[axis]
+        vectors.append((np.dot(np.asarray(v, np.float64), translation) * scales[0],
+                        np.dot(np.asarray(w, np.float64), translation) * scales[1]))
+        depths.append(np.dot(np.asarray(u, np.float64), translation))
+    shortest = min(math.hypot(*vectors[0]), math.hypot(*vectors[1]))
+    # the image of the pattern's lattice cell has an area det(vectors): a translate (a, b) within the screen needs
+    # |a|, |b| up to the screen's diagonal over the cell's smallest height
+    determinant = abs(vectors[0][0] * vectors[1][1] - vectors[0][1] * vectors[1][0])
+    height = determinant / max(math.hypot(*vectors[0]), math.hypot(*vectors[1]), 1e-300)
+    reach = int(math.ceil(2 * size / max(min(height, shortest), 1e-9))) + 1
+    shifts, offsets = [], []
+    for a in range(-reach, reach + 1):
+        for b in range(-reach, reach + 1):
+            if a == 0 and b == 0:
+                continue
+            x = a * vectors[0][0] + b * vectors[1][0]
+            y = a * vectors[0][1] + b * vectors[1][1]
+            if abs(x) < size and abs(y) < size:
+                shifts.append((int(round(x)), int(round(y))))
+                offsets.append(a * depths[0] + b * depths[1])
+    return np.array(shifts, dtype=np.int64).reshape(-1, 2), np.array(offsets, dtype=np.float64)
+
+
+@njit(cache=True, nogil=True, error_model="numpy")
+def tile_offsets(owner, depth, shifts, offsets, own_copies):
+    """tile with each translate's own depth offset (lattice_translations')."""
+    size = depth.shape[0]
+    original = depth.copy()
+    original_owner = owner.copy()
+    for k in range(size):
+        for index in range(shifts.shape[0]):
+            i, j = shifts[index, 0], shifts[index, 1]
+            if k - i < 0 or k - i >= size:
+                continue
+            offset = offsets[index]
+            source, source_owner = original[k - i], original_owner[k - i]
+            target, owners = depth[k], owner[k]
+            for l in range(max(j, 0), size + min(j, 0)):
+                value = np.float64(source[l - j]) + offset
+                if value < target[l] and not (own_copies and source_owner[l - j] == owners[l]):
+                    target[l] = F32(value)
+                    owners[l] = -1
+
+
 def roof_pixels(vmin, vmax, origin, v, w, u, du, dv, size) -> np.ndarray:
     """(4, 2) int: the pattern's corners at the scene's top, (xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax), in
     image pixels as projplan computes them (float32 image coordinates times the size, divided by the screen's

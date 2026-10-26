@@ -439,13 +439,16 @@ def printed_profile(profile, thickness) -> dict:
 
 # --- Pure SAIL (sail_pur) ---
 
-def far_field(centres, normals, translucent, first_face, n_faces, reflectance, transmittance, profile):
+def far_field(centres, normals, translucent, first_face, n_faces, reflectance, transmittance, profile,
+              corrections=frozenset()):
     """sail_pur: each face's radiosity from the profile's E−, E+ at its triangle's centre height (the levels'
     weights inverted, as canestrad: (1 − f) on the level above), an inclined face's irradiance by Ross's formula
     ((1 ± cos θ) / 2 of each flux), reflected and transmitted (*centres*, *normals* float32, as canestrad).
     canestrad's table (Tabdyn) is column-major: a level beyond the top reads the next column's first levels (E−
     beyond the top is E+ at the soil, E+ beyond it the soil level's height); beyond the table, the port takes the
-    top level."""
+    top level. Corrections: "profile_interpolation", the weights (1 − f, f) of the levels below and above;
+    "profile_bounds", above the top the top's fluxes, below the soil level the soil's."""
+    standard, bounded = "profile_interpolation" in corrections, "profile_bounds" in corrections
     heights, downward, upward = profile["height"], profile["downward"], profile["upward"]
     rows = len(heights)
     table = np.concatenate([downward, upward, heights])  # Tenv(i, c) = table[i + rows c]
@@ -458,14 +461,18 @@ def far_field(centres, normals, translucent, first_face, n_faces, reflectance, t
     for t in range(len(centres)):
         nz = float(normals[t, 2])
         cosine = abs(nz)
-        layer = (float(centres[t, 2]) - heights[0]) / profile["thickness"]
-        level = int(layer) % 256  # an unsigned char
-        layer -= level
+        height = float(centres[t, 2])
+        if bounded:
+            height = min(max(height, heights[0]), heights[-1])
+        layer = (height - heights[0]) / profile["thickness"]
+        level = min(int(layer), rows - 1) if bounded else int(layer) % 256  # canestrad's: an unsigned char
+        layer = layer - level if not (bounded and level == rows - 1) else 0.
+        below, above = (1 - layer, layer) if standard else (layer, 1 - layer)
         if layer == 0.0:
             fluxes = (level_value(level, 0), level_value(level, 1))
         else:
-            fluxes = (layer * level_value(level, 0) + (1 - layer) * level_value(level + 1, 0),
-                      layer * level_value(level, 1) + (1 - layer) * level_value(level + 1, 1))
+            fluxes = (below * level_value(level, 0) + above * level_value(level + 1, 0),
+                      below * level_value(level, 1) + above * level_value(level + 1, 1))
         up = 0 if nz > 0 else 1
         down = (up + 1) % 2
         upper = .5 * (1 + cosine) * fluxes[up] + .5 * (1 - cosine) * fluxes[down]

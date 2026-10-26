@@ -60,14 +60,14 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
     first_face, n_faces = direct.face_numbering(translucent)
     reflectance, transmittance = direct.face_optics(kept, optics)
     far = sail.far_field(geometry.legacy_centres(kept_points), geometry.legacy_normals(kept_points), translucent,
-                         first_face, n_faces, reflectance, transmittance, profile)
+                         first_face, n_faces, reflectance, transmittance, profile, corrections)
     result = direct.results(labels, accepted, points, surfaces, first + far, optics)
     result.update(first_order=first, far_field=far, profile=profile, structure=structure, radiosity=first + far)
     if sensors is not None:
         count = len(sensor_points)
         sensor_far = sail.far_field(geometry.legacy_centres(sensor_points), geometry.legacy_normals(sensor_points),
                                     np.zeros(count, dtype=bool), np.arange(count), count, np.ones(count),
-                                    np.zeros(count), profile)
+                                    np.zeros(count), profile, corrections)
         result["sensors"] = {"Ei0": sensor_first, "Ei": sensor_first + sensor_far, "area": sensor_surfaces,
                              "first_order": sensor_first}
     return result
@@ -105,7 +105,7 @@ def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter,
         counts, far, level_weights = nearfield.counts(
             kept_points, kept, translucent, first_face, n_faces, normals, centres, radius, sensor_points,
             sensor_normals, sensor_centres, resolution, workers, grid=cells, profile=profile, optics=receiver_optics,
-            bias=bias, device=device)
+            bias=bias, device=device, options=nearfield.options(corrections))
     else:
         counts, level_weights = weights
         far = reused_far_field(level_weights, receiver_optics, receiver_translucent, profile, lights, precision)
