@@ -15,6 +15,9 @@ canopy is lit every *lighting_interval*; in between, PARa follows PARi with the 
 the infinite canopy: radiosity within a sphere of *sphere_diameter* around each triangle, a turbid medium of
 *layers* beyond; a null diameter for pure SAIL), "radiosity" (every order in the scene alone, not infinite).
 
+The elements' parts below the soil (*soil_level*: a sown shoot's base, roots) are cut off: the soil is opaque (and
+Caribu's infinite canopy would lift the scene to put its lowest point at 0, lighting them).
+
 Optics: an element's PAR_reflectance and PAR_transmittance when a coupled model writes them (a NaN transmittance: an
 opaque element, a stem), else its MTG label's in *optical_properties* (Wheat-BRIDGES' (0.10, 0.05) leaves, (0.10,)
 stems). The geometry is kept between runs (a Canopy: the sky's projections reused) while the triangles and their
@@ -97,6 +100,9 @@ class CaribuLight(FunctionalComponent):
     sphere_diameter: float = parameter(unit="m", unit_comment="the scene's unit", description="Nested radiosity's "
                                        "sphere (0: pure SAIL)", by="Caribu", default=0.5)
     layers: int = parameter(unit="", description="Nested radiosity's far field layers", by="Caribu", default=10)
+    soil_level: float = parameter(unit="m", unit_comment="the scene's unit", description="The soil's height: the "
+                                  "elements' parts below it (sown shoots, roots) left out of the light model",
+                                  by="the scenario", default=0.)
     soil_reflectance: float = parameter(unit="adim", description="The soil's reflectance in the PAR (scattering)",
                                         by="Caribu", default=0.15)
     screen_size: int = parameter(unit="pixel", description="The projections' screen side", by="Caribu", default=1536)
@@ -114,7 +120,7 @@ class CaribuLight(FunctionalComponent):
     @rate(include_inactive=True)
     def _light(self, PAR_reflectance, PAR_transmittance, azimuth_sectors, zenith_sectors, latitude, orientation,
                start_day_of_year, start_hour, global_per_PARi, lighting_interval, sphere_diameter, layers,
-               soil_reflectance, screen_size) -> dict:
+               soil_level, soil_reflectance, screen_size) -> dict:
         """Erel when the canopy is due to be lit, PARa = Erel · PARi at every step."""
         PARi = self.forcing("PARi")
         time = self.forcing_time()
@@ -127,7 +133,8 @@ class CaribuLight(FunctionalComponent):
             hour = (first(start_hour) + time / 3600.) % 24.
             sources = self.sources(PARi, day, hour, first(latitude), int(first(azimuth_sectors)),
                                    int(first(zenith_sectors)), first(global_per_PARi), first(orientation))
-            relative = self.lit(self.data_structure.triangles(), PAR_reflectance, PAR_transmittance, sources,
+            triangles = above_soil(self.data_structure.triangles(), first(soil_level))
+            relative = self.lit(triangles, PAR_reflectance, PAR_transmittance, sources,
                                 first(sphere_diameter),
                                 int(first(layers)), first(soil_reflectance), int(first(screen_size)))
             self.__dict__["_lit_at"], self.__dict__["_relative"] = time, relative
@@ -253,6 +260,32 @@ class CaribuLight(FunctionalComponent):
                           corrections=self.corrections)
             self.__dict__["_canopy"] = kept
         return kept
+
+
+def above_soil(triangles, level=0.):
+    """The parts of *triangles* (metafspm's Triangles) above the soil at height *level*: a triangle across it cut at
+    its plane (one triangle or two, the same owner), one below it left out. The soil is opaque: a sown shoot's buried
+    part receives no light (Caribu's infinite canopy would otherwise lift the scene to put its lowest point at 0)."""
+    vertices = np.asarray(triangles.vertices, dtype=float)
+    below = vertices[:, :, 2] < level
+    count = below.sum(axis=1)
+    kept_vertices, kept_owners = [vertices[count == 0]], [triangles.owner[count == 0]]
+    for t in np.flatnonzero((count == 1) | (count == 2)):
+        points, buried = vertices[t], below[t]
+        polygon = []
+        for i in range(3):  # Sutherland–Hodgman against z >= level
+            current, following = points[i], points[(i + 1) % 3]
+            if not buried[i]:
+                polygon.append(current)
+            if buried[i] != buried[(i + 1) % 3]:
+                fraction = (level - current[2]) / (following[2] - current[2])
+                crossing = current + fraction * (following - current)
+                crossing[2] = level
+                polygon.append(crossing)
+        for k in range(1, len(polygon) - 1):
+            kept_vertices.append(np.array([[polygon[0], polygon[k], polygon[k + 1]]]))
+            kept_owners.append(triangles.owner[t:t + 1])
+    return type(triangles)(np.concatenate(kept_vertices), np.concatenate(kept_owners))
 
 
 class CaribuLightModel:

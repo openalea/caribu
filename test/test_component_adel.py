@@ -6,9 +6,12 @@ import pytest
 
 pytest.importorskip("openalea.adel")
 
-from openalea.adel.development import ScenarioShoot, random_delays, sown_stand
+from dataclasses import replace
+
+from openalea.adel.development import ScenarioShoot, coleoptile_sowing_depth, random_delays, sown_stand
+from openalea.adel.leaf_shapes import LeafShapes
 from openalea.caribu import api
-from openalea.caribu.component import CaribuLightModel
+from openalea.caribu.component import CaribuLightModel, above_soil
 from openalea.metafspm.coupling.choregrapher import Choregrapher
 from openalea.metafspm.scene.population import planting
 from openalea.metafspm.scene.scene import Scene
@@ -22,18 +25,22 @@ WHEAT_BRIDGES_OPTICS = {"LeafElement": (0.10, 0.05), "StemElement": (0.10,)}
 @pytest.fixture(scope="module")
 def stand():
     """The stand after 61 steps of 10 °Cd, lit every 4 steps: at its last step, before the plants grow in it (the
-    Scene runs the environment first), on the triangles of the 60 steps before, kept."""
+    Scene runs the environment first), on the triangles of the 60 steps before above the soil, kept. Sown as Adel's
+    examples: echap's leaf shapes, each plant at its coleoptile's sowing depth (its base below the soil)."""
     Choregrapher().reset()
+    parameters = {"n_sect": 2, "thermal_time_step": 10., "leaves": LeafShapes.echap(xy_model="Soissons_byleafclass")}
     plants = sown_stand(N_PLANTS, n_rows=N_ROWS, row_spacing=ROW_SPACING, plant_spacing=PLANT_SPACING)
+    plants = [replace(plant, z=-coleoptile_sowing_depth(parameters)) for plant in plants]
     delays = random_delays(N_PLANTS)
-    table = planting(plants, ScenarioShoot, {"n_sect": 2, "thermal_time_step": 10.},
-                     [{"delay": float(delay)} for delay in delays], xrange=XRANGE, yrange=YRANGE)
+    table = planting(plants, ScenarioShoot, parameters, [{"delay": float(delay)} for delay in delays],
+                     xrange=XRANGE, yrange=YRANGE)
     scene = Scene(table, environment=[CaribuLightModel], time_step=HOUR, forcings={"PARi": lambda time: 400.})
     for _ in range(60):
         scene.run()
     triangles = scene.populations[0].data_structure.triangles()
+    assert triangles.vertices[..., 2].min() < 0                       # sown: stems below the soil
     scene.run()
-    return scene, triangles
+    return scene, above_soil(triangles)
 
 
 def _elements(stand):

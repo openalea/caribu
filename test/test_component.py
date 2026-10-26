@@ -215,3 +215,33 @@ def test_the_sun_shares_the_unit_energy_and_sets():
     assert day[-1][1][2] < 0 and 0 < day[-1][0] < 1
     night = light.sources(0., 172, 1., 48.85, 4, 5, 1.)
     assert len(night) == 20 and sum(energy for energy, _ in night) == pytest.approx(1.)
+
+
+def test_above_soil():
+    """A triangle across the soil cut at its plane (one or two triangles, the area above kept), one below dropped."""
+    from openalea.caribu.component import above_soil
+    vertices = np.array([[[0, 0, -1], [2, 0, 1], [0, 2, 1]],         # one vertex below: two triangles
+                         [[0, 0, 1], [2, 0, -1], [0, 2, -1]],         # two below: one triangle
+                         [[0, 0, -1], [1, 0, -1], [0, 1, -2]],        # all below: none
+                         [[0, 0, 0], [1, 0, 1], [0, 1, 0]]], dtype=float)  # on the soil: kept whole
+    kept = above_soil(Triangles(vertices, [0, 1, 2, 3]))
+    assert kept.owner.tolist() == [3, 0, 0, 1]
+    assert (kept.vertices[..., 2] >= 0).all()
+    areas = kept.per_owner(kept.areas(), 4)
+    whole = Triangles(vertices, [0, 1, 2, 3]).areas()
+    np.testing.assert_allclose(areas, [whole[0] * 3 / 4, whole[1] / 4, 0., whole[3]])
+
+
+def test_the_parts_below_the_soil_receive_no_light():
+    """The soil 10 cm up: the stems' lower halves left out (their lit area halved), the light as CaribuScene's on
+    the parts above."""
+    from openalea.caribu.component import above_soil
+    built = scene([Wheat], environment_scenario={"soil_level": 0.1})
+    built.run()
+    ds = built.populations[0].data_structure
+    light = built.environment[0].light
+    stems = light.element_labels() == "StemElement"
+    np.testing.assert_allclose(ds.get("lit_area")[stems], 0.05 * 0.05 / 2, rtol=1e-6)
+    expected = caribu_scene(above_soil(ds.triangles(), 0.1), light.element_labels().tolist())
+    for element, value in expected["Eabs"].items():
+        assert ds.get("Erel")[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
