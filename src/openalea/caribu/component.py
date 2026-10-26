@@ -82,6 +82,9 @@ class CaribuLight(FunctionalComponent):
     sun: bool = parameter(unit="", description="The sun with the diffuse sky (its share 1 - the diffuse fraction)",
                           by="Caribu", default=False)
     latitude: float = parameter(unit="°", description="The scene's latitude", by="Wheat-BRIDGES", default=48.85)
+    orientation: float = parameter(unit="°", description="The angle, clockwise, from the scene's X+ to North (the "
+                                   "sky's and the sun's azimuths with the correction 'sky')", by="the scenario",
+                                   default=0.)
     start_day_of_year: float = parameter(unit="day", description="The day of the year at the scene's time 0",
                                          by="the scenario", default=1.)
     start_hour: float = parameter(unit="h", description="The universal time hour at the scene's time 0",
@@ -109,7 +112,7 @@ class CaribuLight(FunctionalComponent):
     scene_yrange: float = None
 
     @rate(include_inactive=True)
-    def _light(self, PAR_reflectance, PAR_transmittance, azimuth_sectors, zenith_sectors, latitude,
+    def _light(self, PAR_reflectance, PAR_transmittance, azimuth_sectors, zenith_sectors, latitude, orientation,
                start_day_of_year, start_hour, global_per_PARi, lighting_interval, sphere_diameter, layers,
                soil_reflectance, screen_size) -> dict:
         """Erel when the canopy is due to be lit, PARa = Erel · PARi at every step."""
@@ -123,7 +126,7 @@ class CaribuLight(FunctionalComponent):
             day = first(start_day_of_year) + (first(start_hour) * 3600. + time) // 86400.
             hour = (first(start_hour) + time / 3600.) % 24.
             sources = self.sources(PARi, day, hour, first(latitude), int(first(azimuth_sectors)),
-                                   int(first(zenith_sectors)), first(global_per_PARi))
+                                   int(first(zenith_sectors)), first(global_per_PARi), first(orientation))
             relative = self.lit(self.data_structure.triangles(), PAR_reflectance, PAR_transmittance, sources,
                                 first(sphere_diameter),
                                 int(first(layers)), first(soil_reflectance), int(first(screen_size)))
@@ -134,14 +137,16 @@ class CaribuLight(FunctionalComponent):
 
     # ── the sky ──────────────────────────────────────────────────────────────
 
-    def sources(self, PARi, day, hour, latitude, azimuth_sectors, zenith_sectors, global_per_PARi) -> list:
+    def sources(self, PARi, day, hour, latitude, azimuth_sectors, zenith_sectors, global_per_PARi,
+                orientation=0.) -> list:
         """The light sources [(E, (vx, vy, vz))] of unit horizontal energy: the diffuse sky, and the sun with its
         share when *sun* is on and above the horizon (the forcing diffuse_fraction, else Spitters' of the global
         radiation PARi · global_per_PARi)."""
         diffuse = 1.
         sun = []
         if self.sun:
-            sun = [(energy, vector) for energy, vector in lights.sun_light(1., day, hour, latitude) if vector[2] < 0]
+            sun = [(energy, vector) for energy, vector in
+                   lights.sun_light(1., day, hour, latitude, self.corrections, orientation) if vector[2] < 0]
             if sun and PARi > 0:
                 try:
                     diffuse = self.forcing("diffuse_fraction")
@@ -150,9 +155,11 @@ class CaribuLight(FunctionalComponent):
             if not sun or PARi <= 0:
                 sun, diffuse = [], 1.
         if self.sky == "sectors":
-            sky = lights.Sky(azimuth_sectors, zenith_sectors).diffuse(diffuse, self.sky_type).lights()
+            sky = lights.Sky(azimuth_sectors, zenith_sectors, self.corrections,
+                             orientation).diffuse(diffuse, self.sky_type).lights()
         elif self.sky.startswith("turtle"):
-            sky = lights.turtle_lights(self.sky[len("turtle"):], self.sky_type, diffuse)
+            sky = lights.turtle_lights(self.sky[len("turtle"):], self.sky_type, diffuse, self.corrections,
+                                       orientation)
         else:
             raise ValueError(f"CaribuLight.sky: 'sectors' or 'turtle46', 'turtle16', ..., got '{self.sky}'")
         return list(sky) + [(energy * (1 - diffuse), vector) for energy, vector in sun]

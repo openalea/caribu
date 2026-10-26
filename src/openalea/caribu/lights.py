@@ -14,10 +14,27 @@ devplan, for the corrections step):
 Two azimuth conventions coexist, as in the legacy: light.py's directions are the azimuth from X+ counter-clockwise
 (`light_sources` from North, clockwise, with an orientation of X+); the sector sky's and the sun's are radians,
 the sun's azimuth from North, the sky's sector angles from X+.
+
+With the correction "sky" (*corrections*, corrections.resolve's): one convention, `light_sources`' (azimuths from
+North, clockwise; *orientation* the angle, clockwise, from X+ to North), for the turtle, the sector sky and the sun
+(its true solar azimuth); the turtle's beam energies E_h / sin(elevation); the sun with π, none at night (zenith angle
+beyond 90°), placed in its own sector; merge_skies keeping the first sky; normalised keeping an added sun.
 """
 import math
 
 import numpy as np
+
+from . import corrections as corrections_module
+
+
+def _corrected(corrections) -> bool:
+    return "sky" in corrections_module.resolve(corrections)
+
+
+def _north_direction(elevation, azimuth, orientation):
+    """The beam's direction from a source at *elevation* (degrees) and *azimuth* (degrees from North, clockwise),
+    X+ at *orientation* degrees clockwise from North (light_sources')."""
+    return direction(elevation, -(np.asarray(azimuth) + orientation))
 
 # --- The turtle (light.py) ---
 
@@ -67,17 +84,24 @@ def emission_inv(elevation, energy):
     return energy * abs(np.cos(np.radians(90 - elevation)))
 
 
-def turtle(sectors="46", sky_type="soc", energy=1.):
-    """light.turtle: (horizontal energies, energies along the beam (emission_inv's), directions, elevations,
-    azimuths) of a turtle sky of *energy* on the horizontal."""
-    rows = [(weight, emission_inv(weight, elevation), direction(elevation, azimuth), elevation, azimuth)
-            for elevation, azimuth, weight in _turtle_table(sectors, sky_type, energy)]
+def turtle(sectors="46", sky_type="soc", energy=1., corrections=None, orientation=0.):
+    """light.turtle: (horizontal energies, energies along the beam (emission_inv's, its arguments swapped as the
+    legacy's call), directions, elevations, azimuths) of a turtle sky of *energy* on the horizontal. Correction
+    "sky": the beam energies E_h / sin(elevation), the azimuths from North (light_sources')."""
+    corrected = _corrected(corrections)
+    rows = []
+    for elevation, azimuth, weight in _turtle_table(sectors, sky_type, energy):
+        if corrected:
+            rows.append((weight, weight / math.sin(math.radians(elevation)),
+                         _north_direction(elevation, azimuth, orientation), elevation, azimuth))
+        else:
+            rows.append((weight, emission_inv(weight, elevation), direction(elevation, azimuth), elevation, azimuth))
     return list(zip(*rows))
 
 
-def turtle_lights(sectors="46", sky_type="soc", energy=1.) -> list:
+def turtle_lights(sectors="46", sky_type="soc", energy=1., corrections=None, orientation=0.) -> list:
     """The turtle sky's light sources [(E, (vx, vy, vz))]."""
-    energies, _, directions, _, _ = turtle(sectors, sky_type, energy)
+    energies, _, directions, _, _ = turtle(sectors, sky_type, energy, corrections, orientation)
     return list(zip(energies, directions))
 
 
@@ -129,10 +153,13 @@ def standard_overcast(zenith, zenith_width, azimuth, azimuth_width):
 
 class Sky:
     """Sky: *azimuths* × *zeniths* sectors (azimuth outer, from X+; zenith inner, from the zenith), each a source
-    of energy 0 until set; rows [E, vx, vy, vz, azimuth index, zenith index]."""
+    of energy 0 until set; rows [E, vx, vy, vz, azimuth index, zenith index]. Correction "sky": the sectors'
+    azimuths from North, clockwise (X+ at *orientation* degrees from North), the sun placed in its own sector."""
 
-    def __init__(self, azimuths, zeniths):
+    def __init__(self, azimuths, zeniths, corrections=None, orientation=0.):
         self.sectors = [azimuths, zeniths]
+        self.corrections, self.orientation = corrections, orientation
+        self.corrected = _corrected(corrections)
         self.azimuth_width = 2 * math.pi / azimuths
         self.zenith_width = math.pi / 2 / zeniths
         self.rows = []
@@ -140,7 +167,14 @@ class Sky:
             for k in range(zeniths):
                 azimuth = j * self.azimuth_width + self.azimuth_width / 2
                 zenith = k * self.zenith_width + self.zenith_width / 2
-                self.rows.append([0] + _sector_direction(zenith, azimuth) + [j, k])
+                self.rows.append([0] + self._direction(zenith, azimuth) + [j, k])
+
+    def _direction(self, zenith, azimuth):
+        """The beam from a sector or the sun at *zenith* and *azimuth* (radians)."""
+        if not self.corrected:
+            return _sector_direction(zenith, azimuth)
+        return [float(value) for value in _north_direction(90 - math.degrees(zenith), math.degrees(azimuth),
+                                                           self.orientation)]
 
     def diffuse(self, energy, sky_type="soc"):
         """set_Rd: the sectors' energies, *energy* on the horizontal shared as the soc (or uoc) sky."""
@@ -157,6 +191,14 @@ class Sky:
     def place_sun(self, sun):
         """set_Rsun: the sun's energy added to the sector it is in (Which_SkySec's, its quirks kept: the zenith
         index compared to the sectors' azimuth index and the other way round; night never detected)."""
+        if self.corrected:
+            zenith, azimuth = sun.position()
+            if not 0 <= zenith < math.pi / 2:
+                return self                              # the night
+            j = int((azimuth % (2 * math.pi)) // self.azimuth_width) % self.sectors[0]
+            k = min(int(zenith // self.zenith_width), self.sectors[1] - 1)
+            self.rows[j * self.sectors[1] + k][0] += sun.energy
+            return self
         sector = sector_of(self.sectors[0], self.sectors[1], sun.position())
         for row in self.rows:
             if row[4] == sector[0] and row[5] == sector[1]:
@@ -166,14 +208,16 @@ class Sky:
     def add_sun(self, sun):
         """set_Rsun2: the sun added as a source of its own, at its exact position."""
         zenith, azimuth = sun.position()
-        self.rows.append([sun.energy] + _sector_direction(zenith, azimuth) + [-1, -1])
+        if self.corrected and not 0 <= zenith < math.pi / 2:
+            return self
+        self.rows.append([sun.energy] + self._direction(zenith, azimuth) + [-1, -1])
         return self
 
     def __add__(self, other):
         """Two skies' sectors added (None when their sectors differ, as the legacy)."""
         if self.sectors != other.sectors:
             return None
-        total = Sky(*self.sectors)
+        total = Sky(*self.sectors, self.corrections, self.orientation)
         for index in range(len(self.rows)):
             total.rows[index][0] = self.rows[index][0] + other.rows[index][0]
         return total
@@ -189,7 +233,9 @@ class Sky:
         """Noralised_Sky: a sky of the same sectors, its energies summing to 1 (all 0 when the sky is dark; the
         sun added by add_sun dropped, as the legacy)."""
         total = self.total()
-        result = Sky(*self.sectors)
+        result = Sky(*self.sectors, self.corrections, self.orientation)
+        if self.corrected:                                  # an added sun kept
+            result.rows = [list(row) for row in self.rows]
         if total > 0.:
             for index in range(len(result.rows)):
                 result.rows[index][0] = self.rows[index][0] / total
@@ -202,9 +248,10 @@ class Sky:
 
 def merge_skies(skies):
     """mergeNskies: the skies' sum, from an empty sky of the first's sectors and the others (the first's energies
-    left out, as the legacy)."""
-    total = Sky(*skies[0].sectors)
-    for sky in skies[1:]:
+    left out, as the legacy; the first's corrections: "sky" keeps them)."""
+    first = skies[0]
+    total = Sky(*first.sectors, first.corrections, first.orientation)
+    for sky in (skies if first.corrected else skies[1:]):
         total += sky
     return total
 
@@ -226,20 +273,26 @@ def sector_of(azimuths, zeniths, position):
 
 class Sun:
     """Sun: its *energy* (horizontal irradiance), its zenith angle and azimuth (radians; the legacy calls the
-    zenith angle `elev`)."""
+    zenith angle `elev`). Correction "sky": π, the azimuth the solar one (from North, clockwise), none at night, its
+    direction in light_sources' frame (X+ at *orientation* degrees, clockwise, from North)."""
 
-    def __init__(self, energy=1.0, zenith=0., azimuth=0.):
+    def __init__(self, energy=1.0, zenith=0., azimuth=0., corrections=None, orientation=0.):
         self.energy, self.zenith, self.azimuth = energy, zenith, azimuth
+        self.corrected, self.orientation = _corrected(corrections), orientation
 
     def place(self, day_of_year, hour_utc, latitude):
         """_set_pos_astro: the position at *hour_utc* (solar time) of *day_of_year* at *latitude* (radians), with
         the legacy's 3.14 for π in its declination and zenith."""
-        declination = sun_declination(day_of_year)
+        declination = sun_declination(day_of_year, self.corrected)
         hour_angle = 2 * math.pi / 24 * (hour_utc - 12)
-        self.zenith = (3.14 / 2) - math.asin(math.sin(latitude) * math.sin(declination)
-                                             + math.cos(latitude) * math.cos(declination) * math.cos(hour_angle))
+        half_pi = math.pi / 2 if self.corrected else 3.14 / 2
+        self.zenith = half_pi - math.asin(math.sin(latitude) * math.sin(declination)
+                                          + math.cos(latitude) * math.cos(declination) * math.cos(hour_angle))
         first = math.sin(latitude) * math.cos(hour_angle) - math.cos(latitude) * math.tan(declination)
-        self.azimuth = -math.atan2(math.sin(hour_angle), first)
+        if self.corrected:  # from North, clockwise: atan2 gives it from South, westwards
+            self.azimuth = (math.pi + math.atan2(math.sin(hour_angle), first)) % (2 * math.pi)
+        else:
+            self.azimuth = -math.atan2(math.sin(hour_angle), first)
         return self
 
     def position(self):
@@ -248,22 +301,29 @@ class Sun:
     def lights(self) -> list:
         """toLight: the sun as a source [(E, (vx, vy, vz))], none when its zenith angle is not positive (the
         legacy's test: a sun below the horizon still shines, upwards)."""
+        if self.corrected:
+            if not 0 <= self.zenith < math.pi / 2:
+                return []
+            vector = _north_direction(90 - math.degrees(self.zenith), math.degrees(self.azimuth), self.orientation)
+            return [(float(self.energy), tuple(float(value) for value in vector))]
         if not self.zenith > 0:
             return []
         return [(float(self.energy), (math.sin(self.zenith) * math.cos(self.azimuth),
                                       math.sin(self.zenith) * math.sin(self.azimuth), -math.cos(self.zenith)))]
 
 
-def sun_declination(day_of_year):
-    """Sun.DecliSun: the sun's declination (radians), with the legacy's 3.14."""
-    alpha = 2 * 3.14 * (day_of_year - 1) / 365
+def sun_declination(day_of_year, corrected=False):
+    """Sun.DecliSun: the sun's declination (radians), with the legacy's 3.14 (π when *corrected*)."""
+    alpha = 2 * (math.pi if corrected else 3.14) * (day_of_year - 1) / 365
     return 0.006918 - 0.399912 * math.cos(alpha) + 0.070257 * math.sin(alpha)
 
 
-def sun_light(energy, day_of_year, hour_utc, latitude) -> list:
+def sun_light(energy, day_of_year, hour_utc, latitude, corrections=None, orientation=0.) -> list:
     """Gensun and GetLightsSun: the sun of *energy* at *hour_utc* of *day_of_year* at *latitude* (degrees, turned
-    into radians with 3.14 as the legacy)."""
-    return Sun(energy).place(day_of_year, hour_utc, 3.14 / 180 * latitude).lights()
+    into radians with 3.14 as the legacy; π with the correction "sky")."""
+    to_radians = (math.pi if _corrected(corrections) else 3.14) / 180
+    return Sun(energy, corrections=corrections, orientation=orientation).place(day_of_year, hour_utc,
+                                                                               to_radians * latitude).lights()
 
 
 # --- Radiation (spitters_horaire) ---

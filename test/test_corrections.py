@@ -261,3 +261,34 @@ def test_face_irradiance(model):
     np.testing.assert_allclose(corrected["Eabs"][:100], 0.8 * corrected["Ei"][:100], rtol=1e-6)
     np.testing.assert_allclose(corrected["Eabs"][100:], corrected["Ei_sup"][100:], rtol=1e-6)    # ρ = 0: all
     assert (corrected["Ei_sup"] > 0).mean() > 0.9
+
+
+def test_sky():
+    """The sky tools in one frame (light_sources': azimuths from North, clockwise; X+ at *orientation* from North):
+    the sun at noon in the South, shining northwards, its zenith angle the latitude minus the declination (π, not
+    3.14), none at night, in its own sector of the sector sky; the turtle's beam energies E_h / sin(elevation);
+    merged skies and a normalised sky with a sun keeping all their energies."""
+    import math
+    from openalea.caribu import lights
+    on = "recommended"
+    noon = lights.Sun(corrections=on).place(80, 12., math.radians(45.))
+    assert noon.azimuth == pytest.approx(math.pi)
+    assert math.degrees(noon.zenith) == pytest.approx(45. - math.degrees(lights.sun_declination(80, True)))
+    (energy, beam), = lights.sun_light(1., 80, 12., 45., corrections=on)
+    assert beam[0] > 0 and abs(beam[1]) < 1e-12 and beam[2] < 0           # X+ the North: shining northwards
+    (_, east_beam), = lights.sun_light(1., 80, 12., 45., corrections=on, orientation=90.)
+    assert east_beam[1] == pytest.approx(-beam[0])                        # the same beam, the frame turned
+    morning = lights.Sun(corrections=on).place(172, 7., math.radians(45.))
+    assert 0 < math.degrees(morning.azimuth) < 90                         # summer: rising north of east
+    assert lights.sun_light(1., 172, 1., 45., corrections=on) == []
+    assert lights.sun_light(1., 172, 1., 45.)[0][1][2] > 0                # the legacy's sun shines upwards
+    energies, beams, _, elevations, _ = lights.turtle("16", "soc", 1., corrections=on)
+    np.testing.assert_allclose(beams, np.array(energies) / np.sin(np.radians(elevations)))
+    sky = lights.Sky(4, 5, corrections=on).diffuse(0.5, "soc").place_sun(morning)
+    sector = max(range(len(sky.rows)), key=lambda index: sky.rows[index][0])
+    sun_beam = np.array(morning.lights()[0][1])
+    assert np.degrees(np.arccos(np.dot(sky.rows[sector][1:4], sun_beam))) < 45.
+    skies = [lights.Sky(4, 5, corrections=on).diffuse(energy, "soc") for energy in (1., 2.)]
+    assert lights.merge_skies(skies).total() == pytest.approx(3.)
+    with_sun = lights.Sky(4, 5, corrections=on).diffuse(1., "soc").add_sun(morning).normalised()
+    assert len(with_sun.rows) == 21 and with_sun.total() == pytest.approx(1.)
