@@ -64,7 +64,14 @@ raw, aggregated = api.CaribuScene(scene, light=sky, pattern=domain, opt={"par": 
 - **Exactness first.** With `precision="legacy"` (the default), every output equals the legacy's to its printed
   digits: canestrad's Etri.vec0, E0.dat, B.dat, solem.dat, its matrix files, s2v's and mcsail's files, the API's
   dicts, on the filter and the 100-plant Adel scenes (`test/comparison`). The legacy's own tests run on the port.
-  Its quirks are reproduced and listed (`devplan_metafspm.md`), to be corrected one by one.
+- **Corrections.** `corrections="recommended"` (with `precision="full"`; `openalea.caribu.corrections` lists them)
+  corrects the legacy's behaviours, each tested by the physics it restores (`test/test_corrections.py`): a
+  triangle across the pattern's borders lit whole, the same canopy in metres and in centimetres lit alike (the near
+  field's voxels, the tiling of the neighbouring patterns), the layers' exact areas, each face's irradiance
+  accumulated (leaves with ρ = τ budgeted), one azimuth convention for the sky and the sun, and more.
+- **The metafspm component.** `openalea.caribu.component.CaribuLight` lights the elements of one or several plant
+  populations from their triangles (`ds.triangles()`), as a metafspm environment model (`CaribuLightModel`):
+  Erel and PARa per element, the canopy kept between lightings; with the corrections by default.
 - **Speed** (100-plant Adel scene, 34,647 triangles, 46 sources, a laptop CPU; legacy → port): direct 1.9 s →
   0.3 s; infinite 3.1 → 0.5; pure SAIL 3.3 → 0.6; nested radiosity (D = 0.5) 11.3 → 1.4; full radiosity of the
   whole scene 307 → 62. `openalea.caribu.canopy.Canopy` keeps what depends only on the geometry: a second band or
