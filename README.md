@@ -84,6 +84,9 @@ raw, aggregated = api.CaribuScene(scene, light=sky, pattern=domain, opt={"par": 
   `example/canopy_light.py` (CaribuLight on a stand grown by Adel's port); the tutorial
   `example/tutorials/tutorial_caribu.ipynb`.
 
+Documentation: `doc/equations.rst` (the models' equations and the functions computing them), `doc/performance.rst`
+(precision, corrections, speed, GPU).
+
 Tests: `pytest test` (the comparisons with the legacy need libcaribu, in the environment below).
 
 ## Installation

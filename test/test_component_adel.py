@@ -11,7 +11,7 @@ from dataclasses import replace
 from openalea.adel.development import ScenarioShoot, coleoptile_sowing_depth, random_delays, sown_stand
 from openalea.adel.leaf_shapes import LeafShapes
 from openalea.caribu import api
-from openalea.caribu.component import CaribuLightModel, above_soil
+from openalea.caribu.component import CaribuLightModel, Lighting, above_soil
 from openalea.metafspm.coupling.choregrapher import Choregrapher
 from openalea.metafspm.scene.population import planting
 from openalea.metafspm.scene.scene import Scene
@@ -58,7 +58,7 @@ def _elements(stand):
 def test_the_stand_is_lit_as_by_caribu_scene(stand):
     ds, primitives, opt = _elements(stand)
     assert len(primitives) > 50
-    sky = stand[0].environment[0].light.sources(400., 1, 0, 48.85, 4, 5, 1.)
+    sky = stand[0].environment[0].light.sources(400., 1, 0)
     _, aggregated = api.CaribuScene(scene=primitives, light=sky, pattern=(0, 0, XRANGE, YRANGE), opt=opt,
                                     precision="full", corrections="recommended").run(direct=True, infinite=True)
     erel = np.asarray(ds.get("Erel"))
@@ -86,10 +86,9 @@ def test_wheat_bridges_use_reproduced(stand):
                                 opt=opt).run(direct=True, infinite=True)
     light = stand[0].environment[0].light
     full = np.asarray(ds.get("Erel"))
-    light.precision, light.corrections = "legacy", ()  # the legacy's numbers: its printed digits, no correction
-    nan = np.full(full.size, np.nan)
-    erel, _, _ = light.lit(stand[1], nan, nan, light.sources(400., 1, 0, 48.85, 4, 5, 1.), 0.5, 10, 0.15, 1536)
-    light.precision, light.corrections = "full", "recommended"
+    light.lighting = Lighting(precision="legacy", corrections=())   # the legacy's numbers: no correction
+    erel, _, _ = light.lit(stand[1], ds.get("reflectance"), ds.get("transmittance"), light.sources(400., 1, 0))
+    light.lighting = Lighting()
     for element, value in aggregated["par"]["Eabs"].items():
         assert erel[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
     # the printed areas of small triangles (m²) and the corrections move Erel

@@ -34,7 +34,7 @@ def far_field_profile(points, labels, lights, optics, pattern, layers, height, p
 
 def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diameter=0., size=1536, sensors=None,
         workers=None, precision="legacy", bias=True, resolution=52, tolerance=1e-6, iterations=1000, threshold=50,
-        ratio=1., weights=None, cache=None, prepared=None, device="cpu", corrections=frozenset()):
+        ratio=1., weights=None, cache=None, prepared=None, device="cpu", corrections=frozenset(), linear_solver="mgcr"):
     """Direct light and its scattering in the infinite canopy repeating *pattern* (x1, y1, x2, y2), the far field
     in *layers* up to *height*: direct.run's result, its budgets from the radiosities; result["profile"] the far
     field's fluxes, result["first_order"] B0, result["far_field"] B_far. *diameter*: the near field's sphere (0:
@@ -45,11 +45,14 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
     *weights*: (counts, weights) of a run on the same scene in another band, the far field from them (canestrad's
     `-w`, its scaling by the last source's energy kept while *precision* is the legacy's). *cache*: first_order's;
     *prepared*: direct.scene's result; *device* "cuda": the near field on the GPU; *corrections*:
-    corrections.resolve's names."""
+    corrections.resolve's names; *linear_solver*: solver.solve's ("mgcr", canestrad's; "gmres", scipy's, with
+    precision "full")."""
+    if linear_solver != "mgcr" and precision == "legacy":
+        raise ValueError("the legacy's precision solves with canestrad's MGCR: linear_solver 'gmres' needs 'full'")
     if diameter != 0:
         return _nested(vertices, labels, lights, optics, pattern, layers, height, diameter, size, sensors, workers,
                        precision, bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared,
-                       device, corrections)
+                       device, corrections, linear_solver)
     points, labels, accepted, flags = (direct.scene(vertices, labels, pattern, corrections) if prepared is None
                                        else prepared)
     kept_points, kept = points[accepted], labels[accepted]
@@ -79,7 +82,8 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
 
 
 def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter, size, sensors, workers, precision,
-            bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared, device, corrections):
+            bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared, device, corrections,
+            linear_solver):
     points, labels, accepted, flags = (direct.scene(vertices, labels, pattern, corrections) if prepared is None
                                        else prepared)
     kept_points, kept = points[accepted], labels[accepted]
@@ -121,10 +125,10 @@ def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter,
     far_faces[receiver_faces[receiver_translucent] + 1] = far[receiver_translucent, 1]
     rhs = np.concatenate([first, sensor_first]) + far_faces
     indptr, faces, values = counts
-    radiosities, steps = solver.mgcr(rhs, indptr, faces, values, receiver_faces, receiver_translucent,
-                                     np.concatenate([reflectance, np.ones(sensor_count)]),
-                                     np.concatenate([transmittance, np.zeros(sensor_count)]),
-                                     nearfield.form_factor(resolution), tolerance, 100, iterations)
+    radiosities, steps = solver.solve(linear_solver, rhs, indptr, faces, values, receiver_faces, receiver_translucent,
+                                      np.concatenate([reflectance, np.ones(sensor_count)]),
+                                      np.concatenate([transmittance, np.zeros(sensor_count)]),
+                                      nearfield.form_factor(resolution), tolerance, 100, iterations)
     if "face_irradiance" in corrections:  # the near field's and the far field's light on each face
         incident = incident + solver.incoming(radiosities, indptr, faces, values, receiver_faces,
                                               receiver_translucent, nearfield.form_factor(resolution), n_faces)

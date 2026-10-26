@@ -14,12 +14,14 @@ F32 = np.float32
 
 
 def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None, resolution=52, tolerance=1e-6,
-        iterations=1000, counts=None, cache=None, prepared=None, device="cpu", corrections=frozenset()):
+        iterations=1000, counts=None, cache=None, prepared=None, device="cpu", corrections=frozenset(),
+        linear_solver="mgcr"):
     """Radiosity on the triangles: direct.run's result, its budgets from the solved radiosities; result["steps"]
     the solver's steps, result["counts"] the near field's. *resolution*: the receivers' discs, NB × NB pixels;
     *tolerance*, *iterations*: MGCR's (relative to the first residual); *counts*: a previous run's on the same
     triangles and sensors (another band), not computed again; *cache*: first_order's; *prepared*: direct.scene's
-    result; *device* "cuda": the near field on the GPU; *corrections*: corrections.resolve's names."""
+    result; *device* "cuda": the near field on the GPU; *corrections*: corrections.resolve's names; *linear_solver*:
+    solver.solve's ("mgcr", canestrad's; "gmres", scipy's)."""
     points, labels, accepted, _ = direct.scene(vertices, labels, None, corrections) if prepared is None else prepared
     kept_points, kept = points[accepted], labels[accepted]
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
@@ -47,9 +49,9 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
     all_reflectance = np.concatenate([reflectance, np.ones(sensor_count)])
     all_transmittance = np.concatenate([transmittance, np.zeros(sensor_count)])
     rhs = np.concatenate([first, sensor_first])
-    radiosities, steps = solver.mgcr(rhs, indptr, faces, values, receiver_faces, receiver_translucent,
-                                     all_reflectance, all_transmittance, nearfield.form_factor(resolution), tolerance,
-                                     100, iterations)
+    radiosities, steps = solver.solve(linear_solver, rhs, indptr, faces, values, receiver_faces, receiver_translucent,
+                                      all_reflectance, all_transmittance, nearfield.form_factor(resolution),
+                                      tolerance, 100, iterations)
     if "face_irradiance" in corrections:
         incident = incident + solver.incoming(radiosities, indptr, faces, values, receiver_faces,
                                               receiver_translucent, nearfield.form_factor(resolution), n_faces)

@@ -15,6 +15,8 @@ Welcome to openalea.caribu's documentation!
 
     readme
     usage
+    equations
+    performance
     api
     authors
 

@@ -38,19 +38,19 @@ class Canopy:
         return direct.run(self.vertices, self.labels, lights, optics, self.size, self.sensors, self.workers,
                           self.pattern, cache=self._lit, prepared=self.prepared, corrections=self.corrections)
 
-    def radiosity(self, lights, optics, resolution=52, tolerance=1e-6, iterations=1000) -> dict:
+    def radiosity(self, lights, optics, resolution=52, tolerance=1e-6, iterations=1000, linear_solver="mgcr") -> dict:
         """Radiosity in the whole scene (not an infinite canopy): radiosity.run's result."""
         if self.pattern is not None:
             raise ValueError("full radiosity is for a closed scene: use nested() in an infinite canopy")
         result = radiosity.run(self.vertices, self.labels, lights, optics, self.size, self.sensors, self.workers,
                                resolution, tolerance, iterations, counts=self._form_factors.get(resolution),
                                cache=self._lit, prepared=self.prepared, device=self.device,
-                               corrections=self.corrections)
+                               corrections=self.corrections, linear_solver=linear_solver)
         self._form_factors[resolution] = result["counts"]
         return result
 
     def nested(self, lights, optics, layers=10, height=1., diameter=0., precision="legacy", bias=True,
-               resolution=52, tolerance=1e-6, iterations=1000, threshold=50, ratio=1.) -> dict:
+               resolution=52, tolerance=1e-6, iterations=1000, threshold=50, ratio=1., linear_solver="mgcr") -> dict:
         """Scattering in the infinite canopy (pure SAIL with a null *diameter*): nested.run's result."""
         if self.pattern is None:
             raise ValueError("nested radiosity needs a pattern (an infinite canopy)")
@@ -60,7 +60,7 @@ class Canopy:
         result = nested.run(self.vertices, self.labels, lights, optics, self.pattern, layers, height, diameter,
                             self.size, self.sensors, self.workers, precision, bias, resolution, tolerance,
                             iterations, threshold, ratio, weights=reused, cache=self._lit, prepared=self.prepared,
-                            device=self.device, corrections=self.corrections)
+                            device=self.device, corrections=self.corrections, linear_solver=linear_solver)
         if diameter != 0 and reused is None:
             self._near_field[key] = (result["counts"], result["weights"])
         return result

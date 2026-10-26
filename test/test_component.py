@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from openalea.caribu import api, lights
-from openalea.caribu.component import CaribuLight, CaribuLightModel
+from openalea.caribu.component import CaribuLight, CaribuLightModel, Lighting
 from openalea.metafspm.coupling.choregrapher import Choregrapher
 from openalea.metafspm.coupling.component import (FunctionalComponent, StructuralComponent, input_variable,
                                                    state_variable)
@@ -103,9 +103,10 @@ def planting(models, n_leaves=3):
     return table
 
 
-def scene(models, environment_scenario=None, translator=None, PARi=500.):
+def scene(models, lighting=None, translator=None, PARi=500.):
     Choregrapher().reset()
-    return Scene(planting(models), environment=[CaribuLightModel], environment_scenarios=[environment_scenario or {}],
+    scenario = {} if lighting is None else {"lighting": lighting}
+    return Scene(planting(models), environment=[CaribuLightModel], environment_scenarios=[scenario],
                  translator=translator, time_step=HOUR, forcings={"PARi": lambda time: PARi})
 
 
@@ -142,7 +143,7 @@ def test_the_canopy_is_lit_every_interval_PARa_following_PARi():
     PARi = {"value": 500.}
     Choregrapher().reset()
     built = Scene(planting([Wheat]), environment=[CaribuLightModel],
-                  environment_scenarios=[{"lighting_interval": 2 * HOUR}], time_step=HOUR,
+                  environment_scenarios=[{"lighting": Lighting(lighting_interval=2 * HOUR)}], time_step=HOUR,
                   forcings={"PARi": lambda time: PARi["value"]})
     ds = built.populations[0].data_structure
     built.run()
@@ -188,15 +189,17 @@ def test_optics_from_inputs_and_labels():
     expected = [(0.10,) if label == "StemElement" else (0.10, 0.05) for label in labels]
     expected[leaves[0]], expected[leaves[1]] = (0.2, 0.1), (0.3,)
     assert sorted(set(labels)) == ["LeafElement", "StemElement"]
-    assert light.materials(reflectance, transmittance) == expected
-    light.optical_properties = (("StemElement", (0.1,)),)
+    light.data_structure.set("PAR_reflectance", reflectance)
+    light.data_structure.set("PAR_transmittance", transmittance)
+    light.run_stage("rate")
+    assert light.materials(ds.get("reflectance"), ds.get("transmittance")) == expected
+    light.leaf_labels = ()
     with pytest.raises(ValueError):                       # the leaves without optics
-        nan = np.full(ds.n_nodes(), np.nan)
-        light.lit(ds.triangles(), nan, nan, SKY, 0.5, 10, 0.15, 1536)
+        light()
 
 
 def test_nested_mode_as_caribu_scene():
-    built = scene([Wheat, Wheat], environment_scenario={"mode": "nested", "sphere_diameter": 0.1, "layers": 5})
+    built = scene([Wheat, Wheat], Lighting(mode="nested", sphere_diameter=0.1, layers=5))
     built.run()
     ds = built.populations[0].data_structure
     light = built.environment[0].light
@@ -208,12 +211,12 @@ def test_nested_mode_as_caribu_scene():
 
 
 def test_the_sun_shares_the_unit_energy_and_sets():
-    built = scene([Wheat], environment_scenario={"sun": True, "start_day_of_year": 172, "latitude": 48.85})
+    built = scene([Wheat], Lighting(sun=True, start_day_of_year=172, latitude=48.85))
     light = built.environment[0].light
-    day = light.sources(2000., 172, 12., 48.85, 4, 5, 1 / (0.48 * 4.57))    # a clear noon: a diffuse fraction of 0.2
+    day = light.sources(2000., 172, 12.)                  # a clear noon: a diffuse fraction of 0.2
     assert len(day) == 21 and sum(energy for energy, _ in day) == pytest.approx(1.)
     assert day[-1][1][2] < 0 and 0 < day[-1][0] < 1
-    night = light.sources(0., 172, 1., 48.85, 4, 5, 1.)
+    night = light.sources(0., 172, 1.)
     assert len(night) == 20 and sum(energy for energy, _ in night) == pytest.approx(1.)
 
 
@@ -236,7 +239,7 @@ def test_the_parts_below_the_soil_receive_no_light():
     """The soil 10 cm up: the stems' lower halves left out (their lit area halved), the light as CaribuScene's on
     the parts above."""
     from openalea.caribu.component import above_soil
-    built = scene([Wheat], environment_scenario={"soil_level": 0.1})
+    built = scene([Wheat], Lighting(soil_level=0.1))
     built.run()
     ds = built.populations[0].data_structure
     light = built.environment[0].light
@@ -245,3 +248,18 @@ def test_the_parts_below_the_soil_receive_no_light():
     expected = caribu_scene(above_soil(ds.triangles(), 0.1), light.element_labels().tolist())
     for element, value in expected["Eabs"].items():
         assert ds.get("Erel")[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
+
+
+def test_optics_per_plant():
+    """The optics are plant parameters: two genotypes' leaves reflect differently."""
+    built = scene([Wheat, Wheat])
+    ds = built.populations[0].data_structure
+    light = built.environment[0].light
+    ds.set("leaf_reflectance", np.array([0.08, 0.2]))
+    built.run()
+    first = np.asarray(ds.owner("Plant")) == 0
+    leaf, stem = light.element_kinds()
+    np.testing.assert_allclose(ds.get("reflectance")[leaf & first], 0.08)
+    np.testing.assert_allclose(ds.get("reflectance")[leaf & ~first], 0.2)
+    np.testing.assert_allclose(ds.get("reflectance")[stem], 0.10)
+    assert np.isnan(ds.get("transmittance")[stem]).all()
