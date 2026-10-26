@@ -27,7 +27,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from openalea.metafspm.coupling.component import FunctionalComponent, input_variable, parameter, state_variable
+from openalea.metafspm.coupling.component import (FunctionalComponent, forcing_variable, input_variable, parameter,
+                                                   state_variable)
 from openalea.metafspm.coupling.cross import UnionDataStructure
 from openalea.metafspm.data_structure.configs import ScalesConfig as scales
 from openalea.metafspm.solve.decorator import rate, state
@@ -94,6 +95,12 @@ class CaribuLight(FunctionalComponent):
     PAR_transmittance: float = input_variable(
         unit="adim", description="The element's transmittance in the PAR, from an optical model (NaN: opaque)",
         by="an optical model", initialize=np.nan, **ELEMENT)
+
+    PARi: float = forcing_variable(unit="µmol m-2 s-1", unit_comment="or any unit: PARa, PAR_incident take it",
+                                   description="The PAR above the canopy, on a horizontal plane")
+    diffuse_fraction: float = forcing_variable(
+        unit="adim", description="The diffuse share of the incident radiation, with the sun (else Spitters' from "
+        "PARi)", required=False)
 
     reflectance: float = state_variable(
         unit="adim", description="The element's reflectance in the light model", state_variable_type="intensive",

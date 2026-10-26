@@ -263,3 +263,11 @@ def test_optics_per_plant():
     np.testing.assert_allclose(ds.get("reflectance")[leaf & ~first], 0.2)
     np.testing.assert_allclose(ds.get("reflectance")[stem], 0.10)
     assert np.isnan(ds.get("transmittance")[stem]).all()
+
+
+def test_the_forcings_are_declared():
+    """PARi is a declared forcing, required: a scene without it fails when built; the diffuse fraction is optional."""
+    assert CaribuLight.declared_forcings() == {"PARi": True, "diffuse_fraction": False}
+    Choregrapher().reset()
+    with pytest.raises(ValueError, match="CaribuLight.PARi"):
+        Scene(planting([Wheat]), environment=[CaribuLightModel], time_step=HOUR)
