@@ -15,6 +15,7 @@ Welcome to openalea.caribu's documentation!
 
     readme
     usage
+    components
     equations
     legacy
     performance

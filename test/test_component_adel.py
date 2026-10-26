@@ -11,7 +11,7 @@ from dataclasses import replace
 from openalea.adel.development import ScenarioShoot, coleoptile_sowing_depth, random_delays, sown_stand
 from openalea.adel.leaf_shapes import LeafShapes
 from openalea.caribu import api
-from openalea.caribu.component import CaribuLightModel, Lighting, above_soil
+from openalea.caribu.component import CaribuLightModel, above_soil
 from openalea.metafspm.coupling.choregrapher import Choregrapher
 from openalea.metafspm.scene.population import planting
 from openalea.metafspm.scene.scene import Scene
@@ -86,9 +86,9 @@ def test_wheat_bridges_use_reproduced(stand):
                                 opt=opt).run(direct=True, infinite=True)
     light = stand[0].environment[0].light
     full = np.asarray(ds.get("Erel"))
-    light.lighting = Lighting(precision="legacy", corrections=())   # the legacy's numbers: no correction
+    light.precision, light.corrections = "legacy", ()                  # the legacy's numbers: no correction
     erel, _, _ = light.lit(stand[1], ds.get("reflectance"), ds.get("transmittance"), light.sources(400., 1, 0))
-    light.lighting = Lighting()
+    light.precision, light.corrections = "full", "recommended"
     for element, value in aggregated["par"]["Eabs"].items():
         assert erel[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
     # the printed areas of small triangles (m²) and the corrections move Erel

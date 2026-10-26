@@ -1,7 +1,7 @@
 """
 Caribu as a metafspm component: the light each element of a canopy absorbs, from its triangles.
 
-    CaribuLight(data_structure=ds, lighting=Lighting(...))
+    CaribuLight(data_structure=ds, mode="nested", latitude=45.)
                                             a FunctionalComponent on a population's DataStructure, or on a
                                             UnionDataStructure of several populations
     CaribuLightModel(populations, scene_xrange, scene_yrange, time_step)
@@ -16,21 +16,21 @@ Its steps follow the physics:
 
 The canopy is lit every *lighting_interval* (and when elements appear); in between CaribuLightModel runs only
 _absorbed_PAR, PARa following PARi with the last Erel (Wheat-BRIDGES' Caribu every 4 hours). How the canopy is lit,
-the same for every plant, is a `Lighting`: the light model (direct light, nested radiosity in the infinite canopy,
-pure SAIL, radiosity in the scene alone), the sky and the sun, the site, the soil, the numerics (precision,
-corrections, GPU, the linear solver). The optics are plant parameters: they may differ between plants. The elements'
-parts below the soil are cut off: the soil is opaque (Caribu's infinite canopy would lift the scene to put its lowest
-point at 0, lighting them). The geometry is kept between lightings (a Canopy: the sky's projections reused) while
-the triangles, their optics and the lighting are the same.
+the same for every plant, is the component's settings: the light model (direct light, nested radiosity in the
+infinite canopy, pure SAIL, radiosity in the scene alone), the sky and the sun, the site, the soil, the numerics
+(precision, corrections, GPU, the linear solver). The optics are plant parameters: they may differ between plants.
+The elements' parts below the soil are cut off: the soil is opaque (Caribu's infinite canopy would lift the scene to
+put its lowest point at 0, lighting them). The geometry is kept between lightings (a Canopy: the sky's projections
+reused) while the triangles, their optics and the settings are the same.
 """
 from dataclasses import dataclass
 
 import numpy as np
 
 from openalea.metafspm.coupling.component import (FunctionalComponent, forcing_variable, input_variable, parameter,
-                                                   state_variable)
-from openalea.metafspm.coupling.cross import UnionDataStructure
+                                                   setting, state_variable)
 from openalea.metafspm.data_structure.configs import ScalesConfig as scales
+from openalea.metafspm.scene.environment import EnvironmentModel
 from openalea.metafspm.solve.decorator import rate, state
 
 from . import api, lights
@@ -38,50 +38,6 @@ from . import corrections as corrections_module
 from .canopy import Canopy
 
 ELEMENT = dict(scale=scales.SubOrgan)
-
-
-@dataclass(frozen=True)
-class Lighting:
-    """How CaribuLight lights the canopy: settings of the scene, not of the plants (one value for all)."""
-    # the light model: "direct" (first order, Wheat-BRIDGES'), "nested" (the scattering in the infinite canopy:
-    # radiosity within a sphere of *sphere_diameter* around each triangle, a turbid medium of *layers* beyond; a null
-    # diameter for pure SAIL) or "radiosity" (every order of scattering in the scene alone, not infinite)
-    mode: str = "direct"
-    infinite: bool = True                   # direct light: the pattern repeated (nested is always infinite)
-    sphere_diameter: float = 0.5            # m (the scene's unit)
-    layers: int = 10
-    # the sky: "sectors" (azimuth_sectors × zenith_sectors) or a turtle ("turtle46", "turtle16", ...), "soc" standard
-    # overcast or "uoc" uniform (Wheat-BRIDGES: 4 × 5 sectors, soc)
-    sky: str = "sectors"
-    sky_type: str = "soc"
-    azimuth_sectors: int = 4
-    zenith_sectors: int = 5
-    # the sun with the diffuse sky, its share 1 − the diffuse fraction (the forcing diffuse_fraction, else Spitters' of
-    # the global radiation PARi · global_per_PARi: 1 / (0.48 × 4.57) for PARi in µmol m-2 s-1, McCree)
-    sun: bool = False
-    global_per_PARi: float = 1 / (0.48 * 4.57)
-    latitude: float = 48.85                 # °
-    orientation: float = 0.                 # °, clockwise, from the scene's X+ to North
-    start_day_of_year: float = 1.           # the day and the universal time hour at the scene's time 0
-    start_hour: float = 0.
-    soil_level: float = 0.                  # m: the elements' parts below it (sown shoots, roots) left out
-    soil_reflectance: float = 0.15          # the soil's in the PAR (scattering)
-    lighting_interval: float = 4 * 3600.    # s between two lightings (Wheat-BRIDGES: 4 hours)
-    # numerics: the projections' screen (pixels), "full" the computed values or "legacy" the legacy's printed digits,
-    # the legacy's behaviours corrected ("recommended", names of openalea.caribu.corrections, or () with "legacy"),
-    # the near field's device ("cpu", "cuda"), the radiosity system's solver ("mgcr", "gmres")
-    screen_size: int = 1536
-    precision: str = "full"
-    corrections: object = "recommended"
-    device: str = "cpu"
-    linear_solver: str = "mgcr"
-
-    def __post_init__(self):
-        if self.mode not in ("direct", "nested", "radiosity"):
-            raise ValueError(f"Lighting.mode: 'direct', 'nested' or 'radiosity', got '{self.mode}'")
-        if not (self.sky == "sectors" or self.sky.startswith("turtle")):
-            raise ValueError(f"Lighting.sky: 'sectors' or 'turtle46', 'turtle16', ..., got '{self.sky}'")
-        corrections_module.resolve(self.corrections, self.precision)
 
 
 @dataclass
@@ -134,11 +90,57 @@ class CaribuLight(FunctionalComponent):
                                    by="Wheat-BRIDGES", default=("LeafElement", "LeafElement1"))
     stem_labels: tuple = parameter(unit="", description="The MTG labels of the stem elements (opaque)",
                                    by="Wheat-BRIDGES", default=("StemElement",))
-    lighting: Lighting = parameter(unit="", description="How the canopy is lit: the light model, the sky and the "
-                                   "sun, the site, the numerics (Lighting)", by="Caribu", default=Lighting())
 
-    scene_xrange: float = None          # the pattern (0, 0, scene_xrange, scene_yrange): the scene's
-    scene_yrange: float = None
+    # the light model: "direct" (first order, Wheat-BRIDGES'), "nested" (the scattering in the infinite canopy:
+    # radiosity within a sphere of sphere_diameter around each triangle, a turbid medium of layers beyond; a null
+    # diameter for pure SAIL) or "radiosity" (every order of scattering in the scene alone, not infinite)
+    mode: str = setting(description="The light model: 'direct', 'nested' or 'radiosity'", default="direct",
+                        choices=("direct", "nested", "radiosity"))
+    infinite: bool = setting(description="Direct light: the pattern repeated (nested is always infinite)",
+                             default=True, choices=(True, False))
+    sphere_diameter: float = setting(unit="m", unit_comment="the scene's unit",
+                                     description="Nested radiosity's sphere (0: pure SAIL)", default=0.5)
+    layers: int = setting(unit="adim", description="Nested radiosity's far field layers", default=10)
+    sky: str = setting(description="The sky: 'sectors' (azimuth_sectors x zenith_sectors) or a turtle",
+                       default="sectors", choices=("sectors", "turtle46", "turtle16", "turtle1"))
+    sky_type: str = setting(description="'soc' standard overcast or 'uoc' uniform", default="soc",
+                            choices=("soc", "uoc"))
+    azimuth_sectors: int = setting(unit="adim", description="The sector sky's azimuths (Wheat-BRIDGES: 4)", default=4)
+    zenith_sectors: int = setting(unit="adim", description="The sector sky's zeniths (Wheat-BRIDGES: 5)", default=5)
+    sun: bool = setting(description="The sun with the diffuse sky, its share 1 - the diffuse fraction",
+                        default=False, choices=(True, False))
+    global_per_PARi: float = setting(
+        unit="", unit_comment="W m-2 of global radiation per unit of PARi", description="For the diffuse fraction "
+        "without its forcing: 1 / (0.48 x 4.57), PARi in µmol m-2 s-1 (McCree)", default=1 / (0.48 * 4.57))
+    latitude: float = setting(unit="°", description="The scene's latitude", default=48.85)
+    orientation: float = setting(unit="°", description="The angle, clockwise, from the scene's X+ to North (the "
+                                 "sky's and the sun's azimuths with the correction 'sky')", default=0.)
+    start_day_of_year: float = setting(unit="day", description="The day of the year at the scene's time 0",
+                                       default=1.)
+    start_hour: float = setting(unit="h", description="The universal time hour at the scene's time 0", default=0.)
+    soil_level: float = setting(unit="m", unit_comment="the scene's unit", description="The soil's height: the "
+                                "elements' parts below it (sown shoots, roots) left out", default=0.)
+    soil_reflectance: float = setting(unit="adim", description="The soil's reflectance in the PAR (scattering)",
+                                      default=0.15)
+    lighting_interval: float = setting(unit="s", description="Time between two lightings (Wheat-BRIDGES: 4 h)",
+                                       default=4 * 3600.)
+    scene_xrange: float = setting(unit="m", description="The infinite canopy's pattern (0, 0, scene_xrange, "
+                                  "scene_yrange), the scene's (None: the triangles' extent)", default=None)
+    scene_yrange: float = setting(unit="m", description="The pattern's y range (see scene_xrange)", default=None)
+    screen_size: int = setting(unit="pixel", description="The projections' screen side", default=1536)
+    precision: str = setting(description="'full' the computed values, 'legacy' the legacy's printed digits",
+                             default="full", choices=("full", "legacy"))
+    corrections: object = setting(description="The legacy's behaviours corrected: 'recommended' (all), a tuple of "
+                                  "names (openalea.caribu.corrections), or () with precision 'legacy'",
+                                  default="recommended")
+    device: str = setting(description="The near field's device: 'cpu' or 'cuda'", default="cpu",
+                          choices=("cpu", "cuda"))
+    linear_solver: str = setting(description="The radiosity system's solver: 'mgcr' (canestrad's) or 'gmres' "
+                                 "(scipy's)", default="mgcr", choices=("mgcr", "gmres"))
+
+    def __post_init__(self):
+        super().__post_init__()
+        corrections_module.resolve(self.corrections, self.precision)
 
     @rate(include_inactive=True)
     def _optics(self, PAR_reflectance, PAR_transmittance, leaf_reflectance, leaf_transmittance,
@@ -153,15 +155,14 @@ class CaribuLight(FunctionalComponent):
         return {"reflectance": reflectance, "transmittance": transmittance}
 
     @rate(include_inactive=True)
-    def _relative_light(self, reflectance, transmittance) -> dict:
+    def _relative_light(self, reflectance, transmittance, start_day_of_year, start_hour, soil_level) -> dict:
         """The canopy lit by a sky of unit energy: each element's absorbed and incident light per unit area (the
         area-weighted means of its triangles' Eabs and Ei), relative to the incident PAR, and its area."""
-        lighting = self.lighting
         time = self.forcing_time()
-        day = lighting.start_day_of_year + (lighting.start_hour * 3600. + time) // 86400.
-        hour = (lighting.start_hour + time / 3600.) % 24.
+        day = start_day_of_year + (start_hour * 3600. + time) // 86400.
+        hour = (start_hour + time / 3600.) % 24.
         sources = self.sources(self.forcing("PARi"), day, hour)
-        triangles = above_soil(self.data_structure.triangles(), lighting.soil_level)
+        triangles = self.data_structure.triangles("emerged").clip_below(soil_level)
         absorbed, incident, area = self.lit(triangles, reflectance, transmittance, sources)
         return {"Erel": absorbed, "Erel_incident": incident, "lit_area": area}
 
@@ -177,43 +178,32 @@ class CaribuLight(FunctionalComponent):
         """The light sources [(E, (vx, vy, vz))] of unit horizontal energy: the diffuse sky, and the sun with its
         share when it is on and above the horizon (the forcing diffuse_fraction, else Spitters' of the global
         radiation PARi · global_per_PARi)."""
-        lighting = self.lighting
         diffuse = 1.
         sun = []
-        if lighting.sun:
+        if self.sun:
             sun = [(energy, vector) for energy, vector in
-                   lights.sun_light(1., day, hour, lighting.latitude, lighting.corrections, lighting.orientation)
+                   lights.sun_light(1., day, hour, self.latitude, self.corrections, self.orientation)
                    if vector[2] < 0]
             if sun and PARi > 0:
                 try:
                     diffuse = self.forcing("diffuse_fraction")
                 except KeyError:
-                    diffuse = lights.diffuse_fraction(PARi * lighting.global_per_PARi, day, hour, lighting.latitude)
+                    diffuse = lights.diffuse_fraction(PARi * self.global_per_PARi, day, hour, self.latitude)
             if not sun or PARi <= 0:
                 sun, diffuse = [], 1.
-        if lighting.sky == "sectors":
-            sky = lights.Sky(lighting.azimuth_sectors, lighting.zenith_sectors, lighting.corrections,
-                             lighting.orientation).diffuse(diffuse, lighting.sky_type).lights()
+        if self.sky == "sectors":
+            sky = lights.Sky(self.azimuth_sectors, self.zenith_sectors, self.corrections,
+                             self.orientation).diffuse(diffuse, self.sky_type).lights()
         else:
-            sky = lights.turtle_lights(lighting.sky[len("turtle"):], lighting.sky_type, diffuse, lighting.corrections,
-                                       lighting.orientation)
+            sky = lights.turtle_lights(self.sky[len("turtle"):], self.sky_type, diffuse, self.corrections,
+                                       self.orientation)
         return list(sky) + [(energy * (1 - diffuse), vector) for energy, vector in sun]
 
     # ── the optics ───────────────────────────────────────────────────────────
 
     def element_labels(self) -> np.ndarray:
-        """Each element's MTG label name (its part's MTG for a union: "LeafElement", ...), read once per topology."""
-        def build():
-            ds = self.data_structure
-            parts = ds.parts if isinstance(ds, UnionDataStructure) else [ds]
-            labels = []
-            for part in parts:
-                g = part.structure
-                names = g.labels.translator             # the MPG's label codes → names
-                labels += [names.get(int(code), code) if isinstance(code, (int, float, np.number)) else code
-                           for code in (g.label(v) for v in part.entity_ids("node").tolist())]
-            return np.array(labels, dtype=object)
-        return self.cached("element_labels", build)
+        """Each element's MTG label name ("LeafElement", ...; a union's parts')."""
+        return self.data_structure.labels()
 
     def element_kinds(self):
         """(leaf, stem) masks of the elements, by their labels (leaf_labels, stem_labels)."""
@@ -240,7 +230,6 @@ class CaribuLight(FunctionalComponent):
         triangles' Eabs and Ei (0 for an element without lit area), the triangles' area. With precision "legacy",
         the triangles' values rounded as canestrad prints them (6 decimals), as CaribuScene aggregates them: in
         metres, small triangles' areas lose most of their digits (Wheat-BRIDGES' Erel)."""
-        lighting = self.lighting
         n_elements = reflectance.size
         if len(triangles) == 0:
             return np.zeros(n_elements), np.zeros(n_elements), np.zeros(n_elements)
@@ -251,91 +240,65 @@ class CaribuLight(FunctionalComponent):
             raise ValueError(f"CaribuLight: elements labelled {missing} have triangles but no optics (inputs "
                              "PAR_reflectance, PAR_transmittance, or their labels in leaf_labels, stem_labels)")
         species, labels = api.species_and_labels([materials[owner] for owner in triangles.owner.tolist()])
-        optics = api.optics(species, lighting.soil_reflectance)
+        optics = api.optics(species, self.soil_reflectance)
         canopy = self.canopy(triangles.vertices, labels)
-        if lighting.mode == "direct":
+        if self.mode == "direct":
             result = canopy.direct(sources, optics)
-        elif lighting.mode == "nested":
-            result = canopy.nested(sources, optics, lighting.layers, float(triangles.vertices[..., 2].max()),
-                                   lighting.sphere_diameter, lighting.precision, linear_solver=lighting.linear_solver)
+        elif self.mode == "nested":
+            result = canopy.nested(sources, optics, self.layers, float(triangles.vertices[..., 2].max()),
+                                   self.sphere_diameter, self.precision, linear_solver=self.linear_solver)
         else:
-            result = canopy.radiosity(sources, optics, linear_solver=lighting.linear_solver)
+            result = canopy.radiosity(sources, optics, linear_solver=self.linear_solver)
         values = {name: np.nan_to_num(np.asarray(result[name], dtype=float)) for name in ("area", "Eabs", "Ei")}
-        if lighting.precision == "legacy":
+        if self.precision == "legacy":
             values = {name: np.array(api.printed(value)) for name, value in values.items()}
         weights = np.where(values["area"] > 0, values["area"], 0.)
-        total = triangles.per_owner(weights, n_elements)
-        means = []
-        for name in ("Eabs", "Ei"):
-            summed = triangles.per_owner(values[name], n_elements, weights=weights)
-            means.append(np.divide(summed, total, out=np.zeros(n_elements), where=total > 0))
-        return means[0], means[1], total
+        return (triangles.mean_per_owner(values["Eabs"], n_elements, weights),
+                triangles.mean_per_owner(values["Ei"], n_elements, weights), triangles.per_owner(weights, n_elements))
 
     def canopy(self, vertices, labels) -> Canopy:
-        """The Canopy of these triangles, kept while they, their labels and the lighting are the same."""
-        lighting = self.lighting
-        kept = self.__dict__.get("_canopy")
-        infinite = lighting.mode == "nested" or (lighting.infinite and lighting.mode == "direct")
+        """The Canopy of these triangles, kept (not checkpointed) while they, their labels and the settings it
+        depends on are the same."""
+        infinite = self.mode == "nested" or (self.infinite and self.mode == "direct")
         pattern = self.pattern(vertices) if infinite else None
-        if (kept is None or kept.pattern != pattern or self.__dict__.get("_canopy_lighting") != lighting
-                or kept.vertices.shape != vertices.shape or not np.array_equal(kept.vertices, vertices)
-                or not np.array_equal(kept.labels, labels)):
-            kept = Canopy(vertices, labels, pattern=pattern, size=lighting.screen_size, device=lighting.device,
-                          corrections=lighting.corrections)
-            self.__dict__["_canopy"], self.__dict__["_canopy_lighting"] = kept, lighting
+        made_with = (pattern, self.screen_size, self.device, corrections_module.resolve(self.corrections))
+        kept, kept_with = self.kept("canopy", (None, None))
+        if (kept is None or kept_with != made_with or kept.vertices.shape != vertices.shape
+                or not np.array_equal(kept.vertices, vertices) or not np.array_equal(kept.labels, labels)):
+            kept = Canopy(vertices, labels, pattern=pattern, size=self.screen_size, device=self.device,
+                          corrections=self.corrections)
+            self.keep("canopy", (kept, made_with), saved=False)
         return kept
 
 
 def above_soil(triangles, level=0.):
-    """The parts of *triangles* (metafspm's Triangles) above the soil at height *level*: a triangle across it cut at
-    its plane (one triangle or two, the same owner), one below it left out. The soil is opaque: a sown shoot's buried
-    part receives no light (Caribu's infinite canopy would otherwise lift the scene to put its lowest point at 0)."""
-    vertices = np.asarray(triangles.vertices, dtype=float)
-    below = vertices[:, :, 2] < level
-    count = below.sum(axis=1)
-    kept_vertices, kept_owners = [vertices[count == 0]], [triangles.owner[count == 0]]
-    for t in np.flatnonzero((count == 1) | (count == 2)):
-        points, buried = vertices[t], below[t]
-        polygon = []
-        for i in range(3):  # Sutherland–Hodgman against z >= level
-            current, following = points[i], points[(i + 1) % 3]
-            if not buried[i]:
-                polygon.append(current)
-            if buried[i] != buried[(i + 1) % 3]:
-                fraction = (level - current[2]) / (following[2] - current[2])
-                crossing = current + fraction * (following - current)
-                crossing[2] = level
-                polygon.append(crossing)
-        for k in range(1, len(polygon) - 1):
-            kept_vertices.append(np.array([[polygon[0], polygon[k], polygon[k + 1]]]))
-            kept_owners.append(triangles.owner[t:t + 1])
-    return type(triangles)(np.concatenate(kept_vertices), np.concatenate(kept_owners))
+    """*triangles*' parts above the soil at height *level* (metafspm's Triangles.clip_below)."""
+    return triangles.clip_below(level)
 
 
-class CaribuLightModel:
+class CaribuLightModel(EnvironmentModel):
     """The environment model of a metafspm Scene: CaribuLight on the population's DataStructure, or on the union of
-    the populations' (their elements' Erel, PARa, ... then reach them through the scene translator's links). It runs
-    every scene step: the canopy lit when due (every lighting_interval, or when elements appeared), else PARa only
-    (the steps of the row "state")."""
+    the populations' (their elements' Erel, PARa, ... then reach them through the scene translator's links). The
+    canopy is lit when due (every lighting_interval, or when elements appeared); at the other steps PARa only (the
+    row "state")."""
 
     def __init__(self, populations, scene_xrange, scene_yrange, time_step, **parameters):
-        populations = list(populations)
-        self.data_structure = populations[0] if len(populations) == 1 else UnionDataStructure(populations)
-        self.light = CaribuLight(data_structure=self.data_structure, time_step=time_step, **parameters)
-        self.light.scene_xrange, self.light.scene_yrange = scene_xrange, scene_yrange
+        super().__init__(populations, scene_xrange, scene_yrange, time_step)
+        self.data_structure = self.plants()
+        self.light = CaribuLight(data_structure=self.data_structure, time_step=time_step, scene_xrange=scene_xrange,
+                                 scene_yrange=scene_yrange, **parameters)
         self.components = [self.light]
-        self.lit_at, self.lit_elements = None, None
+        self.lit_elements = None
 
-    def due(self) -> bool:
-        """Whether the canopy is to be lit at this step."""
-        if self.lit_at is None or self.lit_elements != self.data_structure.n_nodes():
+    def due(self, time) -> bool:
+        """Every lighting_interval, and when elements appeared."""
+        if self.lit_elements != self.data_structure.n_nodes():
             return True
-        return self.light.forcing_time() - self.lit_at >= self.light.lighting.lighting_interval - 1e-9
+        return self.last_run is None or time - self.last_run >= self.light.lighting_interval - 1e-9
 
-    def run(self):
-        if self.due():
-            time = self.light.forcing_time()            # the call advances the component's clock
-            self.light()
-            self.lit_at, self.lit_elements = time, self.data_structure.n_nodes()
-        else:
-            self.light.run_stage("state")
+    def full_run(self):
+        self.light()
+        self.lit_elements = self.data_structure.n_nodes()
+
+    def between(self):
+        self.light.run_stage("state")

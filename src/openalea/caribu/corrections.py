@@ -3,6 +3,8 @@ The corrections of the legacy's behaviours (doc/legacy.rst's quirk registry): ea
 *corrections*; none by default in the legacy API, all of them ("recommended") in the metafspm component. With
 precision "legacy", the legacy's printed digits, none applies: it stays the bit-for-bit reference.
 """
+from openalea.metafspm.corrections import Corrections
+
 NAMES = {
     "border_copies": "a triangle across the pattern's borders copied on each side it crosses, corners included",
     "tiling": "the neighbouring patterns' images placed by the lattice's exact vectors, each translate rounded on its "
@@ -23,19 +25,10 @@ NAMES = {
     "face_irradiance": "each face's irradiance accumulated with its radiosity, Eabs from it",
     "sky": "one azimuth convention, the turtle's emission, the sun's position and night",
 }
-RECOMMENDED = frozenset(NAMES)
+CORRECTIONS = Corrections(NAMES)
+RECOMMENDED = CORRECTIONS.presets["recommended"]
 
 
 def resolve(corrections, precision="full") -> frozenset:
     """The set of correction names of *corrections* ("recommended", None or () for none, or names), checked."""
-    if corrections is None:
-        return frozenset()
-    if isinstance(corrections, str):
-        corrections = RECOMMENDED if corrections == "recommended" else (corrections,)
-    resolved = frozenset(corrections)
-    unknown = sorted(resolved - RECOMMENDED)
-    if unknown:
-        raise ValueError(f"unknown corrections {unknown}: {sorted(NAMES)} or 'recommended'")
-    if resolved and precision == "legacy":
-        raise ValueError("corrections apply with precision 'full': precision 'legacy' is the legacy's numbers")
-    return resolved
+    return CORRECTIONS.resolve(corrections, precision)

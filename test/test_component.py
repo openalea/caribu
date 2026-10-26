@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from openalea.caribu import api, lights
-from openalea.caribu.component import CaribuLight, CaribuLightModel, Lighting
+from openalea.caribu.component import CaribuLight, CaribuLightModel
 from openalea.metafspm.coupling.choregrapher import Choregrapher
 from openalea.metafspm.coupling.component import (FunctionalComponent, StructuralComponent, input_variable,
                                                    state_variable)
@@ -103,9 +103,9 @@ def planting(models, n_leaves=3):
     return table
 
 
-def scene(models, lighting=None, translator=None, PARi=500.):
+def scene(models, settings=None, translator=None, PARi=500.):
     Choregrapher().reset()
-    scenario = {} if lighting is None else {"lighting": lighting}
+    scenario = dict(settings or {})
     return Scene(planting(models), environment=[CaribuLightModel], environment_scenarios=[scenario],
                  translator=translator, time_step=HOUR, forcings={"PARi": lambda time: PARi})
 
@@ -143,7 +143,7 @@ def test_the_canopy_is_lit_every_interval_PARa_following_PARi():
     PARi = {"value": 500.}
     Choregrapher().reset()
     built = Scene(planting([Wheat]), environment=[CaribuLightModel],
-                  environment_scenarios=[{"lighting": Lighting(lighting_interval=2 * HOUR)}], time_step=HOUR,
+                  environment_scenarios=[{"lighting_interval": 2 * HOUR}], time_step=HOUR,
                   forcings={"PARi": lambda time: PARi["value"]})
     ds = built.populations[0].data_structure
     built.run()
@@ -199,7 +199,7 @@ def test_optics_from_inputs_and_labels():
 
 
 def test_nested_mode_as_caribu_scene():
-    built = scene([Wheat, Wheat], Lighting(mode="nested", sphere_diameter=0.1, layers=5))
+    built = scene([Wheat, Wheat], {"mode": "nested", "sphere_diameter": 0.1, "layers": 5})
     built.run()
     ds = built.populations[0].data_structure
     light = built.environment[0].light
@@ -211,7 +211,7 @@ def test_nested_mode_as_caribu_scene():
 
 
 def test_the_sun_shares_the_unit_energy_and_sets():
-    built = scene([Wheat], Lighting(sun=True, start_day_of_year=172, latitude=48.85))
+    built = scene([Wheat], {"sun": True, "start_day_of_year": 172, "latitude": 48.85})
     light = built.environment[0].light
     day = light.sources(2000., 172, 12.)                  # a clear noon: a diffuse fraction of 0.2
     assert len(day) == 21 and sum(energy for energy, _ in day) == pytest.approx(1.)
@@ -239,7 +239,7 @@ def test_the_parts_below_the_soil_receive_no_light():
     """The soil 10 cm up: the stems' lower halves left out (their lit area halved), the light as CaribuScene's on
     the parts above."""
     from openalea.caribu.component import above_soil
-    built = scene([Wheat], Lighting(soil_level=0.1))
+    built = scene([Wheat], {"soil_level": 0.1})
     built.run()
     ds = built.populations[0].data_structure
     light = built.environment[0].light

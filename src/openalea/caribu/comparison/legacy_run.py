@@ -10,10 +10,10 @@ writes it (formats), the outputs read back as text. The reference the port is co
 """
 import os
 import shutil
-import subprocess
 import sys
-import tempfile
 from pathlib import Path
+
+from openalea.metafspm.testing import run_executables
 
 from .. import formats
 
@@ -30,16 +30,12 @@ def available() -> bool:
 
 def run(steps, files, outputs=("Etri.vec0",)) -> dict:
     """{output name: text} of libcaribu's executables run one after the other on *files* ({name: text}) in a
-    temporary directory; *steps* [(executable name, arguments)]."""
-    with tempfile.TemporaryDirectory() as directory:
-        for name, text in files.items():
-            Path(directory, name).parent.mkdir(parents=True, exist_ok=True)
-            Path(directory, name).write_text(text)
-        for name, arguments in steps:
-            command = shutil.which(name) if name == "cp" else executable(name)
-            subprocess.run([command, *arguments], cwd=directory, capture_output=True, check=True)
-        return {name: (Path(directory, name).read_bytes() if name.startswith("hd/") else
-                       Path(directory, name).read_text()) for name in outputs if Path(directory, name).exists()}
+    temporary directory (metafspm.testing.run_executables); *steps* [(executable name, arguments)]; the binary
+    matrices under hd/ as bytes."""
+    steps = [(name if name == "cp" else executable(name), arguments) for name, arguments in steps]
+    found = run_executables(steps, files, outputs)
+    return {name: (value.encode() if name.startswith("hd/") and isinstance(value, str) else value)
+            for name, value in found.items()}
 
 
 def body(text) -> str:

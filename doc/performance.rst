@@ -33,15 +33,33 @@ Speed
 The 100-plant Adel scene (34,644 triangles, in m), the 46-direction turtle sky, a laptop (2 performance cores, 8
 efficient and 2 low-power ones), 26 October 2026:
 
-========================================== =========== ============ ============================
-model                                      libcaribu   port         port, corrected (``full``)
-========================================== =========== ============ ============================
-direct light, infinite canopy              3.2 s       0.6 s        0.6 s
-pure SAIL                                  3.3 s       0.7 s        0.7 s
-nested radiosity, D = 0.5 m                11.8 s      1.5 s        3.1 s (the near pairs found)
-radiosity of the whole scene               307 s       62 s
-the same, again on the same geometry       —           1.8 s        0.2–0.3 s (``Canopy``)
-========================================== =========== ============ ============================
+.. list-table::
+   :header-rows: 1
+
+   * - model
+     - libcaribu
+     - port
+     - port, corrected (``full``)
+   * - direct light, infinite canopy
+     - 3.2 s
+     - 0.6 s
+     - 0.6 s
+   * - pure SAIL
+     - 3.3 s
+     - 0.7 s
+     - 0.7 s
+   * - nested radiosity, D = 0.5 m
+     - 11.8 s
+     - 1.5 s
+     - 3.1 s (the near pairs found)
+   * - radiosity of the whole scene
+     - 307 s
+     - 62 s
+     -  
+   * - the same, again on the same geometry
+     - —           1.8 s
+     -  
+     - 0.2–0.3 s (``Canopy``)
 
 Where the time goes: in radiosity on 5,000 triangles (1.1 s), the near field's form factors take 85 % and the
 linear solve 1.3 % (5 steps); in the nested radiosity of the Adel scene (3.1 s), the near field 63 %, the direct
