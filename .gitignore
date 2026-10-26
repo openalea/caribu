@@ -101,3 +101,6 @@ build-scons
 
 # development notes (untracked)
 /dev*.md
+
+# the docs' copies of the tutorials (doc/conf.py)
+doc/tutorials/

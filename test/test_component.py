@@ -271,3 +271,28 @@ def test_the_forcings_are_declared():
     Choregrapher().reset()
     with pytest.raises(ValueError, match="CaribuLight.PARi"):
         Scene(planting([Wheat]), environment=[CaribuLightModel], time_step=HOUR)
+
+
+def test_a_subclass_lights_with_its_component():
+    """CaribuLightModel.light_component: a subclass lights with a subclass of CaribuLight, its added steps run."""
+    from openalea.metafspm.solve.decorator import state as state_step
+
+    @dataclass
+    class FluxLight(CaribuLight):
+        PAR_flux: float = state_variable(unit="µmol s-1", description="PARa times the lit area",
+                                         state_variable_type="extensive", initialize=0., scale=scales.SubOrgan)
+
+        @state_step(include_inactive=True)
+        def _PAR_flux(self, PARa, lit_area) -> dict:
+            return {"PAR_flux": PARa * lit_area}
+
+    class FluxLightModel(CaribuLightModel):
+        light_component = FluxLight
+
+    Choregrapher().reset()
+    built = Scene(planting([Wheat]), environment=[FluxLightModel], time_step=HOUR, forcings={"PARi": lambda time: 500.})
+    built.run()
+    ds = built.populations[0].data_structure
+    assert isinstance(built.environment[0].light, FluxLight)
+    np.testing.assert_allclose(ds.get("PAR_flux"), ds.get("PARa") * ds.get("lit_area"))
+    assert np.sum(ds.get("PAR_flux")) > 0

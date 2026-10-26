@@ -110,8 +110,9 @@ class CaribuLight(FunctionalComponent):
     sun: bool = setting(description="The sun with the diffuse sky, its share 1 - the diffuse fraction",
                         default=False, choices=(True, False))
     global_per_PARi: float = setting(
-        unit="", unit_comment="W m-2 of global radiation per unit of PARi", description="For the diffuse fraction "
-        "without its forcing: 1 / (0.48 x 4.57), PARi in µmol m-2 s-1 (McCree)", default=1 / (0.48 * 4.57))
+        unit="J µmol-1", unit_comment="W m-2 of global radiation per µmol m-2 s-1 of PARi",
+        description="For the diffuse fraction without its forcing: 1 / (0.48 x 4.57), PARi in µmol m-2 s-1 (McCree)",
+        default=1 / (0.48 * 4.57))
     latitude: float = setting(unit="°", description="The scene's latitude", default=48.85)
     orientation: float = setting(unit="°", description="The angle, clockwise, from the scene's X+ to North (the "
                                  "sky's and the sun's azimuths with the correction 'sky')", default=0.)
@@ -280,13 +281,14 @@ class CaribuLightModel(EnvironmentModel):
     """The environment model of a metafspm Scene: CaribuLight on the population's DataStructure, or on the union of
     the populations' (their elements' Erel, PARa, ... then reach them through the scene translator's links). The
     canopy is lit when due (every lighting_interval, or when elements appeared); at the other steps PARa only (the
-    row "state")."""
+    row "state"). A subclass may light with a subclass of CaribuLight (light_component)."""
+    light_component = CaribuLight
 
     def __init__(self, populations, scene_xrange, scene_yrange, time_step, **parameters):
         super().__init__(populations, scene_xrange, scene_yrange, time_step)
         self.data_structure = self.plants()
-        self.light = CaribuLight(data_structure=self.data_structure, time_step=time_step, scene_xrange=scene_xrange,
-                                 scene_yrange=scene_yrange, **parameters)
+        self.light = self.light_component(data_structure=self.data_structure, time_step=time_step,
+                                          scene_xrange=scene_xrange, scene_yrange=scene_yrange, **parameters)
         self.components = [self.light]
         self.lit_elements = None
 

@@ -23,7 +23,79 @@ The idea is to mix:
 **Reference:**  
 Michael Chelle, Bruno Andrieu, K. Bouatouch. Nested radiosity for plant canopies. *The Visual Computer*, 1998, 14, pp.109-125. [10.1007/s003710050127](https://doi.org/10.1007/s003710050127). [hal-02697207](https://hal.inrae.fr/hal-04945340v1)
 
-## Content
+## Installation
+
+The released package (the original Caribu, with its C++ executables):
+
+```bash
+mamba env create -n caribu -c openalea3 -c conda-forge openalea.caribu 
+``` 
+
+This version (Caribu in Python, its metafspm component and the tutorials below) depends on
+[metafspm](https://github.com/openalea/metafspm), not yet published: clone the repositories side by side and install
+them from source (Adel's port, for tutorial 6 and the wheat examples, is optional):
+
+```bash
+mkdir fspm && cd fspm
+git clone -b data_structure_api https://github.com/openalea/metafspm.git metafspm
+git clone -b to_metafspm https://github.com/openalea/caribu.git caribu
+git clone -b to_metafspm https://github.com/openalea/adel.git adel          # optional
+
+mamba env create -n caribu -f caribu/conda/environment.yml
+mamba activate caribu
+pip install -e metafspm
+pip install -e adel --no-deps                                               # optional
+```
+
+### Developers
+
+```bash
+git clone 'https://github.com/openalea/caribu.git'
+cd caribu
+mamba env create -n caribu_dev -f ./conda/environment.yml
+```
+
+## Getting started
+
+Light a small crop stand over a summer day, and look at it:
+
+```python
+from openalea.caribu.simulation import simulate
+
+result = simulate()                               # 24 plants, hour by hour, the default settings
+print(result.summary)                             # per hour: the PAR above, absorbed, reaching the soil
+result.draw()                                     # the stand coloured by the light its leaves absorb
+result = simulate({"sun": True, "leaf_inclination": 70.}, hours=9, start_hour=8)   # 8-16 h, sun, upright leaves
+```
+
+### User tutorials
+
+Step by step, for newcomers to Caribu, to light models or to Python modelling, in `example/tutorials/user/`:
+
+1. [Your first lit canopy](example/tutorials/user/01_first_run.ipynb): light a stand, read and plot the results;
+2. [Change a parameter](example/tutorials/user/02_change_a_parameter.ipynb): leaves, sun, optics, light model;
+3. [Combine parameters](example/tutorials/user/03_combine_parameters.ipynb): leaf area and angle, Beer's law;
+4. [Sensitivity analysis](example/tutorials/user/04_sensitivity_analysis.ipynb): which parameters matter most;
+5. [Experimental data](example/tutorials/user/05_experimental_data.ipynb): a measured weather, light measured
+   under the canopy, fitting a parameter;
+6. [With other models](example/tutorials/user/06_with_other_models.ipynb): a wheat stand grown by Adel, lit.
+
+The documentation's user guide shows them with their results, and lists the parameters in plain words.
+
+## For developers
+
+### Developer tutorials
+
+In `example/tutorials/developer/`, after the first user tutorial:
+
+0. [Overview](example/tutorials/developer/00_overview.ipynb): the modules, the original Caribu, the validation;
+1. [Caribu in metafspm](example/tutorials/developer/01_caribu_in_metafspm.ipynb): the component formalism on
+   CaribuLight, the light models on triangles, the light sources, the infinite canopy and the corrections, a scene
+   of Adel's wheat, precision and speed;
+2. [Extend the component](example/tutorials/developer/02_extend_the_component.ipynb): a new variable and step, a
+   scene by hand.
+
+### The original Caribu suite
 
 The suite is composed of two main sub-models : MCSail, that computes turbid
 medium equations on a layered canopy (derived from the SAIL model (Verhoef, 1984) and Canestra, that computes radiosity
@@ -42,8 +114,7 @@ building light sources from meteorological data
 
 Ref: Wout Verhoef (1984), Light scattering by leaf layers with application to canopy reflectance modeling: the SAIL model. Remote Sensing of Environment, 16, 125-141
 
-
-## The Python port
+### The Python port
 
 This branch is Caribu in Python (numpy, numba): the projection, radiosity, nested radiosity, s2v, mcsail and
 periodise of libcaribu's C++, without executables or files. The previous package is frozen in
@@ -81,30 +152,13 @@ raw, aggregated = api.CaribuScene(scene, light=sky, pattern=domain, opt={"par": 
 - **Light sources:** `lights` holds the turtle skies, the sector sky (soc, uoc), the sun's position, Spitters'
   diffuse fraction and Kaplanis' hourly radiation.
 - **Examples:** `example/light_modes.py` (the models compared), `example/day_course.py` (a day hour by hour),
-  `example/canopy_light.py` (CaribuLight on a stand grown by Adel's port); the tutorial
-  `example/tutorials/tutorial_caribu.ipynb`.
+  `example/canopy_light.py` (CaribuLight on a stand grown by Adel's port); the developer tutorials below.
 
 Documentation: `doc/equations.rst` (the models' equations and the functions computing them), `doc/legacy.rst` (the
 legacy's algorithms and its quirks, each with what the port does), `doc/performance.rst` (precision, corrections,
 speed, GPU).
 
 Tests: `pytest test` (the comparisons with the legacy need libcaribu, in the environment below).
-
-## Installation
-
-### Users
-
-```bash
-mamba env create -n caribu -c openalea3 -c conda-forge openalea.caribu 
-``` 
-
-### Developers
-
-```bash
-git clone 'https://github.com/openalea/caribu.git'
-cd caribu
-mamba env create -n caribu_dev -f ./conda/environment.yml
-```
 
 ## License
 

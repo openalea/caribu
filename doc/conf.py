@@ -21,6 +21,15 @@ urls = {k:v for k,v in [item.split(',') for item in meta.get_all('Project-URL')]
 # sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('..')) # to include the root of the package
 
+# The tutorials (example/tutorials/user and developer), rendered from their stored outputs: copied at each build
+import shutil
+for series in ("user", "developer"):
+    target = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tutorials", series)
+    shutil.rmtree(target, ignore_errors=True)
+    shutil.copytree(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "example", "tutorials", series),
+                    target, ignore=shutil.ignore_patterns(".ipynb_checkpoints", "*.py", "*.csv"))
+nbsphinx_execute = "never"
+
 # -- General configuration ------------------------------------------------
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
