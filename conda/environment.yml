@@ -9,6 +9,8 @@ dependencies:
   - pandoc
   # metafspm's dependencies; metafspm itself is installed by hand, until it is published:
   #   pip install -e ../metafspm        (from the caribu repository's parent directory)
+  # and Adel's port for the component's test on its canopies (optional, skipped without it):
+  #   pip install -e ../adel --no-deps
   - pyyaml
   - numpy
   - numba

@@ -74,7 +74,7 @@ def get_incident(absorbed, materials) -> list:
 
 # --- Precision ---
 
-def _printed(values, layout="%f") -> list:
+def printed(values, layout="%f") -> list:
     """Values as canestrad prints them and caribu reads them back."""
     return [float(layout % value) for value in values]
 
@@ -91,8 +91,8 @@ def _outputs(labels, result, precision) -> dict:
         values = np.asarray(result[name], dtype=np.float64)
         if precision == "legacy":
             values = np.where(accepted, values, np.nan if name != "area" else 0.)
-            out[name] = [value if not accepted[number] else printed for number, (value, printed) in
-                         enumerate(zip(values.tolist(), _printed(values)))]
+            out[name] = [value if not accepted[number] else rounded for number, (value, rounded) in
+                         enumerate(zip(values.tolist(), printed(values)))]
         else:
             out[name] = values.tolist()
     return out
@@ -104,8 +104,8 @@ def _sensor_outputs(sensors, precision) -> dict:
     first = sensors.get("Ei0", irradiance)
     identifiers = [float(number + 1) for number in range(len(area))]
     if precision == "legacy":
-        return {"sensor_id": identifiers, "Ei0": _printed(first, "%.10f"), "Ei": _printed(irradiance, "%.10f"),
-                "area": _printed(area, "%.6f")}
+        return {"sensor_id": identifiers, "Ei0": printed(first, "%.10f"), "Ei": printed(irradiance, "%.10f"),
+                "area": printed(area, "%.6f")}
     return {"sensor_id": identifiers, "Ei0": list(map(float, first)), "Ei": list(map(float, irradiance)),
             "area": list(map(float, area))}
 
