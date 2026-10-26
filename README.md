@@ -80,7 +80,9 @@ raw, aggregated = api.CaribuScene(scene, light=sky, pattern=domain, opt={"par": 
   kernels' own functions; tested under numba's CUDA simulator.
 - **Light sources:** `lights` holds the turtle skies, the sector sky (soc, uoc), the sun's position, Spitters'
   diffuse fraction and Kaplanis' hourly radiation.
-- **Examples:** `example/light_modes.py` (the models compared), `example/day_course.py` (a day hour by hour).
+- **Examples:** `example/light_modes.py` (the models compared), `example/day_course.py` (a day hour by hour),
+  `example/canopy_light.py` (CaribuLight on a stand grown by Adel's port); the tutorial
+  `example/tutorials/tutorial_caribu.ipynb`.
 
 Tests: `pytest test` (the comparisons with the legacy need libcaribu, in the environment below).
 

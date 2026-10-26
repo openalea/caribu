@@ -610,10 +610,10 @@ def _receiver_rows(start, stop, receivers, receiver_normals, receiver_centres, r
     """The rows of receivers start..stop: (row lengths, emitter faces, net counts, far field (receivers, 2) of each
     receiver's upper and lower face, its levels' weights (receivers, 4, rows): bfc · dFF, canestrad's `-w` files
     holding them as float32), each row's faces ascending (FACE_COUNTS: a face seen by both discs in two entries,
-    its upper count then minus its lower one, instead of their difference). *emitters*: the triangles' vertices, centre and normal
-    (n, 5, 3); *spreads*: their centre's largest distance to a vertex (appart_sphere); *receiver_optics*
-    (receivers, 4): ρ, τ of the upper face, ρ, τ of the lower one; the boxes' lists of diffusers (sensors after
-    the triangles)."""
+    its upper count then minus its lower one, instead of their difference). *emitters*: the triangles' vertices,
+    centre and normal (n, 5, 3); *spreads*: their centre's largest distance to a vertex (appart_sphere);
+    *receiver_optics* (receivers, 4): ρ, τ of the upper face, ρ, τ of the lower one; the boxes' lists of diffusers
+    (sensors after the triangles)."""
     owners = np.full((2, size, size), -1, dtype=np.int32)
     depths = np.empty((2, size, size), dtype=np.float32)
     faces = np.empty((2, size, size), dtype=np.int64)

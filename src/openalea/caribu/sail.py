@@ -106,13 +106,14 @@ def _structure(points, species, leaf, band_optics, period_x, period_y, tops, lay
                 for child in range(3, -1, -1):
                     for i in range(3):
                         if child == 0:
-                            stack[top, 0, i], stack[top, 1, i], stack[top, 2, i] = piece[0, i], middle[0, i], middle[2, i]
+                            corners = piece[0, i], middle[0, i], middle[2, i]
                         elif child == 1:
-                            stack[top, 0, i], stack[top, 1, i], stack[top, 2, i] = middle[0, i], piece[1, i], middle[1, i]
+                            corners = middle[0, i], piece[1, i], middle[1, i]
                         elif child == 2:
-                            stack[top, 0, i], stack[top, 1, i], stack[top, 2, i] = middle[1, i], middle[2, i], piece[2, i]
+                            corners = middle[1, i], middle[2, i], piece[2, i]
                         else:
-                            stack[top, 0, i], stack[top, 1, i], stack[top, 2, i] = middle[0, i], middle[1, i], middle[2, i]
+                            corners = middle[0, i], middle[1, i], middle[2, i]
+                        stack[top, 0, i], stack[top, 1, i], stack[top, 2, i] = corners
                     levels[top] = level
                     top += 1
                 continue
@@ -458,10 +459,11 @@ def profiles(frequencies, leaf_area_index, reflectance, transmittance, soil_refl
     levels = layer_count + 1
     lai = [0.] + [float(value) for value in leaf_area_index]
     percent = [None] + [[float(value) * 100 for value in row] for row in frequencies]
+    degree = math.atan(1.) * 4. / 180.
     sources = ([(1., 90 - diffuse[0], diffuse[1])] if diffuse is not None else
                [(float(energy), math.acos(abs(vector[2]) / math.sqrt(vector[0] * vector[0] + vector[1] * vector[1]
-                                                                     + vector[2] * vector[2])) / (math.atan(1.) * 4. / 180.),
-                 0.) for energy, vector in lights])
+                                                                     + vector[2] * vector[2])) / degree, 0.)
+                for energy, vector in lights])
     total = np.zeros((levels + 1, 6))
     for energy, source_zenith, diffuse_fraction in sources:
         matrices = [_layer_matrices(0., None)]

@@ -1,7 +1,7 @@
 """
 Caribu in Python: light on a static canopy of triangles (direct light, radiosity, nested radiosity with a turbid
 medium's far field), ported from libcaribu's C++ (the original frozen in openalea.caribu.legacy), the legacy's
-numerics reproduced first.
+numerics reproduced first, its behaviours corrected on demand.
 
     labels        the triangles' labels (optical species, leaf or opaque)
     geometry      areas, normals, the triangles canestrad rejects
@@ -19,6 +19,8 @@ numerics reproduced first.
     canopy        Canopy: a static scene lit repeatedly, its geometry's results kept
     gpu           the near field on CUDA
     api           the legacy's entry points (raycasting, radiosity, mixed_radiosity, CaribuScene, star)
+    corrections   the corrections of the legacy's behaviours, by name ("recommended": all)
+    component     CaribuLight, the metafspm component, and CaribuLightModel, its environment model
 """
 from importlib.metadata import version, PackageNotFoundError
 

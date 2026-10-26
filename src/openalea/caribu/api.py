@@ -2,15 +2,17 @@
 The legacy's entry points over the port: `raycasting`, `x_raycasting` (direct light), `radiosity` and `x_radiosity`
 (every order of scattering in the whole scene), `mixed_radiosity` and `x_mixed_radiosity` (scattering in an
 infinite canopy: radiosity within a sphere around each triangle, the far field of layers beyond; a null sphere
-for pure SAIL), caribu.py's, on lists of triangles and materials, and `CaribuScene` (its scenes by primitive, bands, soil, units, aggregation). Their outputs are the
-legacy's: per triangle `index`, `label`, `area`, `Eabs`, `Ei`, `Ei_sup`, `Ei_inf` (and `sensors`).
+for pure SAIL), caribu.py's, on lists of triangles and materials, and `CaribuScene` (its scenes by primitive, bands,
+soil, units, aggregation). Their outputs are the legacy's: per triangle `index`, `label`, `area`, `Eabs`, `Ei`,
+`Ei_sup`, `Ei_inf` (and `sensors`).
 
 A material is a 1-tuple (ρ, opaque), a 2-tuple (ρ, τ, a symmetric leaf) or a 4-tuple (ρ_sup, τ_sup, ρ_inf, τ_inf).
 Light sources are (E, (vx, vy, vz)): E the irradiance on a horizontal plane, (vx, vy, vz) the beam's direction.
 
-precision="legacy" (the default, until the corrections step) gives the legacy's numbers exactly: canestrad prints
-its results with 6 decimals and caribu reads them back, so the values are rounded so; `Ei` is then the legacy's
-Eabs / absorptance. precision="full" keeps the computed values (float32 budgets).
+precision="legacy" (the default) gives the legacy's numbers exactly: canestrad prints its results with 6 decimals
+and caribu reads them back, so the values are rounded so; `Ei` is then the legacy's Eabs / absorptance.
+precision="full" keeps the computed values (float32 budgets). corrections="recommended" (with precision "full"; none
+by default) corrects the legacy's behaviours (openalea.caribu.corrections), `Ei` then Ei_sup + Ei_inf.
 """
 import os
 

@@ -9,7 +9,8 @@ import pytest
 from openalea.caribu import api, lights
 from openalea.caribu.component import CaribuLight, CaribuLightModel
 from openalea.metafspm.coupling.choregrapher import Choregrapher
-from openalea.metafspm.coupling.component import FunctionalComponent, StructuralComponent, input_variable, state_variable
+from openalea.metafspm.coupling.component import (FunctionalComponent, StructuralComponent, input_variable,
+                                                   state_variable)
 from openalea.metafspm.coupling.geometry import Triangles
 from openalea.metafspm.coupling.translator import Translator
 from openalea.metafspm.data_structure.configs import PropsConfig, ScalesConfig as scales
@@ -109,7 +110,8 @@ def scene(models, environment_scenario=None, translator=None, PARi=500.):
 
 
 def caribu_scene(triangles, labels, mode="direct", **run):
-    """CaribuScene (full precision, the corrections) on the same triangles, a primitive per element, Wheat-BRIDGES' optics."""
+    """CaribuScene (full precision, the corrections) on the same triangles, a primitive per element, Wheat-BRIDGES'
+    optics."""
     materials = {"LeafElement": (0.10, 0.05), "StemElement": (0.10,)}
     primitives = {}
     for vertices, owner in zip(triangles.vertices.tolist(), triangles.owner.tolist()):
@@ -189,7 +191,8 @@ def test_optics_from_inputs_and_labels():
     assert light.materials(reflectance, transmittance) == expected
     light.optical_properties = (("StemElement", (0.1,)),)
     with pytest.raises(ValueError):                       # the leaves without optics
-        light.lit(ds.triangles(), np.full(ds.n_nodes(), np.nan), np.full(ds.n_nodes(), np.nan), SKY, 0.5, 10, 0.15, 1536)
+        nan = np.full(ds.n_nodes(), np.nan)
+        light.lit(ds.triangles(), nan, nan, SKY, 0.5, 10, 0.15, 1536)
 
 
 def test_nested_mode_as_caribu_scene():
