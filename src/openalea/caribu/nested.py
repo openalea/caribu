@@ -56,15 +56,17 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
     profile, structure = far_field_profile(points, labels, lights, optics, pattern, layers, height, precision,
                                            corrections)
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
-    first, surfaces, sensor_first, sensor_surfaces = direct.first_order(
+    first, surfaces, sensor_first, sensor_surfaces, incident = direct.first_order(
         kept_points, kept, lights if accepted.any() else [], optics, size, sensors=sensor_points, workers=workers,
         pattern=pattern, flags=flags, cache=cache, corrections=corrections)
     translucent = is_translucent(kept)
     first_face, n_faces = direct.face_numbering(translucent)
     reflectance, transmittance = direct.face_optics(kept, optics)
-    far = sail.far_field(geometry.legacy_centres(kept_points), geometry.legacy_normals(kept_points), translucent,
-                         first_face, n_faces, reflectance, transmittance, profile, corrections)
-    result = direct.results(labels, accepted, points, surfaces, first + far, optics)
+    far, far_incident = sail.far_field(geometry.legacy_centres(kept_points), geometry.legacy_normals(kept_points),
+                                       translucent, first_face, n_faces, reflectance, transmittance, profile,
+                                       corrections, incident=True)
+    result = direct.results(labels, accepted, points, surfaces, first + far, optics,
+                            incident + far_incident if "face_irradiance" in corrections else None)
     result.update(first_order=first, far_field=far, profile=profile, structure=structure, radiosity=first + far)
     if sensors is not None:
         count = len(sensor_points)
@@ -84,7 +86,7 @@ def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter,
     profile, structure = far_field_profile(points, labels, lights, optics, pattern, layers, height, precision,
                                            corrections)
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
-    first, surfaces, sensor_first, sensor_surfaces = direct.first_order(
+    first, surfaces, sensor_first, sensor_surfaces, incident = direct.first_order(
         kept_points, kept, lights if accepted.any() else [], optics, size, sensors=sensor_points, workers=workers,
         pattern=pattern, flags=flags, cache=cache, corrections=corrections)
     translucent = is_translucent(kept)
@@ -123,13 +125,28 @@ def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter,
                                      np.concatenate([reflectance, np.ones(sensor_count)]),
                                      np.concatenate([transmittance, np.zeros(sensor_count)]),
                                      nearfield.form_factor(resolution), tolerance, 100, iterations)
-    result = direct.results(labels, accepted, points, surfaces, radiosities[:n_faces], optics)
+    if "face_irradiance" in corrections:  # the near field's and the far field's light on each face
+        incident = incident + solver.incoming(radiosities, indptr, faces, values, receiver_faces,
+                                              receiver_translucent, nearfield.form_factor(resolution), n_faces)
+        incident[first_face] += far_incoming(level_weights, profile, 0)[:len(kept)]
+        lower = translucent.nonzero()[0]
+        incident[first_face[lower] + 1] += far_incoming(level_weights, profile, 2)[lower]
+    result = direct.results(labels, accepted, points, surfaces, radiosities[:n_faces], optics,
+                            incident if "face_irradiance" in corrections else None)
     result.update(first_order=first, far_field=far_faces[:n_faces], profile=profile, structure=structure,
                   counts=counts, weights=level_weights, steps=steps, radiosity=radiosities[:n_faces])
     if sensors is not None:  # canestrad adds the far field to B0 in place: its sensors' "first order" includes it
         result["sensors"] = {"Ei0": rhs[n_faces:], "Ei": radiosities[n_faces:], "area": sensor_surfaces,
                              "first_order": sensor_first}
     return result
+
+
+def far_incoming(weights, profile, disc):
+    """Each receiver's irradiance from the far field through its upper (*disc* 0) or lower (2) disc: its levels'
+    *weights* (receivers, 4, levels) times the profile's E− and E+."""
+    weights = np.asarray(weights, dtype=np.float64)
+    return (weights[:, disc] @ np.asarray(profile["downward"], dtype=np.float64)
+            + weights[:, disc + 1] @ np.asarray(profile["upward"], dtype=np.float64))
 
 
 def reused_far_field(weights, receiver_optics, receiver_translucent, profile, lights, precision="legacy"):

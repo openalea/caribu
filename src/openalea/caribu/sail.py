@@ -497,14 +497,15 @@ def printed_profile(profile, thickness) -> dict:
 # --- Pure SAIL (sail_pur) ---
 
 def far_field(centres, normals, translucent, first_face, n_faces, reflectance, transmittance, profile,
-              corrections=frozenset()):
+              corrections=frozenset(), incident=False):
     """sail_pur: each face's radiosity from the profile's E−, E+ at its triangle's centre height (the levels'
     weights inverted, as canestrad: (1 − f) on the level above), an inclined face's irradiance by Ross's formula
     ((1 ± cos θ) / 2 of each flux), reflected and transmitted (*centres*, *normals* float32, as canestrad).
     canestrad's table (Tabdyn) is column-major: a level beyond the top reads the next column's first levels (E−
     beyond the top is E+ at the soil, E+ beyond it the soil level's height); beyond the table, the port takes the
     top level. Corrections: "profile_interpolation", the weights (1 − f, f) of the levels below and above;
-    "profile_bounds", above the top the top's fluxes, below the soil level the soil's."""
+    "profile_bounds", above the top the top's fluxes, below the soil level the soil's. *incident*: (radiosity, each
+    face's irradiance)."""
     standard, bounded = "profile_interpolation" in corrections, "profile_bounds" in corrections
     heights, downward, upward = profile["height"], profile["downward"], profile["upward"]
     rows = len(heights)
@@ -514,7 +515,7 @@ def far_field(centres, normals, translucent, first_face, n_faces, reflectance, t
         index = level + rows * column
         return table[index] if index < len(table) else table[rows - 1 + rows * column]
 
-    radiosity = np.zeros(n_faces)
+    radiosity, irradiance = np.zeros(n_faces), np.zeros(n_faces)
     for t in range(len(centres)):
         nz = float(normals[t, 2])
         cosine = abs(nz)
@@ -535,9 +536,11 @@ def far_field(centres, normals, translucent, first_face, n_faces, reflectance, t
         upper = .5 * (1 + cosine) * fluxes[up] + .5 * (1 - cosine) * fluxes[down]
         face = first_face[t]
         radiosity[face] = reflectance[face] * upper
+        irradiance[face] = upper
         if translucent[t]:
             radiosity[face + 1] = transmittance[face] * upper
             lower = .5 * (1 - cosine) * fluxes[up] + .5 * (1 + cosine) * fluxes[down]
             radiosity[face] += transmittance[face + 1] * lower
             radiosity[face + 1] += reflectance[face + 1] * lower
-    return radiosity
+            irradiance[face + 1] = lower
+    return (radiosity, irradiance) if incident else radiosity

@@ -56,6 +56,34 @@ def triangle_budgets(radiosity, translucent, reflectance, transmittance):
     return absorbed, incident, incident_sup, incident_inf
 
 
+@njit(cache=True, nogil=True, error_model="numpy")
+def face_budgets(incident, translucent, reflectance, transmittance):
+    """triangle_budgets from the faces' irradiances (n_faces,) (the correction "face_irradiance"): Ei_sup, Ei_inf the
+    faces', Ei their sum, Eabs each face's absorptance times its irradiance (no 2 × 2 system: a leaf with
+    ρ_sup ρ_inf = τ_sup τ_inf, ρ = τ for instance, or a black face are budgeted too); Ei_inf −1 for an opaque
+    triangle."""
+    count = len(translucent)
+    absorbed, total = np.zeros(count, dtype=F32), np.zeros(count, dtype=F32)
+    incident_sup, incident_inf = np.zeros(count, dtype=F32), np.zeros(count, dtype=F32)
+    face = 0
+    for t in range(count):
+        upper = incident[face]
+        incident_sup[t] = F32(upper)
+        if not translucent[t]:
+            absorbed[t] = F32((1. - reflectance[face]) * upper)
+            total[t] = F32(upper)
+            incident_inf[t] = F32(-1)
+            face += 1
+            continue
+        lower = incident[face + 1]
+        incident_inf[t] = F32(lower)
+        total[t] = F32(upper + lower)
+        absorbed[t] = F32((1. - reflectance[face] - transmittance[face]) * upper
+                          + (1. - reflectance[face + 1] - transmittance[face + 1]) * lower)
+        face += 2
+    return absorbed, total, incident_sup, incident_inf
+
+
 def etri_rows(labels, result):
     """canestrad's Etri.vec0 text body (no header) of a run's *result* (direct.run's): one row per input triangle,
     rejected ones `area 0` and NaN."""

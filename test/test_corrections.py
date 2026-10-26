@@ -230,3 +230,34 @@ def test_no_soil():
     optics = (-1, OPTICS[1])
     assert sail.layers(leaf, [LEAF], 2, 0.6, PATTERN, [optics])["soil_reflectance"][0] == -1
     assert sail.layers(leaf, [LEAF], 2, 0.6, PATTERN, [optics], corrections={"no_soil"})["soil_reflectance"][0] == 0
+
+
+@pytest.mark.parametrize("model", ["direct", "radiosity", "pure SAIL", "nested"])
+def test_face_irradiance(model):
+    """Each face's irradiance accumulated with the light (first order, near and far field): the legacy's inversion
+    of the radiosities where it is defined, and the faces' light on a leaf with ρ = τ (its 2 × 2 system singular:
+    the legacy's −1, its Eabs by a special case) and on a black stem (the legacy's −1)."""
+    from openalea.caribu import lights, nested, radiosity
+    vertices = random_canopy(120)
+    labels = np.r_[np.full(100, LEAF), np.full(20, encode_labels(1, leaf=0))]
+    sky = lights.turtle_lights("16", "soc", 1.)
+
+    def run(optics, chosen):
+        chosen = frozenset(chosen)
+        if model == "direct":
+            return direct.run(vertices, labels, sky, optics, size=512, pattern=(0, 0, 0.4, 0.4), corrections=chosen)
+        if model == "radiosity":
+            return radiosity.run(vertices, labels, sky, optics, size=512, resolution=24, corrections=chosen)
+        return nested.run(vertices, labels, sky, optics, (0, 0, 0.4, 0.4), 5, 0.65, 0.1 if model == "nested" else 0.,
+                          size=512, precision="full", corrections=chosen)
+    optics = (0.15, {1: (0.2, 0.1, 0.05, 0.12, 0.07)})
+    legacy, corrected = run(optics, ()), run(optics, {"face_irradiance"})
+    for name in ("Eabs", "Ei_sup"):
+        np.testing.assert_allclose(corrected[name], legacy[name], rtol=1e-4, atol=1e-6)
+    singular = (0.15, {1: (0., 0.1, 0.1, 0.1, 0.1)})
+    legacy, corrected = run(singular, ()), run(singular, {"face_irradiance"})
+    assert (legacy["Ei_sup"][:100] == -1).all() and (legacy["Eabs"][100:] == -1).all()
+    np.testing.assert_allclose(corrected["Eabs"][:100], legacy["Eabs"][:100], rtol=1e-4, atol=1e-6)
+    np.testing.assert_allclose(corrected["Eabs"][:100], 0.8 * corrected["Ei"][:100], rtol=1e-6)
+    np.testing.assert_allclose(corrected["Eabs"][100:], corrected["Ei_sup"][100:], rtol=1e-6)    # ρ = 0: all
+    assert (corrected["Ei_sup"] > 0).mean() > 0.9

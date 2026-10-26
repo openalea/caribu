@@ -77,9 +77,10 @@ def face_optics(labels, optics):
 
 
 @njit(cache=True, nogil=True, error_model="numpy")
-def accumulate(radiosity, areas, energy, first_face, translucent, reflectance, transmittance, surfaces):
+def accumulate(radiosity, incident, areas, energy, first_face, translucent, reflectance, transmittance, surfaces):
     """Adds a source's contribution to *radiosity* (n_faces,): E ρ A / S on the lit face, E τ(lit face) |A| / S on a
-    leaf's other face (A < 0 there), in canestrad's order of operations."""
+    leaf's other face (A < 0 there), in canestrad's order of operations; and to *incident* (n_faces,), each face's
+    irradiance, E A / S on the lit face."""
     for t in range(first_face.shape[0]):
         faces = 2 if translucent[t] else 1
         for offset in range(faces):
@@ -89,6 +90,7 @@ def accumulate(radiosity, areas, energy, first_face, translucent, reflectance, t
                 continue
             if area > 0:
                 rho = reflectance[face] * area / surfaces[t]
+                incident[face] += energy * area / surfaces[t]
             else:
                 rho = -transmittance[first_face[t] + 1 - offset] * area / surfaces[t]
             radiosity[face] += energy * rho
@@ -96,8 +98,9 @@ def accumulate(radiosity, areas, energy, first_face, translucent, reflectance, t
 
 def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=None, workers=None, pattern=None,
                 flags=None, cache=None, corrections=frozenset()):
-    """The accepted triangles' first-order radiosities (n_faces,) in canestrad's face order, their areas, and the
-    sensors' (m,) irradiances (their first-order radiosities: a sensor reflects all, ρ = 1). *points*: float32
+    """The accepted triangles' first-order radiosities (n_faces,) in canestrad's face order, their areas, the
+    sensors' (m,) irradiances (their first-order radiosities: a sensor reflects all, ρ = 1) and their areas, and the
+    faces' irradiances (n_faces,). *points*: float32
     (n, 3, 3) accepted triangles; *lights*: [(E, (vx, vy, vz))]; *bounds*: the scene's (vmin, vmax) float32, by default
     those of *points*; *sensors*: float32 (m, 3, 3) virtual sensors, seen only from above their upper face, which
     neither shade nor scatter; *workers*: the threads projecting the sources (by default, one per processor). With a
@@ -160,15 +163,16 @@ def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=
     directions = [tuple(float(value) for value in direction) for _, direction in lights]
     cache = {} if cache is None else cache
     missing = [direction for direction in dict.fromkeys(directions) if direction not in cache]
-    radiosity, sensor_radiosity = np.zeros(n_faces), np.zeros(len(sensors))
+    radiosity, incident, sensor_radiosity = np.zeros(n_faces), np.zeros(n_faces), np.zeros(len(sensors))
     # the sources' projections in parallel (numba releases the GIL), their contributions summed in the sources' order
     with ThreadPoolExecutor(max_workers=workers) as executor:
         cache.update(zip(missing, executor.map(lit_areas, missing)))
         for (energy, _), (areas, seen) in zip(lights, (cache[direction] for direction in directions)):
-            accumulate(radiosity, areas, float(energy), first_face, translucent, reflectance, transmittance, surfaces)
+            accumulate(radiosity, incident, areas, float(energy), first_face, translucent, reflectance, transmittance,
+                       surfaces)
             lit = seen != 0.0
             sensor_radiosity[lit] += float(energy) * (seen[lit] / sensor_surfaces[lit])
-    return radiosity, surfaces, sensor_radiosity, sensor_surfaces
+    return radiosity, surfaces, sensor_radiosity, sensor_surfaces, incident
 
 
 def triangle_surfaces(points, corrections=frozenset()) -> np.ndarray:
@@ -202,12 +206,16 @@ def scene(vertices, labels, pattern=None, corrections=frozenset()) -> tuple:
     return points, labels, accepted, flags
 
 
-def results(labels, accepted, points, surfaces, radiosity, optics) -> dict:
+def results(labels, accepted, points, surfaces, radiosity, optics, incident=None) -> dict:
     """genres on the accepted triangles' face *radiosity*: per input triangle "area", "Eabs", "Ei", "Ei_sup",
-    "Ei_inf" (float32, NaN if rejected), "accepted", "points"."""
+    "Ei_inf" (float32, NaN if rejected), "accepted", "points". With the faces' *incident* irradiances (the correction
+    "face_irradiance"), the budgets from them (budgets.face_budgets), not by inverting the radiosities."""
     kept = labels[accepted]
     reflectance, transmittance = face_optics(kept, optics)
-    values = budgets.triangle_budgets(radiosity, is_translucent(kept), reflectance, transmittance)
+    if incident is None:
+        values = budgets.triangle_budgets(radiosity, is_translucent(kept), reflectance, transmittance)
+    else:
+        values = budgets.face_budgets(incident, is_translucent(kept), reflectance, transmittance)
     result = {"accepted": accepted, "area": np.zeros(len(labels)), "points": points}
     result["area"][accepted] = surfaces
     for name, value in zip(("Eabs", "Ei", "Ei_sup", "Ei_inf"), values):
@@ -232,11 +240,11 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
     if not accepted.any():
         lights = []  # nothing to light: every row rejected
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
-    radiosity, surfaces, sensor_radiosity, sensor_surfaces = first_order(points[accepted], kept, lights, optics, size,
-                                                                         sensors=sensor_points, workers=workers,
-                                                                         pattern=pattern, flags=flags, cache=cache,
-                                                                         corrections=corrections)
-    result = results(labels, accepted, points, surfaces, radiosity, optics)
+    radiosity, surfaces, sensor_radiosity, sensor_surfaces, incident = first_order(
+        points[accepted], kept, lights, optics, size, sensors=sensor_points, workers=workers, pattern=pattern,
+        flags=flags, cache=cache, corrections=corrections)
+    result = results(labels, accepted, points, surfaces, radiosity, optics,
+                     incident if "face_irradiance" in corrections else None)
     if sensors is not None:
         result["sensors"] = {"Ei": sensor_radiosity, "area": sensor_surfaces}
     return result

@@ -23,9 +23,9 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
     points, labels, accepted, _ = direct.scene(vertices, labels, None, corrections) if prepared is None else prepared
     kept_points, kept = points[accepted], labels[accepted]
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
-    first, surfaces, sensor_first, sensor_surfaces = direct.first_order(kept_points, kept, lights, optics, size,
-                                                                        sensors=sensor_points, workers=workers,
-                                                                        cache=cache, corrections=corrections)
+    first, surfaces, sensor_first, sensor_surfaces, incident = direct.first_order(
+        kept_points, kept, lights, optics, size, sensors=sensor_points, workers=workers, cache=cache,
+        corrections=corrections)
     translucent = is_translucent(kept)
     first_face, n_faces = direct.face_numbering(translucent)
     reflectance, transmittance = direct.face_optics(kept, optics)
@@ -50,7 +50,11 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
     radiosities, steps = solver.mgcr(rhs, indptr, faces, values, receiver_faces, receiver_translucent,
                                      all_reflectance, all_transmittance, nearfield.form_factor(resolution), tolerance,
                                      100, iterations)
-    result = direct.results(labels, accepted, points, surfaces, radiosities[:n_faces], optics)
+    if "face_irradiance" in corrections:
+        incident = incident + solver.incoming(radiosities, indptr, faces, values, receiver_faces,
+                                              receiver_translucent, nearfield.form_factor(resolution), n_faces)
+    result = direct.results(labels, accepted, points, surfaces, radiosities[:n_faces], optics,
+                            incident if "face_irradiance" in corrections else None)
     result.update(steps=steps, first_order=first, radiosity=radiosities[:n_faces], counts=counts)
     if sensors is not None:
         result["sensors"] = {"Ei0": sensor_first, "Ei": radiosities[n_faces:], "area": sensor_surfaces}

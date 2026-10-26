@@ -41,6 +41,25 @@ def product(x, out, indptr, faces, values, receiver_faces, receiver_translucent,
 
 
 @njit(cache=True, nogil=True, error_model="numpy")
+def incoming(x, indptr, faces, values, receiver_faces, receiver_translucent, dff, n_faces):
+    """Each face's irradiance from the near field (n_faces,): Σ_j |c_ij| dFF B_j over the emitter faces its disc sees,
+    the upper face's from the positive counts, a leaf's lower face's from the negative ones; receivers beyond
+    *n_faces* (the sensors) left out."""
+    out = np.zeros(n_faces)
+    for r in range(indptr.shape[0] - 1):
+        face = receiver_faces[r]
+        if face >= n_faces:
+            continue
+        for index in range(indptr[r], indptr[r + 1]):
+            j, count = faces[index], values[index]
+            if count > 0:
+                out[face] += x[j] * count * dff
+            elif receiver_translucent[r]:
+                out[face + 1] -= x[j] * count * dff
+    return out
+
+
+@njit(cache=True, nogil=True, error_model="numpy")
 def _norm(vector):
     total = 0.0
     for i in range(vector.shape[0]):
