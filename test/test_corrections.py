@@ -207,3 +207,26 @@ def test_profile_interpolation_and_bounds():
     assert received(1.25, ()) == pytest.approx(0.25 * 2 + 0.75 * 4)
     assert received(2.5) == pytest.approx(4.) and received(-0.5) == pytest.approx(1.)
     assert received(2.5, ("profile_interpolation",)) != pytest.approx(4.)
+
+
+def test_exact_layers():
+    """A vertical leaf from 0.1 to 0.5 m in two layers of 0.33 m: the part above 0.33 m, its apex's, (0.17 / 0.4)²
+    of its area, in the upper layer exactly (s2v: by 4-way subdivision, 5 times at most); a stem at half its
+    area."""
+    from openalea.caribu import sail
+    leaf = np.array([[[0., 0., 0.1], [0.2, 0., 0.1], [0.1, 0., 0.5]]])        # area 0.04, in a 1 m² pattern
+    for label, factor in ((LEAF, 1.), (encode_labels(1, leaf=0), 0.5)):
+        legacy = sail.layers(leaf, [label], 2, 0.66, PATTERN, [OPTICS])["leaf_area_index"]
+        exact = sail.layers(leaf, [label], 2, 0.66, PATTERN, [OPTICS], corrections={"exact_layers"})["leaf_area_index"]
+        above = 0.04 * factor * (0.17 / 0.4) ** 2
+        np.testing.assert_allclose(exact, [above, 0.04 * factor - above], rtol=1e-6)    # top layer first
+        assert abs(legacy[0] / above - 1) > 0.01 and legacy.sum() == pytest.approx(0.04 * factor, rel=1e-5)
+
+
+def test_no_soil():
+    """No soil reflectance given (−1): the soil absorbs all (mcsail's −1 is a negative reflectance)."""
+    from openalea.caribu import sail
+    leaf = np.array([[[0., 0., 0.1], [0.2, 0., 0.1], [0.1, 0., 0.5]]])
+    optics = (-1, OPTICS[1])
+    assert sail.layers(leaf, [LEAF], 2, 0.6, PATTERN, [optics])["soil_reflectance"][0] == -1
+    assert sail.layers(leaf, [LEAF], 2, 0.6, PATTERN, [optics], corrections={"no_soil"})["soil_reflectance"][0] == 0

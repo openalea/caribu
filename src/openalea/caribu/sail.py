@@ -134,6 +134,55 @@ def _structure(points, species, leaf, band_optics, period_x, period_y, tops, lay
     return areas, optical
 
 
+@njit(cache=True, error_model="numpy")
+def _fraction_below(z, z0, z1, z2):
+    """The fraction of a planar triangle's area below height *z*, its vertices' heights z0 ≤ z1 ≤ z2 (the height is
+    linear over it: piecewise quadratic in z)."""
+    if z <= z0:
+        return 0. if z < z0 or z2 > z0 else 1.
+    if z >= z2:
+        return 1.
+    if z <= z1:
+        return (z - z0) * (z - z0) / ((z2 - z0) * (z1 - z0))
+    return 1. - (z2 - z) * (z2 - z) / ((z2 - z0) * (z2 - z1))
+
+
+@njit(cache=True, error_model="numpy")
+def _exact_structure(points, species, leaf, band_optics, tops, layer_count, class_count):
+    """_structure's sums with each triangle's area shared between the layers exactly (the correction
+    "exact_layers"): the part between each layer's planes, the top layer holding what lies above the height, what
+    lies below the soil (z < 0) left out; stems at half their area, as s2v."""
+    species_count, band_count = band_optics.shape[1], band_optics.shape[0]
+    areas = np.zeros((species_count, layer_count, class_count))
+    optical = np.zeros((species_count, layer_count, band_count, 2))
+    for t in range(points.shape[0]):
+        if species[t] < 0:
+            continue
+        je = species[t]
+        p = points[t].astype(np.float64)
+        c0 = (p[1, 1] - p[0, 1]) * (p[2, 2] - p[0, 2]) - (p[1, 2] - p[0, 2]) * (p[2, 1] - p[0, 1])
+        c1 = (p[1, 2] - p[0, 2]) * (p[2, 0] - p[0, 0]) - (p[1, 0] - p[0, 0]) * (p[2, 2] - p[0, 2])
+        c2 = (p[1, 0] - p[0, 0]) * (p[2, 1] - p[0, 1]) - (p[1, 1] - p[0, 1]) * (p[2, 0] - p[0, 0])
+        whole = (0.5 if leaf[t] else 0.25) * math.sqrt(c0 * c0 + c1 * c1 + c2 * c2)
+        zenith = _zenith_class(points[t], class_count)
+        z = np.sort(p[:, 2])
+        for jz in range(layer_count):
+            high = 1. if jz == 0 else _fraction_below(tops[jz], z[0], z[1], z[2])
+            low = _fraction_below(tops[jz + 1], z[0], z[1], z[2]) if jz < layer_count - 1 else \
+                _fraction_below(0., z[0], z[1], z[2])
+            area = whole * (high - low)
+            if area <= 0.:
+                continue
+            areas[je, jz, zenith] += area
+            for band in range(band_count):
+                if leaf[t]:
+                    optical[je, jz, band, 0] += area * band_optics[band, je, 1]
+                    optical[je, jz, band, 1] += area * band_optics[band, je, 2]
+                else:
+                    optical[je, jz, band, 0] += area * band_optics[band, je, 0]
+    return areas, optical
+
+
 def s2v_optics(optics) -> tuple:
     """s2v's reading of a band's optics (soil, {species: (rho_stem, rho_sup, tau_sup, rho_inf, tau_inf)}): (soil
     reflectance, (species, 3): the stem's ρ, the leaf's mean ρ and mean τ of its faces)."""
@@ -143,13 +192,16 @@ def s2v_optics(optics) -> tuple:
     return (0. if soil is None else soil), table
 
 
-def layers(points, labels, layer_count, height, pattern, band_optics, class_count=LEAF_ANGLE_CLASSES) -> dict:
+def layers(points, labels, layer_count, height, pattern, band_optics, class_count=LEAF_ANGLE_CLASSES,
+           corrections=frozenset()) -> dict:
     """s2v: the canopy (*points* (n, 3, 3), as periodise writes them, read as float32) in *layer_count* layers of equal
     thickness up to *height*, horizontally homogeneous over the *pattern* (x1, y1, x2, y2). Per layer (top first):
     "frequencies" (layers, classes), the species-merged frequency of each zenith class of the normals;
     "leaf_area_index" (layers,), stems at half their area; per band of *band_optics* (each as direct's optics)
     "reflectance", "transmittance" (bands, layers), percent, the area-weighted means of the layer's stems' ρ and its
-    leaves' mean ρ, τ; "soil_reflectance" (bands,); "thickness"."""
+    leaves' mean ρ, τ; "soil_reflectance" (bands,); "thickness". Corrections: "exact_layers", each triangle's area
+    shared between the layers exactly (s2v subdivides it at most 5 times); "no_soil", a soil reflectance of −1 (none
+    given) taken as 0 (mcsail uses it as is)."""
     labels = np.asarray(labels, dtype=np.int64)
     species = (labels // 1000) // 100000000 - 1
     leaf = (labels // 1000) % 1000 > 0
@@ -162,8 +214,12 @@ def layers(points, labels, layer_count, height, pattern, band_optics, class_coun
     tops = np.zeros(layer_count)
     for i in range(layer_count - 1, -1, -1):
         tops[i] = thickness if i == layer_count - 1 else thickness + tops[i + 1]
-    areas, optical = _structure(np.asarray(points, dtype=np.float64).astype(F32), species, leaf, tables, period_x, period_y, tops,
-                                layer_count, class_count)
+    float32_points = np.asarray(points, dtype=np.float64).astype(F32)
+    if "exact_layers" in corrections:
+        areas, optical = _exact_structure(float32_points, species, leaf, tables, tops, layer_count, class_count)
+    else:
+        areas, optical = _structure(float32_points, species, leaf, tables, period_x, period_y, tops, layer_count,
+                                    class_count)
     per_class = areas.copy()  # xladi, its sum over the classes xlad, then normalised
     total = np.zeros((species_count, layer_count))
     for jz in range(layer_count):
@@ -202,7 +258,8 @@ def layers(points, labels, layer_count, height, pattern, band_optics, class_coun
                 tau *= 100. / weight
             reflectance[band, jz], transmittance[band, jz] = rho, tau
     return {"frequencies": frequencies, "leaf_area_index": leaf_area_index, "reflectance": reflectance,
-            "transmittance": transmittance, "soil_reflectance": np.array([soil for soil, _ in read]),
+            "transmittance": transmittance,
+            "soil_reflectance": np.array([max(soil, 0.) if "no_soil" in corrections else soil for soil, _ in read]),
             "thickness": thickness}
 
 

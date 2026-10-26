@@ -16,10 +16,12 @@ from . import direct, geometry, nearfield, sail, solver
 from .labels import is_translucent
 
 
-def far_field_profile(points, labels, lights, optics, pattern, layers, height, precision="legacy") -> tuple:
+def far_field_profile(points, labels, lights, optics, pattern, layers, height, precision="legacy",
+                      corrections=frozenset()) -> tuple:
     """The far field of the periodised *points*: (profile, structure), s2v's layers and mcsail's fluxes from the
-    soil up, each read back with its file's printed digits when *precision* is the legacy's."""
-    structure = sail.layers(points, labels, layers, height, pattern, [optics])
+    soil up, each read back with its file's printed digits when *precision* is the legacy's; *corrections*:
+    sail.layers'."""
+    structure = sail.layers(points, labels, layers, height, pattern, [optics], corrections=corrections)
     read = sail.printed_layers(structure) if precision == "legacy" else structure
     profile = sail.profiles(read["frequencies"][::-1], read["leaf_area_index"][::-1], read["reflectance"][0][::-1],
                             read["transmittance"][0][::-1], read["soil_reflectance"][0], read["thickness"], lights)
@@ -51,7 +53,8 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
     points, labels, accepted, flags = (direct.scene(vertices, labels, pattern, corrections) if prepared is None
                                        else prepared)
     kept_points, kept = points[accepted], labels[accepted]
-    profile, structure = far_field_profile(points, labels, lights, optics, pattern, layers, height, precision)
+    profile, structure = far_field_profile(points, labels, lights, optics, pattern, layers, height, precision,
+                                           corrections)
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     first, surfaces, sensor_first, sensor_surfaces = direct.first_order(
         kept_points, kept, lights if accepted.any() else [], optics, size, sensors=sensor_points, workers=workers,
@@ -78,7 +81,8 @@ def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter,
     points, labels, accepted, flags = (direct.scene(vertices, labels, pattern, corrections) if prepared is None
                                        else prepared)
     kept_points, kept = points[accepted], labels[accepted]
-    profile, structure = far_field_profile(points, labels, lights, optics, pattern, layers, height, precision)
+    profile, structure = far_field_profile(points, labels, lights, optics, pattern, layers, height, precision,
+                                           corrections)
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     first, surfaces, sensor_first, sensor_surfaces = direct.first_order(
         kept_points, kept, lights if accepted.any() else [], optics, size, sensors=sensor_points, workers=workers,
