@@ -50,9 +50,12 @@ pip install -e adel --no-deps                                               # op
 ### Developers
 
 ```bash
-git clone 'https://github.com/openalea/caribu.git'
+git clone -b data_structure_api https://github.com/openalea/metafspm.git metafspm
+git clone -b to_metafspm https://github.com/openalea/caribu.git caribu
 cd caribu
 mamba env create -n caribu_dev -f ./conda/environment.yml
+mamba activate caribu_dev
+pip install -e ../metafspm
 ```
 
 ## Getting started
