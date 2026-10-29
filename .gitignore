@@ -104,3 +104,6 @@ build-scons
 
 # the docs' copies of the tutorials (doc/conf.py)
 doc/tutorials/
+
+# the examples' outputs
+example/**/outputs/
