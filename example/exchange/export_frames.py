@@ -9,6 +9,9 @@ CaribuLightModel, hour by hour, under a clear day's PAR (21 June, Paris). Its re
 the whole scene every step: every plant, organ and element with its variables, among them the light each element
 absorbs (PARa), and the elements' triangles as a mesh. The sequence is then checked with fspm-TF's validator.
 
+A second, filtered export shows logging: the plants and their elements only, with the light they absorb, in
+./outputs/log/frames (outputs only: such frames are not reimported).
+
 Open outputs/frames/scene.fspm.json in ParaView with fspm-TF's reader plugin (fspm-TF/paraview/fspm_tf_reader.py) and
 colour by SubOrgan.PARa to watch the light move over the day; import_frames.py reads the files back.
 """
@@ -25,11 +28,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUTPUTS = os.path.join(HERE, "outputs")
 ROWS, PLANTS_PER_ROW, ROW_SPACING, PLANT_SPACING = 3, 8, 0.15, 0.05
 DAY_OF_YEAR = 172.
+# a log of the light: two scales, the absorbed PAR and the lit area of each element
+LOG = dict(scales=["Plant", "SubOrgan"], variables=["PARa", "lit_area", "leaf_rank"])
 
 
-def export(start_hour: float = 6., hours: int = 12, outputs: str = OUTPUTS) -> str:
-    """Light the stand hour by hour from *start_hour* (universal time) for *hours* hours, a frame per hour; the
-    sequence's index path."""
+def export(start_hour: float = 6., hours: int = 12, outputs: str = OUTPUTS, frame_options: dict = None) -> str:
+    """Light the stand hour by hour from *start_hour* (universal time) for *hours* hours, a frame per hour (filtered by
+    *frame_options*, e.g. LOG); the sequence's index path."""
     plants = [Planting(x=PLANT_SPACING * (column + 0.5), y=ROW_SPACING * (row + 0.5), rotation=(37. * k) % 180.)
               for k, (row, column) in enumerate((row, column) for row in range(ROWS) for column in range(PLANTS_PER_ROW))]
     table = planting(plants, SimplePlantModel, {}, xrange=PLANTS_PER_ROW * PLANT_SPACING, yrange=ROWS * ROW_SPACING)
@@ -38,7 +43,7 @@ def export(start_hour: float = 6., hours: int = 12, outputs: str = OUTPUTS) -> s
     incident = clear_day_PAR(DAY_OF_YEAR, CaribuLight.latitude)                   # PAR (µmol m-2 s-1) by hour
     built = Scene(table, environment=[CaribuLightModel], environment_scenarios=[settings], time_step=HOUR,
                   forcings={"PARi": lambda time: incident(clock_start + time / HOUR)})
-    built.recorder = SceneRecorder(outputs, frame_period=1)                       # the scene's outputs, with its frames
+    built.recorder = SceneRecorder(outputs, frame_period=1, frame_options=frame_options)   # outputs, with frames
     for _ in range(hours):
         built.run()
     return os.path.join(outputs, "frames", "scene.fspm.json")
@@ -52,9 +57,17 @@ def main():
     index = export(arguments.start, arguments.hours)
     report = validate_sequence(index)
     frames = sorted(name for name in os.listdir(os.path.dirname(index)) if name.endswith(".glb"))
-    size = sum(os.path.getsize(os.path.join(os.path.dirname(index), name)) for name in frames)
-    print(f"{len(frames)} frames ({size / 1e6:.1f} MB) and their index: {index}")
+    print(f"{len(frames)} frames ({folder_size(os.path.dirname(index)):.1f} MB) and their index: {index}")
     print(f"fspm-TF validator: {len(report.errors)} error(s), {len(report.warnings)} warning(s)")
+    log = export(arguments.start, arguments.hours, os.path.join(OUTPUTS, "log"), frame_options=LOG)
+    report = validate_sequence(log)
+    print(f"logged (scales {LOG['scales']}, {len(LOG['variables'])} variables): {folder_size(os.path.dirname(log)):.1f} MB, "
+          f"{len(report.errors)} error(s)")
+
+
+def folder_size(folder: str) -> float:
+    """The size of the .glb files in *folder* (MB)."""
+    return sum(os.path.getsize(os.path.join(folder, name)) for name in os.listdir(folder) if name.endswith(".glb")) / 1e6
 
 
 if __name__ == "__main__":
