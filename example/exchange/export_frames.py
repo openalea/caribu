@@ -5,9 +5,9 @@ platforms (CPlantBox, GroIMP, VirtualPlantLab) and ParaView read.
     python export_frames.py [--start H] [--hours N]      frames in ./outputs/frames: frame_<step>.glb, scene.fspm.json
 
 The scene is the one openalea.caribu.simulation.simulate builds: a stand of 3 rows of 8 SimplePlants lit by
-CaribuLightModel, hour by hour, under a clear day's PAR (21 June, Paris). Its recorder, given a frame_period, writes
-the whole scene every step: every plant, organ and element with its variables, among them the light each element
-absorbs (PARa), and the elements' triangles as a mesh. The sequence is then checked with fspm-TF's validator.
+CaribuLightModel, hour by hour, under a clear day's PAR (21 June, Paris). Its recorder (metafspm's SceneRecorder,
+its summaries off), given a frame_period, writes the whole scene every step: every plant, organ and element with its
+variables, among them the light each element absorbs (PARa), and the elements' triangles as a mesh. The sequence is then checked with fspm-TF's validator.
 
 A second, filtered export shows logging: the plants and their elements only, with the light they absorb, in
 ./outputs/log/frames (outputs only: such frames are not reimported).
@@ -20,7 +20,9 @@ import os
 
 from openalea.fspm_tf.validate import validate_sequence
 from openalea.metafspm.scene.population import Planting, planting
-from openalea.metafspm.scene.scene import Scene, SceneRecorder
+from openalea.metafspm.coupling.forcings import as_forcing
+from openalea.metafspm.scene.recorder import SceneRecorder
+from openalea.metafspm.scene.scene import Scene
 
 from openalea.caribu.simulation import HOUR, CaribuLight, CaribuLightModel, SimplePlantModel, clear_day_PAR
 
@@ -41,11 +43,10 @@ def export(start_hour: float = 6., hours: int = 12, outputs: str = OUTPUTS, fram
     clock_start = start_hour - 1.                      # a step lights the canopy at its end: start_hour first
     settings = {"start_day_of_year": DAY_OF_YEAR, "start_hour": clock_start, "lighting_interval": HOUR}
     incident = clear_day_PAR(DAY_OF_YEAR, CaribuLight.latitude)                   # PAR (µmol m-2 s-1) by hour
+    recorder = SceneRecorder(outputs, summaries=False, frame_period=1, frame_options=frame_options)   # frames only
     built = Scene(table, environment=[CaribuLightModel], environment_scenarios=[settings], time_step=HOUR,
-                  forcings={"PARi": lambda time: incident(clock_start + time / HOUR)})
-    built.recorder = SceneRecorder(outputs, frame_period=1, frame_options=frame_options)   # outputs, with frames
-    for _ in range(hours):
-        built.run()
+                  forcings={"PARi": as_forcing(incident, time_unit=HOUR, origin=clock_start)}, recorder=recorder)
+    built.simulate(hours)
     return os.path.join(outputs, "frames", "scene.fspm.json")
 
 

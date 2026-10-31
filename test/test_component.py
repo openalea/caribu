@@ -3,7 +3,6 @@ CaribuScene on the same triangles and optics; the lighting interval, the optics,
 from dataclasses import dataclass
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from openalea.caribu import api, lights
@@ -14,6 +13,7 @@ from openalea.metafspm.coupling.component import (FunctionalComponent, Structura
 from openalea.metafspm.coupling.geometry import Triangles
 from openalea.metafspm.coupling.translator import Translator
 from openalea.metafspm.data_structure.configs import PropsConfig, ScalesConfig as scales
+from openalea.metafspm.scene.population import Planting, planting
 from openalea.metafspm.scene.scene import Scene
 
 PANEL = dict(unit="m", description="The panel's geometry", initialize=0., scale=scales.SubOrgan,
@@ -96,17 +96,16 @@ def plant_model(name):
 Wheat, Pea = plant_model("Wheat"), plant_model("Pea")
 
 
-def planting(models, n_leaves=3):
-    table = pd.DataFrame([dict(plant=f"p{i}", model=model, x=0.07 + 0.12 * i, y=0.1, z=0., rotation=0.,
-                               scenario={"parameters": {"n_leaves": n_leaves}}) for i, model in enumerate(models)])
-    table.attrs.update(xrange=XRANGE, yrange=YRANGE)
-    return table
+def planted(models, n_leaves=3):
+    """One plant of each model in a row (metafspm's planting), *n_leaves* leaves each."""
+    return planting([Planting(x=0.07 + 0.12 * i, y=0.1) for i in range(len(models))], list(models),
+                    {"n_leaves": n_leaves}, xrange=XRANGE, yrange=YRANGE)
 
 
 def scene(models, settings=None, translator=None, PARi=500.):
     Choregrapher().reset()
     scenario = dict(settings or {})
-    return Scene(planting(models), environment=[CaribuLightModel], environment_scenarios=[scenario],
+    return Scene(planted(models), environment=[CaribuLightModel], environment_scenarios=[scenario],
                  translator=translator, time_step=HOUR, forcings={"PARi": lambda time: PARi})
 
 
@@ -142,7 +141,7 @@ def test_one_population_as_caribu_scene():
 def test_the_canopy_is_lit_every_interval_PARa_following_PARi():
     PARi = {"value": 500.}
     Choregrapher().reset()
-    built = Scene(planting([Wheat]), environment=[CaribuLightModel],
+    built = Scene(planted([Wheat]), environment=[CaribuLightModel],
                   environment_scenarios=[{"lighting_interval": 2 * HOUR}], time_step=HOUR,
                   forcings={"PARi": lambda time: PARi["value"]})
     ds = built.populations[0].data_structure
@@ -270,7 +269,7 @@ def test_the_forcings_are_declared():
     assert CaribuLight.declared_forcings() == {"PARi": True, "diffuse_fraction": False}
     Choregrapher().reset()
     with pytest.raises(ValueError, match="CaribuLight.PARi"):
-        Scene(planting([Wheat]), environment=[CaribuLightModel], time_step=HOUR)
+        Scene(planted([Wheat]), environment=[CaribuLightModel], time_step=HOUR)
 
 
 def test_a_subclass_lights_with_its_component():
@@ -290,7 +289,7 @@ def test_a_subclass_lights_with_its_component():
         light_component = FluxLight
 
     Choregrapher().reset()
-    built = Scene(planting([Wheat]), environment=[FluxLightModel], time_step=HOUR, forcings={"PARi": lambda time: 500.})
+    built = Scene(planted([Wheat]), environment=[FluxLightModel], time_step=HOUR, forcings={"PARi": lambda time: 500.})
     built.run()
     ds = built.populations[0].data_structure
     assert isinstance(built.environment[0].light, FluxLight)

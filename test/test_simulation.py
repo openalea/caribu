@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from openalea.caribu.simulation import MAIN_PARAMETERS, SimplePlant, _value_at, parameters, simulate
+from openalea.caribu.simulation import MAIN_PARAMETERS, SimplePlant, parameters, simulate
 
 
 @pytest.fixture(scope="module")
@@ -69,13 +69,6 @@ def test_parameters_table():
     assert table.loc[table["name"] == "leaf_inclination", "value"].item() == 60.
     assert set(parameters(main_only=True)["model"]) == {"SimplePlant", "CaribuLight"}
     assert "leaf_width" in SimplePlant.declarations()["name"].values
-
-
-def test_values_at_an_hour():
-    assert _value_at(3., 1.5) == 3.
-    assert _value_at([0., 10., 20.], 1.5) == 15.
-    assert _value_at(pd.Series([0., 4.], index=[0., 2.]), 0.5) == 1.
-    assert _value_at(lambda hour: 2 * hour, 1.5) == 3.
 
 
 def test_draw(noon):

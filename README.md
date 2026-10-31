@@ -73,6 +73,7 @@ result = simulate()                               # 24 plants, hour by hour, the
 print(result.summary)                             # per hour: the PAR above, absorbed, reaching the soil
 result.draw()                                     # the stand coloured by the light its leaves absorb
 result = simulate({"sun": True, "leaf_inclination": 70.}, hours=9, start_hour=8)   # 8-16 h, sun, upright leaves
+result = simulate(outputs="outputs")              # and the run's files: run.json, scenario.json, summaries, frames
 ```
 
 ### User tutorials
