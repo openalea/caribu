@@ -16,8 +16,8 @@ from openalea.metafspm.data_structure.configs import PropsConfig, ScalesConfig a
 from openalea.metafspm.scene.population import Planting, planting
 from openalea.metafspm.scene.scene import Scene
 
-PANEL = dict(unit="m", description="The panel's geometry", initialize=0., scale=scales.SubOrgan,
-             state_variable_type="descriptor", on_grow="inherit")
+PANEL = dict(unit="m", description="The panel's geometry", default=0., scale=scales.SubOrgan,
+             kind="descriptor", on_grow="inherit")
 SKY = lights.Sky(4, 5).diffuse(1., "soc").lights()
 XRANGE, YRANGE = 0.3, 0.2
 HOUR = 3600.
@@ -71,7 +71,7 @@ class Panels(StructuralComponent):
 class LightUse(FunctionalComponent):
     """A plant component reading the PAR its elements absorb."""
     PARa: float = input_variable(unit="µmol m-2 s-1", description="The PAR the element absorbs", by="CaribuLight",
-                                 initialize=-1., scale=scales.SubOrgan)
+                                 default=-1., scale=scales.SubOrgan)
 
 
 def plant_model(name):
@@ -279,7 +279,7 @@ def test_a_subclass_lights_with_its_component():
     @dataclass
     class FluxLight(CaribuLight):
         PAR_flux: float = state_variable(unit="µmol s-1", description="PARa times the lit area",
-                                         state_variable_type="extensive", initialize=0., scale=scales.SubOrgan)
+                                         kind="extensive", default=0., scale=scales.SubOrgan)
 
         @state_step(include_inactive=True)
         def _PAR_flux(self, PARa, lit_area) -> dict:

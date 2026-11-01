@@ -4,7 +4,7 @@ Caribu as a metafspm component: the light each element of a canopy absorbs, from
     CaribuLight(data_structure=ds, mode="nested", latitude=45.)
                                             a FunctionalComponent on a population's DataStructure, or on a
                                             UnionDataStructure of several populations
-    CaribuLightModel(populations, scene_xrange, scene_yrange, time_step)
+    CaribuLightModel(plant_data_structures, xrange, yrange, time_step)
                                             the environment model of a metafspm Scene running it
 
 Its steps follow the physics:
@@ -47,10 +47,10 @@ class CaribuLight(FunctionalComponent):
 
     PAR_reflectance: float = input_variable(
         unit="adim", description="The element's reflectance in the PAR, from an optical model (NaN: its kind's)",
-        by="an optical model", initialize=np.nan, **ELEMENT)
+        by="an optical model", default=np.nan, **ELEMENT)
     PAR_transmittance: float = input_variable(
         unit="adim", description="The element's transmittance in the PAR, from an optical model (NaN: opaque)",
-        by="an optical model", initialize=np.nan, **ELEMENT)
+        by="an optical model", default=np.nan, **ELEMENT)
 
     PARi: float = forcing_variable(unit="µmol m-2 s-1", unit_comment="or any unit: PARa, PAR_incident take it",
                                    description="The PAR above the canopy, on a horizontal plane")
@@ -59,26 +59,26 @@ class CaribuLight(FunctionalComponent):
         "PARi)", required=False)
 
     reflectance: float = state_variable(
-        unit="adim", description="The element's reflectance in the light model", state_variable_type="intensive",
-        initialize=np.nan, **ELEMENT)
+        unit="adim", description="The element's reflectance in the light model", kind="intensive",
+        default=np.nan, **ELEMENT)
     transmittance: float = state_variable(
         unit="adim", description="The element's transmittance in the light model (NaN: opaque, one face)",
-        state_variable_type="intensive", initialize=np.nan, **ELEMENT)
+        kind="intensive", default=np.nan, **ELEMENT)
     Erel: float = state_variable(
         unit="adim", description="The PAR the element absorbs per unit area, relative to the PAR above the canopy",
-        state_variable_type="intensive", initialize=0., **ELEMENT)
+        kind="intensive", default=0., **ELEMENT)
     Erel_incident: float = state_variable(
         unit="adim", description="The PAR reaching the element per unit area (its two faces), relative to the PAR "
-                                 "above the canopy", state_variable_type="intensive", initialize=0., **ELEMENT)
+                                 "above the canopy", kind="intensive", default=0., **ELEMENT)
     lit_area: float = state_variable(
         unit="m2", unit_comment="the scene's unit squared", description="The element's area in the light model (its "
-        "triangles' above the soil, within the pattern)", state_variable_type="extensive", initialize=0., **ELEMENT)
+        "triangles' above the soil, within the pattern)", kind="extensive", default=0., **ELEMENT)
     PARa: float = state_variable(
         unit="µmol m-2 s-1", unit_comment="PARi's unit", description="The PAR the element absorbs per unit area",
-        state_variable_type="intensive", initialize=0., **ELEMENT)
+        kind="intensive", default=0., **ELEMENT)
     PAR_incident: float = state_variable(
         unit="µmol m-2 s-1", unit_comment="PARi's unit", description="The PAR reaching the element per unit area",
-        state_variable_type="intensive", initialize=0., **ELEMENT)
+        kind="intensive", default=0., **ELEMENT)
 
     leaf_reflectance: float = parameter(unit="adim", description="A leaf element's reflectance in the PAR",
                                         by="Wheat-BRIDGES", default=0.10)
@@ -125,9 +125,9 @@ class CaribuLight(FunctionalComponent):
                                       default=0.15)
     lighting_interval: float = setting(unit="s", description="Time between two lightings (Wheat-BRIDGES: 4 h)",
                                        default=4 * 3600.)
-    scene_xrange: float = setting(unit="m", description="The infinite canopy's pattern (0, 0, scene_xrange, "
-                                  "scene_yrange), the scene's (None: the triangles' extent)", default=None)
-    scene_yrange: float = setting(unit="m", description="The pattern's y range (see scene_xrange)", default=None)
+    xrange: float = setting(unit="m", description="The infinite canopy's pattern (0, 0, xrange, "
+                                  "yrange), the scene's (None: the triangles' extent)", default=None)
+    yrange: float = setting(unit="m", description="The pattern's y range (see xrange)", default=None)
     screen_size: int = setting(unit="pixel", description="The projections' screen side", default=1536)
     precision: str = setting(description="'full' the computed values, 'legacy' the legacy's printed digits",
                              default="full", choices=("full", "legacy"))
@@ -221,8 +221,8 @@ class CaribuLight(FunctionalComponent):
 
     def pattern(self, vertices):
         """The infinite canopy's pattern: the scene's ranges, else the triangles' extent."""
-        if self.scene_xrange is not None and self.scene_yrange is not None:
-            return 0., 0., float(self.scene_xrange), float(self.scene_yrange)
+        if self.xrange is not None and self.yrange is not None:
+            return 0., 0., float(self.xrange), float(self.yrange)
         flat = vertices.reshape(-1, 3)
         return (float(flat[:, 0].min()), float(flat[:, 1].min()), float(flat[:, 0].max()), float(flat[:, 1].max()))
 
@@ -281,14 +281,16 @@ class CaribuLightModel(EnvironmentModel):
     """The environment model of a metafspm Scene: CaribuLight on the population's DataStructure, or on the union of
     the populations' (their elements' Erel, PARa, ... then reach them through the scene translator's links). The
     canopy is lit when due (every lighting_interval, or when elements appeared); at the other steps PARa only (the
-    row "state"). A subclass may light with a subclass of CaribuLight (light_component)."""
+    row "state"). A subclass may light with a subclass of CaribuLight (light_component). The scenario's entries (the
+    light's settings and optics) are set by the Scene once it is built."""
     light_component = CaribuLight
+    compartment = "Atmosphere"
 
-    def __init__(self, populations, scene_xrange, scene_yrange, time_step, **parameters):
-        super().__init__(populations, scene_xrange, scene_yrange, time_step)
-        self.data_structure = self.plants()
+    def __init__(self, plant_data_structures, xrange, yrange, time_step):
+        super().__init__(plant_data_structures, xrange, yrange, time_step)
+        self.data_structure = self.plant_data_structure()
         self.light = self.light_component(data_structure=self.data_structure, time_step=time_step,
-                                          scene_xrange=scene_xrange, scene_yrange=scene_yrange, **parameters)
+                                          xrange=xrange, yrange=yrange)
         self.components = [self.light]
         self.lit_elements = None
 

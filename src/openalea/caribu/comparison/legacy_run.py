@@ -13,7 +13,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from openalea.metafspm.testing import run_executables
+from openalea.metafspm.testing.comparison import run_executables
 
 from .. import formats
 
@@ -30,7 +30,7 @@ def available() -> bool:
 
 def run(steps, files, outputs=("Etri.vec0",)) -> dict:
     """{output name: text} of libcaribu's executables run one after the other on *files* ({name: text}) in a
-    temporary directory (metafspm.testing.run_executables); *steps* [(executable name, arguments)]; the binary
+    temporary directory (metafspm.testing.comparison.run_executables); *steps* [(executable name, arguments)]; the binary
     matrices under hd/ as bytes."""
     steps = [(name if name == "cp" else executable(name), arguments) for name, arguments in steps]
     found = run_executables(steps, files, outputs)

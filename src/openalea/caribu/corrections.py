@@ -3,7 +3,7 @@ The corrections of the legacy's behaviours (doc/legacy.rst's quirk registry): ea
 *corrections*; none by default in the legacy API, all of them ("recommended") in the metafspm component. With
 precision "legacy", the legacy's printed digits, none applies: it stays the bit-for-bit reference.
 """
-from openalea.metafspm.corrections import Corrections
+from openalea.metafspm.testing.corrections import Corrections
 
 NAMES = {
     "border_copies": "a triangle across the pattern's borders copied on each side it crosses, corners included",

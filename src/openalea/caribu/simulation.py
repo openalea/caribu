@@ -36,7 +36,7 @@ from . import lights
 from .component import CaribuLight, CaribuLightModel
 
 HOUR = 3600.
-GEOMETRY = dict(initialize=0., scale=scales.SubOrgan, state_variable_type="descriptor")
+GEOMETRY = dict(default=0., scale=scales.SubOrgan, kind="descriptor")
 PLANT = dict(by="the user")
 
 # The parameters a beginner changes first: the plants' leaves, the light model, the site and the optics
@@ -220,7 +220,7 @@ class Simulation:
 def _split(values: dict):
     """(the plants' parameters, the light's settings, the light's plant parameters) of *values*."""
     plant_names = {field.name for field in fields(SimplePlant)}
-    light = CaribuLight.declarations().set_index("name")["kind"]
+    light = CaribuLight.declarations().set_index("name")["role"]
     plants, settings, optics = {}, {}, {}
     for name, value in values.items():
         if name in plant_names:
