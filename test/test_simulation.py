@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from openalea.caribu.simulation import MAIN_PARAMETERS, SimplePlant, parameters, simulate
+from openalea.caribu.simulation import MAIN_PARAMETERS, SimplePlant, SimplePlantModel, parameters, simulate
+from openalea.metafspm.scene.population import Planting, planting, population_data_structure
 
 
 @pytest.fixture(scope="module")
@@ -25,6 +26,14 @@ def test_simple_plant_geometry(noon):
     leaf_area = elements.loc[elements["kind"] == "leaf", "area"]          # the lit area: the leaves', whole
     assert leaf_area.sum() == pytest.approx(n_plants * 4 * 0.2 * 0.015, rel=1e-4)
 
+
+
+def test_a_sown_plant_starts_at_its_planting_z():
+    table = planting([Planting(x=0.1, y=0.1, z=-0.03, rotation=20.)], SimplePlantModel, {}, xrange=0.2, yrange=0.2)
+    ds = population_data_structure(table, SimplePlantModel, time_step=3600.).data_structure
+    start_z, rank = np.asarray(ds.get("start_z")), np.asarray(ds.get("leaf_rank")).astype(int)
+    assert start_z[rank == 0].item() == -0.03                                     # the stem's base: the planting's z
+    np.testing.assert_allclose(start_z[rank > 0], -0.03 + 0.4 * rank[rank > 0] / 4, rtol=1e-12)
 
 def test_the_summary_is_the_components(noon):
     last = noon.summary.iloc[-1]

@@ -164,12 +164,9 @@ def test_the_canopy_is_lit_every_interval_PARa_following_PARi():
     assert not np.allclose(union.get("Erel"), first)
 
 def test_two_populations_in_a_union():
-    """Two models: CaribuLight on their union, its outputs to each population by the translator; the canopy is lit
-    as one, equal to CaribuScene on the triangles of both."""
-    translator = Translator()
-    for model in ("Wheat", "Pea"):
-        translator.link(f"{model}LightUse", "PARa", "CaribuLight", {"PARa": 1.})
-    built = scene([Wheat, Pea, Wheat], translator=translator)
+    """Two models: CaribuLight on their union, its outputs to each population by the default identity links (one per
+    population); the canopy is lit as one, equal to CaribuScene on the triangles of both."""
+    built = scene([Wheat, Pea, Wheat])
     union = built.environment[0].data_structure
     assert len(union.parts) == 2
     built.run()
@@ -180,6 +177,39 @@ def test_two_populations_in_a_union():
     built.run()                                           # the exchanges into the plants, at their next step
     wheat, pea = (population.data_structure for population in built.populations)
     np.testing.assert_array_equal(np.r_[wheat.get("PARa"), pea.get("PARa")], union.get("PARa"))
+
+
+
+def test_a_renamed_input_by_the_scene_translator():
+    """A plant input under another name (a photosynthesis' absorbed PAR in mol): the scene translator's link, a
+    rename with its unit's factor."""
+    @dataclass
+    class Photosynthesis(FunctionalComponent):
+        absorbed_PAR_density: float = input_variable(unit="mol m-2 s-1", description="The PAR the element absorbs",
+                                                     by="CaribuLight", default=-1., scale=scales.SubOrgan)
+
+    class Model(CompositeModel):
+        initiators = (Panels,)
+
+        def __init__(self, data_structure, time_step):
+            self.panels = Panels(data_structure=data_structure)
+            self.optics = PlantOptics(data_structure=data_structure)
+            self.photosynthesis = Photosynthesis(data_structure=data_structure)
+            self.couple(self.panels, self.optics, self.photosynthesis)
+
+        def spin_up(self, scene):
+            self.optics.run_stage("state")
+
+        def run(self):
+            self.optics()
+
+    translator = Translator().link("Photosynthesis", "absorbed_PAR_density", "CaribuLight", {"PARa": 1e-6})
+    built = scene([Model], translator=translator)
+    built.run()
+    built.run()                                           # the exchanges into the plants, at their next step
+    union, plants = built.environment[0].data_structure, built.populations[0].data_structure
+    np.testing.assert_allclose(plants.get("absorbed_PAR_density"), 1e-6 * union.get("PARa"), rtol=1e-12)
+    assert union.get("PARa").max() > 0 and not plants.has("PARa")
 
 
 def test_optics_from_the_plants():
@@ -228,13 +258,13 @@ def test_the_sun_shares_the_unit_energy_and_sets():
 
 
 def test_above_soil():
-    """A triangle across the soil cut at its plane (one or two triangles, the area above kept), one below dropped."""
-    from openalea.caribu.component import above_soil
+    """A triangle across the soil cut at its plane (one or two triangles, the area above kept), one below dropped
+    (metafspm's Triangles.clip_below, which CaribuLight lights)."""
     vertices = np.array([[[0, 0, -1], [2, 0, 1], [0, 2, 1]],         # one vertex below: two triangles
                          [[0, 0, 1], [2, 0, -1], [0, 2, -1]],         # two below: one triangle
                          [[0, 0, -1], [1, 0, -1], [0, 1, -2]],        # all below: none
                          [[0, 0, 0], [1, 0, 1], [0, 1, 0]]], dtype=float)  # on the soil: kept whole
-    kept = above_soil(Triangles(vertices, [0, 1, 2, 3]))
+    kept = Triangles(vertices, [0, 1, 2, 3]).clip_below(0.)
     assert kept.owner.tolist() == [3, 0, 0, 1]
     assert (kept.vertices[..., 2] >= 0).all()
     areas = kept.per_owner(kept.areas(), 4)
@@ -245,14 +275,13 @@ def test_above_soil():
 def test_the_parts_below_the_soil_receive_no_light():
     """The soil 10 cm up: the stems' lower halves left out (their lit area halved), the light as CaribuScene's on
     the parts above."""
-    from openalea.caribu.component import above_soil
     built = scene([Wheat], {"soil_level": 0.1})
     built.run()
     ds = built.environment[0].data_structure
     light = built.environment[0].light
     stems = light.element_labels() == "StemElement"
     np.testing.assert_allclose(ds.get("lit_area")[stems], 0.05 * 0.05 / 2, rtol=1e-6)
-    expected = caribu_scene(above_soil(ds.triangles(), 0.1), light.element_labels().tolist())
+    expected = caribu_scene(ds.triangles().clip_below(0.1), light.element_labels().tolist())
     for element, value in expected["Eabs"].items():
         assert ds.get("Erel")[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
 
@@ -279,6 +308,15 @@ def test_the_forcings_are_declared():
     with pytest.raises(ValueError, match="CaribuLight.PARi"):
         Scene(planted([Wheat]), environment=[CaribuLightModel], time_step=HOUR)
 
+
+
+def test_the_pattern_is_the_scenes():
+    """The infinite canopy's pattern is the environment model's (the planting's ranges): not a scenario entry."""
+    built = scene([Wheat])
+    assert built.environment[0].light.pattern == built.environment[0].pattern == (0., 0., XRANGE, YRANGE)
+    Choregrapher().reset()
+    with pytest.raises(ValueError, match="pattern"):
+        scene([Wheat], {"pattern": (0., 0., 1., 1.)})
 
 def test_a_subclass_lights_with_its_component():
     """CaribuLightModel.light_component: a subclass lights with a subclass of CaribuLight, its added steps run."""

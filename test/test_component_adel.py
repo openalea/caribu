@@ -11,7 +11,7 @@ from dataclasses import replace
 from openalea.adel.development import ScenarioShoot, coleoptile_sowing_depth, random_delays, sown_stand
 from openalea.adel.leaf_shapes import LeafShapes
 from openalea.caribu import api
-from openalea.caribu.component import CaribuLightModel, above_soil
+from openalea.caribu.component import CaribuLightModel
 from openalea.caribu.optics import PlantOptics
 from openalea.metafspm.coupling.choregrapher import Choregrapher
 from openalea.metafspm.scene.population import planting
@@ -57,7 +57,7 @@ def stand():
     triangles = scene.populations[0].data_structure.triangles()
     assert triangles.vertices[..., 2].min() < 0                       # sown: stems below the soil
     scene.run()
-    return scene, above_soil(triangles)
+    return scene, triangles.clip_below(0.)
 
 
 def _elements(stand):

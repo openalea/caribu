@@ -1,9 +1,10 @@
 """
 Caribu as a metafspm component: the light each element of a canopy absorbs, from its triangles.
 
-    CaribuLight(data_structure=ds, mode="nested", latitude=45.)
+    CaribuLight(data_structure=ds, mode="nested", latitude=45., pattern=(0., 0., 0.4, 0.45))
                                             a FunctionalComponent on a population's DataStructure, or on a
-                                            UnionDataStructure of several populations
+                                            UnionDataStructure of several populations; its pattern (m) the
+                                            infinite canopy's (None: the triangles' extent)
     CaribuLightModel(plant_data_structures, xrange, yrange, time_step)
                                             the environment model of a metafspm Scene running it
 
@@ -29,6 +30,7 @@ put its lowest point at 0, lighting them). The geometry is kept between lighting
 reused) while the triangles, their optics and the settings are the same.
 """
 from dataclasses import dataclass
+from typing import Optional
 
 import numpy as np
 
@@ -106,8 +108,8 @@ class CaribuLight(FunctionalComponent):
                         default=False, choices=(True, False))
     global_per_PARi: float = setting(
         unit="J µmol-1", unit_comment="W m-2 of global radiation per µmol m-2 s-1 of PARi",
-        description="For the diffuse fraction without its forcing: 1 / (0.48 x 4.57), PARi in µmol m-2 s-1 (McCree)",
-        default=1 / (0.48 * 4.57))
+        description="For the diffuse fraction without its forcing: 1 / (0.48 x 4.57), PARi in µmol m-2 s-1 (McCree; "
+        "lights.PAR_PER_GLOBAL)", default=1 / lights.PAR_PER_GLOBAL)
     latitude: float = setting(unit="°", description="The scene's latitude", default=48.85)
     orientation: float = setting(unit="°", description="The angle, clockwise, from the scene's X+ to North (the "
                                  "sky's and the sun's azimuths with the correction 'sky')", default=0.)
@@ -115,9 +117,6 @@ class CaribuLight(FunctionalComponent):
                                 "elements' parts below it (sown shoots, roots) left out", default=0.)
     soil_reflectance: float = setting(unit="adim", description="The soil's reflectance in the PAR (scattering)",
                                       default=0.15)
-    xrange: float = setting(unit="m", description="The infinite canopy's pattern (0, 0, xrange, "
-                                  "yrange), the scene's (None: the triangles' extent)", default=None)
-    yrange: float = setting(unit="m", description="The pattern's y range (see xrange)", default=None)
     screen_size: int = setting(unit="pixel", description="The projections' screen side", default=1536)
     precision: str = setting(description="'full' the computed values, 'legacy' the legacy's printed digits",
                              default="full", choices=("full", "legacy"))
@@ -128,6 +127,10 @@ class CaribuLight(FunctionalComponent):
                           choices=("cpu", "cuda"))
     linear_solver: str = setting(description="The radiosity system's solver: 'mgcr' (canestrad's) or 'gmres' "
                                  "(scipy's)", default="mgcr", choices=("mgcr", "gmres"))
+
+    # The infinite canopy's pattern (x1, y1, x2, y2, m), a construction argument, not a setting: in a Scene its
+    # environment model's (EnvironmentModel.pattern, the scene's); None: the triangles' extent
+    pattern: Optional[tuple] = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -197,10 +200,10 @@ class CaribuLight(FunctionalComponent):
 
     # ── the lighting ─────────────────────────────────────────────────────────
 
-    def pattern(self, vertices):
-        """The infinite canopy's pattern: the scene's ranges, else the triangles' extent."""
-        if self.xrange is not None and self.yrange is not None:
-            return 0., 0., float(self.xrange), float(self.yrange)
+    def repeated_pattern(self, vertices):
+        """The infinite canopy's pattern: the component's (the scene's), else the triangles' extent."""
+        if self.pattern is not None:
+            return tuple(float(value) for value in self.pattern)
         flat = vertices.reshape(-1, 3)
         return (float(flat[:, 0].min()), float(flat[:, 1].min()), float(flat[:, 0].max()), float(flat[:, 1].max()))
 
@@ -240,7 +243,7 @@ class CaribuLight(FunctionalComponent):
         """The Canopy of these triangles, kept (not checkpointed) while they, their labels and the settings it
         depends on are the same."""
         infinite = self.mode == "nested" or (self.infinite and self.mode == "direct")
-        pattern = self.pattern(vertices) if infinite else None
+        pattern = self.repeated_pattern(vertices) if infinite else None
         made_with = (pattern, self.screen_size, self.device, corrections_module.resolve(self.corrections))
         kept, kept_with = self.kept("canopy", (None, None))
         if (kept is None or kept_with != made_with or kept.vertices.shape != vertices.shape
@@ -249,11 +252,6 @@ class CaribuLight(FunctionalComponent):
                           corrections=self.corrections)
             self.keep("canopy", (kept, made_with), saved=False)
         return kept
-
-
-def above_soil(triangles, level=0.):
-    """*triangles*' parts above the soil at height *level* (metafspm's Triangles.clip_below)."""
-    return triangles.clip_below(level)
 
 
 class CaribuLightModel(EnvironmentModel):
@@ -271,7 +269,7 @@ class CaribuLightModel(EnvironmentModel):
         super().__init__(plant_data_structures, xrange, yrange, time_step)
         self.data_structure = self.plant_data_structure()
         self.light = self.light_component(data_structure=self.data_structure, time_step=time_step,
-                                          xrange=xrange, yrange=yrange)
+                                          pattern=self.pattern)
         self.components = [self.light]
 
     def between(self):

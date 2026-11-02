@@ -30,7 +30,6 @@ N_PLANTS, N_ROWS, ROW_SPACING, PLANT_SPACING = 20, 4, 0.15, 0.04
 XRANGE, YRANGE = N_PLANTS // N_ROWS * PLANT_SPACING, N_ROWS * ROW_SPACING
 DAY_OF_YEAR, LATITUDE = 126, 48.85
 DAILY_GLOBAL_RADIATION = 28e6            # J m-2 day-1, a clear May day at Paris
-PAR_PER_GLOBAL, MICROMOLES_PER_JOULE = 0.48, 4.57
 
 
 def incident_PAR(time):
@@ -38,7 +37,7 @@ def incident_PAR(time):
     hour = (time / 3600.) % 24
     day = DAY_OF_YEAR + time // 86400
     global_radiation = max(lights.hourly_global_radiation(DAILY_GLOBAL_RADIATION, hour, day, LATITUDE), 0.)
-    return PAR_PER_GLOBAL * MICROMOLES_PER_JOULE * global_radiation
+    return lights.PAR_PER_GLOBAL * global_radiation
 
 
 class LitShoot(ScenarioShoot):

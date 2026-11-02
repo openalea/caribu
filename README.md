@@ -149,8 +149,10 @@ raw, aggregated = api.CaribuScene(scene, light=sky, pattern=domain, opt={"par": 
   field's voxels, the tiling of the neighbouring patterns), the layers' exact areas, each face's irradiance
   accumulated (leaves with ρ = τ budgeted), one azimuth convention for the sky and the sun, and more.
 - **The metafspm component.** `openalea.caribu.component.CaribuLight` lights the elements of one or several plant
-  populations from their triangles (`ds.triangles()`), as a metafspm environment model (`CaribuLightModel`):
-  Erel and PARa per element, the canopy kept between lightings; with the corrections by default.
+  populations from their triangles (`ds.triangles()`), on their union, as a metafspm environment model
+  (`CaribuLightModel`): Erel and PARa per element, linked by name to the plant models' inputs, the canopy kept
+  between lightings; with the corrections by default. The elements' optics are the plants'
+  (`openalea.caribu.optics.PlantOptics`, a component of their plant model).
 - **Speed** (100-plant Adel scene, 34,647 triangles, 46 sources, a laptop CPU; legacy → port): direct 1.9 s →
   0.3 s; infinite 3.1 → 0.5; pure SAIL 3.3 → 0.6; nested radiosity (D = 0.5) 11.3 → 1.4; full radiosity of the
   whole scene 307 → 62. `openalea.caribu.canopy.Canopy` keeps what depends only on the geometry: a second band or

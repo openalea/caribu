@@ -50,9 +50,10 @@ MAIN_PARAMETERS = ("n_leaves", "leaf_length", "leaf_width", "leaf_inclination", 
 
 @dataclass
 class SimplePlant(StructuralComponent):
-    """A simple plant for lighting: a vertical stem (a thin opaque strip) and leaves (flat rectangles), evenly spaced
-    up the stem, the top one at the plant's height, leaving it on alternate sides, inclined above the horizontal.
-    Each leaf and the stem is one element of the plant graph."""
+    """A simple plant for lighting: a vertical stem (a thin opaque strip) from the plant's position (the planting's x,
+    y, z) and leaves (flat rectangles), evenly spaced up the stem, the top one at the plant's height above its base,
+    leaving it on alternate sides, inclined above the horizontal. Each leaf and the stem is one element of the plant
+    graph."""
     n_leaves: int = parameter(unit="adim", description="The number of leaves", default=4, **PLANT)
     leaf_length: float = parameter(unit="m", description="A leaf's length", default=0.2, **PLANT)
     leaf_width: float = parameter(unit="m", description="A leaf's width", default=0.015, **PLANT)
@@ -84,15 +85,16 @@ class SimplePlant(StructuralComponent):
         phytomer = g.add_component(unit, **PropsConfig(scale=s.Phytomer, edge_type='/', label=labels.Phytomer.Shoot))
         stem = g.add_component(phytomer, **PropsConfig(scale=s.Organ, edge_type='/', label=labels.Organ.StemInternode))
         blade = g.add_component(phytomer, **PropsConfig(scale=s.Organ, edge_type='/', label=labels.Organ.Blade))
-        x, y, rotation = (g.property(name)[plant] for name in ("x", "y", "rotation"))
+        # the plant's position, the planting's (written before an initiator builds; z minus its sowing depth)
+        x, y, z, rotation = (g.property(name)[plant] for name in ("x", "y", "z", "rotation"))
         elements = [g.add_component(stem, **PropsConfig(scale=s.SubOrgan, edge_type='/',
                                                         label=labels.SubOrgan.StemElement))]
-        geometry = [(x, y, 0., rotation, 90., value["plant_height"], value["stem_width"], 0)]
+        geometry = [(x, y, z, rotation, 90., value["plant_height"], value["stem_width"], 0)]
         n_leaves = int(value["n_leaves"])
         for rank in range(1, n_leaves + 1):
             leaf = PropsConfig(scale=s.SubOrgan, edge_type='/' if rank == 1 else '<', label=labels.SubOrgan.LeafElement)
             elements.append(g.add_component(blade, **leaf) if rank == 1 else g.add_child(elements[-1], **leaf))
-            geometry.append((x, y, value["plant_height"] * rank / n_leaves, rotation + 180. * (rank % 2),
+            geometry.append((x, y, z + value["plant_height"] * rank / n_leaves, rotation + 180. * (rank % 2),
                              value["leaf_inclination"], value["leaf_length"], value["leaf_width"], rank))
         for element, values in zip(elements, geometry):
             for name, number in zip(("start_x", "start_y", "start_z", "azimuth", "inclination", "element_length",
@@ -155,8 +157,9 @@ class SimplePlantModel(CompositeModel):
 
 def parameters(values: dict = None, main_only: bool = False) -> pd.DataFrame:
     """The parameters and settings, one row each: its name, its value (the default, or the one in *values*), its
-    unit, its description, the model it belongs to (SimplePlant, the plants; CaribuLight, the light), and whether it
-    is one of the main ones (those first), and its bounds (min_value, max_value)."""
+    unit, its description, the model it belongs to (SimplePlant, the plants' shape; PlantOptics, their optics;
+    CaribuLight, the light), whether it is one of the main ones (those first), and its bounds (min_value,
+    max_value)."""
     table = parameter_table(SimplePlant, PlantOptics, CaribuLight, values=values, main=MAIN_PARAMETERS)
     table = table.rename(columns={"component": "model"})
     return table[table["main"]].reset_index(drop=True) if main_only else table
@@ -164,9 +167,9 @@ def parameters(values: dict = None, main_only: bool = False) -> pd.DataFrame:
 
 def clear_day_PAR(day_of_year: float = 172., latitude: float = 48.85, daily_global_radiation: float = 28e6):
     """The incident PAR (µmol m-2 s-1) of a clear day, a function of the hour (universal time): the hourly share of a
-    day's global radiation (J m-2), 48 % of it PAR, 4.57 µmol per joule."""
+    day's global radiation (J m-2), 48 % of it PAR, 4.57 µmol per joule (lights.PAR_PER_GLOBAL)."""
     def PAR(hour):
-        return 0.48 * 4.57 * max(lights.hourly_global_radiation(daily_global_radiation, hour % 24., day_of_year,
+        return lights.PAR_PER_GLOBAL * max(lights.hourly_global_radiation(daily_global_radiation, hour % 24., day_of_year,
                                                                 latitude), 0.)
     return PAR
 
@@ -283,6 +286,10 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
     *PARi* (µmol m-2 s-1; a clear day's by default, clear_day_PAR), the PAR above the stand;
     *diffuse_fraction* (between 0 and 1; with the sun only, Spitters' from PARi by default), its diffuse share.
 
+    The clock: the scene's calendar (Scene(start=(day_of_year, hour))) is that of its time 0, and a step reads its
+    forcings and its sun at its end (metafspm's convention, Component.forcing_time): the scene starts an hour before
+    *start_hour*, so that its first step lights the canopy at *start_hour*, the summary's first hour.
+
     *outputs*: a folder for the run's files (metafspm's SceneRecorder): run.json, scenario.json, summary.csv (the
     summary), Plant/SimplePlantModel/summaries.csv (the light each plant absorbs, every hour) and a frame of the
     stand every hour (frames/, for ParaView or another platform)."""
@@ -291,8 +298,7 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
     plants = [Planting(x=plant_spacing * (column + 0.5), y=row_spacing * (row + 0.5), rotation=(37. * k) % 180.)
               for k, (row, column) in enumerate((row, column) for row in range(rows) for column in range(plants_per_row))]
     table = planting(plants, SimplePlantModel, plant_values, xrange=xrange, yrange=yrange)
-    # the scene starts an hour before start_hour: a step lights the canopy at its end, start_hour first
-    start = (day_of_year, start_hour - 1.)
+    start = (day_of_year, start_hour - 1.)                 # the first step ends at start_hour (the clock, above)
     settings = {"interval": HOUR, **settings}
     incident = PARi if PARi is not None else clear_day_PAR(day_of_year, settings.get("latitude", CaribuLight.latitude))
     forcings = {"PARi": as_forcing(incident, time_unit=HOUR, origin="calendar")}          # by the hour of the day

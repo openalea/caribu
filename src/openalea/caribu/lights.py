@@ -26,6 +26,10 @@ import numpy as np
 
 from . import corrections as corrections_module
 
+PAR_SHARE = 0.48                                    # the PAR's share of the global radiation's energy
+MICROMOLES_PER_JOULE = 4.57                         # µmol of photons per joule of PAR (McCree)
+PAR_PER_GLOBAL = PAR_SHARE * MICROMOLES_PER_JOULE   # µmol m-2 s-1 of PAR per W m-2 of global radiation
+
 
 def _corrected(corrections) -> bool:
     return "sky" in corrections_module.resolve(corrections)

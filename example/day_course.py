@@ -16,7 +16,6 @@ from openalea.caribu.legacy.data_samples import data_path
 
 DAY_OF_YEAR, LATITUDE = 140, 48.85          # 20 May, Paris
 DAILY_GLOBAL_RADIATION = 22e6               # J m-2 day-1
-PAR_FRACTION = 0.48                         # PAR in the global radiation
 OPTICS = (0.15, {1: (0.10, 0.10, 0.05, 0.10, 0.05)})   # soil ρ; the species' (ρ stem, ρ, τ upper, ρ, τ lower)
 
 vertices, labels = formats.read_can_arrays(data_path("f331s1_100plantes.can"))
@@ -33,7 +32,7 @@ for hour in np.arange(5.5, 19.0, 1.0):
     if sun.zenith >= np.pi / 2:
         continue                            # below the horizon
     global_radiation = max(lights.hourly_global_radiation(DAILY_GLOBAL_RADIATION, hour, DAY_OF_YEAR, LATITUDE), 0)
-    par = PAR_FRACTION * global_radiation  # W m-2 on the horizontal
+    par = lights.PAR_SHARE * global_radiation  # W m-2 on the horizontal
     diffuse = lights.diffuse_fraction(global_radiation, DAY_OF_YEAR, hour, LATITUDE)
     sky = lights.Sky(4, 5).diffuse(par * diffuse, "soc").lights()
     sources = sky + lights.sun_light(par * (1 - diffuse), DAY_OF_YEAR, hour, LATITUDE)
