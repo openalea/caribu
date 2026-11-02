@@ -40,12 +40,12 @@ def export(start_hour: float = 6., hours: int = 12, outputs: str = OUTPUTS, fram
     plants = [Planting(x=PLANT_SPACING * (column + 0.5), y=ROW_SPACING * (row + 0.5), rotation=(37. * k) % 180.)
               for k, (row, column) in enumerate((row, column) for row in range(ROWS) for column in range(PLANTS_PER_ROW))]
     table = planting(plants, SimplePlantModel, {}, xrange=PLANTS_PER_ROW * PLANT_SPACING, yrange=ROWS * ROW_SPACING)
-    clock_start = start_hour - 1.                      # a step lights the canopy at its end: start_hour first
-    settings = {"start_day_of_year": DAY_OF_YEAR, "start_hour": clock_start, "lighting_interval": HOUR}
+    start = (DAY_OF_YEAR, start_hour - 1.)             # a step lights the canopy at its end: start_hour first
     incident = clear_day_PAR(DAY_OF_YEAR, CaribuLight.latitude)                   # PAR (µmol m-2 s-1) by hour
     recorder = SceneRecorder(outputs, summaries=False, frame_period=1, frame_options=frame_options)   # frames only
-    built = Scene(table, environment=[CaribuLightModel], environment_scenarios=[settings], time_step=HOUR,
-                  forcings={"PARi": as_forcing(incident, time_unit=HOUR, origin=clock_start)}, recorder=recorder)
+    built = Scene(table, environment=[CaribuLightModel], environment_scenarios=[{"interval": HOUR}], time_step=HOUR,
+                  forcings={"PARi": as_forcing(incident, time_unit=HOUR, origin="calendar")}, recorder=recorder,
+                  start=start)
     built.simulate(hours)
     return os.path.join(outputs, "frames", "scene.fspm.json")
 

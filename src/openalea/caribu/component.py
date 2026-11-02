@@ -7,18 +7,23 @@ Caribu as a metafspm component: the light each element of a canopy absorbs, from
     CaribuLightModel(plant_data_structures, xrange, yrange, time_step)
                                             the environment model of a metafspm Scene running it
 
+    PlantOptics(data_structure=ds)          a plant model's: its elements' optics, by kind, per plant (optics)
+
 Its steps follow the physics:
-    _optics           each element's reflectance and transmittance: an optical model's (the inputs), else its kind's
-                      (its MTG label among leaf_labels, stem_labels: Wheat-BRIDGES' leaves ρ 0.10, τ 0.05, stems ρ 0.10)
+    _optics           each element's reflectance and transmittance in the light model: the plants' (PAR_reflectance,
+                      PAR_transmittance, from their optical model, e.g. PlantOptics); an element without (NaN, e.g. a
+                      root) is left out
     _relative_light   the canopy lit by a sky of unit energy (ds.triangles(), above the soil): Erel, each element's
                       absorbed light per unit area relative to the PAR above the canopy, its incident light, its area
     _absorbed_PAR     PARa = Erel · PARi, PAR_incident = Erel_incident · PARi, PARi the scene's forcing
 
-The canopy is lit every *lighting_interval* (and when elements appear); in between CaribuLightModel runs only
-_absorbed_PAR, PARa following PARi with the last Erel (Wheat-BRIDGES' Caribu every 4 hours). How the canopy is lit,
-the same for every plant, is the component's settings: the light model (direct light, nested radiosity in the
-infinite canopy, pure SAIL, radiosity in the scene alone), the sky and the sun, the site, the soil, the numerics
-(precision, corrections, GPU, the linear solver). The optics are plant parameters: they may differ between plants.
+The canopy is lit every *interval* of CaribuLightModel (4 h by default, Wheat-BRIDGES'; its scenario's "interval")
+and when elements appear or go (geometry_input); in between it runs only _absorbed_PAR, PARa following PARi with the
+last Erel. The sun is the Scene's calendar's (Scene(start=(day_of_year, hour))). How the canopy is lit, the same for
+every plant, is the component's settings: the light model (direct light, nested radiosity in the infinite canopy,
+pure SAIL, radiosity in the scene alone), the sky and the sun, the site, the soil, the numerics (precision,
+corrections, GPU, the linear solver). The optics are the plants': an optical component of their plant model
+(PlantOptics), whose parameters may differ between plants.
 The elements' parts below the soil are cut off: the soil is opaque (Caribu's infinite canopy would lift the scene to
 put its lowest point at 0, lighting them). The geometry is kept between lightings (a Canopy: the sky's projections
 reused) while the triangles, their optics and the settings are the same.
@@ -27,8 +32,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from openalea.metafspm.coupling.component import (FunctionalComponent, forcing_variable, input_variable, parameter,
-                                                   setting, state_variable)
+from openalea.metafspm.coupling.component import (FunctionalComponent, forcing_variable, geometry_input,
+                                                   input_variable, setting, state_variable)
 from openalea.metafspm.data_structure.configs import ScalesConfig as scales
 from openalea.metafspm.scene.environment import EnvironmentModel
 from openalea.metafspm.solve.decorator import rate, state
@@ -46,11 +51,12 @@ class CaribuLight(FunctionalComponent):
     the incident PAR when the canopy is lit (_relative_light), its PAR at every step (_absorbed_PAR)."""
 
     PAR_reflectance: float = input_variable(
-        unit="adim", description="The element's reflectance in the PAR, from an optical model (NaN: its kind's)",
-        by="an optical model", default=np.nan, **ELEMENT)
+        unit="adim", description="The element's reflectance in the PAR, from its plant model's optics (NaN: not lit)",
+        by="PlantOptics", default=np.nan, **ELEMENT)
     PAR_transmittance: float = input_variable(
-        unit="adim", description="The element's transmittance in the PAR, from an optical model (NaN: opaque)",
-        by="an optical model", default=np.nan, **ELEMENT)
+        unit="adim", description="The element's transmittance in the PAR, from its plant model's optics (NaN: "
+        "opaque)", by="PlantOptics", default=np.nan, **ELEMENT)
+    geometry: object = geometry_input(description="The plants' elements' triangles (ds.triangles())", relight="topology")
 
     PARi: float = forcing_variable(unit="µmol m-2 s-1", unit_comment="or any unit: PARa, PAR_incident take it",
                                    description="The PAR above the canopy, on a horizontal plane")
@@ -80,17 +86,6 @@ class CaribuLight(FunctionalComponent):
         unit="µmol m-2 s-1", unit_comment="PARi's unit", description="The PAR reaching the element per unit area",
         kind="intensive", default=0., **ELEMENT)
 
-    leaf_reflectance: float = parameter(unit="adim", description="A leaf element's reflectance in the PAR",
-                                        by="Wheat-BRIDGES", default=0.10)
-    leaf_transmittance: float = parameter(unit="adim", description="A leaf element's transmittance in the PAR",
-                                          by="Wheat-BRIDGES", default=0.05)
-    stem_reflectance: float = parameter(unit="adim", description="A stem element's reflectance in the PAR (opaque)",
-                                        by="Wheat-BRIDGES", default=0.10)
-    leaf_labels: tuple = parameter(unit="", description="The MTG labels of the leaf elements (two faces, translucent)",
-                                   by="Wheat-BRIDGES", default=("LeafElement", "LeafElement1"))
-    stem_labels: tuple = parameter(unit="", description="The MTG labels of the stem elements (opaque)",
-                                   by="Wheat-BRIDGES", default=("StemElement",))
-
     # the light model: "direct" (first order, Wheat-BRIDGES'), "nested" (the scattering in the infinite canopy:
     # radiosity within a sphere of sphere_diameter around each triangle, a turbid medium of layers beyond; a null
     # diameter for pure SAIL) or "radiosity" (every order of scattering in the scene alone, not infinite)
@@ -116,15 +111,10 @@ class CaribuLight(FunctionalComponent):
     latitude: float = setting(unit="°", description="The scene's latitude", default=48.85)
     orientation: float = setting(unit="°", description="The angle, clockwise, from the scene's X+ to North (the "
                                  "sky's and the sun's azimuths with the correction 'sky')", default=0.)
-    start_day_of_year: float = setting(unit="day", description="The day of the year at the scene's time 0",
-                                       default=1.)
-    start_hour: float = setting(unit="h", description="The universal time hour at the scene's time 0", default=0.)
     soil_level: float = setting(unit="m", unit_comment="the scene's unit", description="The soil's height: the "
                                 "elements' parts below it (sown shoots, roots) left out", default=0.)
     soil_reflectance: float = setting(unit="adim", description="The soil's reflectance in the PAR (scattering)",
                                       default=0.15)
-    lighting_interval: float = setting(unit="s", description="Time between two lightings (Wheat-BRIDGES: 4 h)",
-                                       default=4 * 3600.)
     xrange: float = setting(unit="m", description="The infinite canopy's pattern (0, 0, xrange, "
                                   "yrange), the scene's (None: the triangles' extent)", default=None)
     yrange: float = setting(unit="m", description="The pattern's y range (see xrange)", default=None)
@@ -144,24 +134,17 @@ class CaribuLight(FunctionalComponent):
         corrections_module.resolve(self.corrections, self.precision)
 
     @rate(include_inactive=True)
-    def _optics(self, PAR_reflectance, PAR_transmittance, leaf_reflectance, leaf_transmittance,
-                stem_reflectance) -> dict:
-        """Each element's optics: an optical model's, else its kind's (a leaf ρ, τ; a stem ρ, opaque); NaN for an
-        element of another kind."""
-        leaf, stem = self.element_kinds()
-        given = ~np.isnan(PAR_reflectance)
-        reflectance = np.where(given, PAR_reflectance,
-                               np.where(leaf, leaf_reflectance, np.where(stem, stem_reflectance, np.nan)))
-        transmittance = np.where(given, PAR_transmittance, np.where(leaf, leaf_transmittance, np.nan))
-        return {"reflectance": reflectance, "transmittance": transmittance}
+    def _optics(self, PAR_reflectance, PAR_transmittance) -> dict:
+        """Each element's optics: its plant model's (NaN: not lit, e.g. a root; a NaN transmittance: opaque)."""
+        return {"reflectance": np.asarray(PAR_reflectance, dtype=float),
+                "transmittance": np.asarray(PAR_transmittance, dtype=float)}
 
     @rate(include_inactive=True)
-    def _relative_light(self, reflectance, transmittance, start_day_of_year, start_hour, soil_level) -> dict:
+    def _relative_light(self, reflectance, transmittance, soil_level) -> dict:
         """The canopy lit by a sky of unit energy: each element's absorbed and incident light per unit area (the
-        area-weighted means of its triangles' Eabs and Ei), relative to the incident PAR, and its area."""
-        time = self.forcing_time()
-        day = start_day_of_year + (start_hour * 3600. + time) // 86400.
-        hour = (start_hour + time / 3600.) % 24.
+        area-weighted means of its triangles' Eabs and Ei), relative to the incident PAR, and its area. The sun's
+        day and hour: the Scene's calendar (day 1, 0 h at time 0 without one)."""
+        day, hour = self.calendar(default=(1., 0.))
         sources = self.sources(self.forcing("PARi"), day, hour)
         triangles = self.data_structure.triangles("emerged").clip_below(soil_level)
         absorbed, incident, area = self.lit(triangles, reflectance, transmittance, sources)
@@ -206,11 +189,6 @@ class CaribuLight(FunctionalComponent):
         """Each element's MTG label name ("LeafElement", ...; a union's parts')."""
         return self.data_structure.labels()
 
-    def element_kinds(self):
-        """(leaf, stem) masks of the elements, by their labels (leaf_labels, stem_labels)."""
-        labels = self.element_labels()
-        return np.isin(labels, list(self.leaf_labels)), np.isin(labels, list(self.stem_labels))
-
     @staticmethod
     def materials(reflectance, transmittance) -> list:
         """Each element's material, Caribu's: (ρ, τ) a leaf, (ρ,) opaque; None without optics."""
@@ -238,8 +216,9 @@ class CaribuLight(FunctionalComponent):
         missing = sorted({str(self.element_labels()[owner]) for owner in np.unique(triangles.owner)
                           if materials[owner] is None})
         if missing:
-            raise ValueError(f"CaribuLight: elements labelled {missing} have triangles but no optics (inputs "
-                             "PAR_reflectance, PAR_transmittance, or their labels in leaf_labels, stem_labels)")
+            raise ValueError(f"CaribuLight: elements labelled {missing} have triangles but no optics (their plant "
+                             "model's PAR_reflectance, PAR_transmittance: an optical component, e.g. PlantOptics, "
+                             "with their labels in its leaf_labels, stem_labels)")
         species, labels = api.species_and_labels([materials[owner] for owner in triangles.owner.tolist()])
         optics = api.optics(species, self.soil_reflectance)
         canopy = self.canopy(triangles.vertices, labels)
@@ -278,13 +257,15 @@ def above_soil(triangles, level=0.):
 
 
 class CaribuLightModel(EnvironmentModel):
-    """The environment model of a metafspm Scene: CaribuLight on the population's DataStructure, or on the union of
-    the populations' (their elements' Erel, PARa, ... then reach them through the scene translator's links). The
-    canopy is lit when due (every lighting_interval, or when elements appeared); at the other steps PARa only (the
-    row "state"). A subclass may light with a subclass of CaribuLight (light_component). The scenario's entries (the
-    light's settings and optics) are set by the Scene once it is built."""
+    """The environment model of a metafspm Scene: CaribuLight on the populations' union (their elements' Erel, PARa,
+    ... reach the plant models through the scene translator's links: identity ones by default for the inputs they
+    declare by name, and their optics reach it). The canopy is lit when due (every interval, 4 h by default, or when
+    elements appeared or went); at the other steps PARa only (the row "state"). A subclass may light with a subclass
+    of CaribuLight (light_component). The scenario's entries (the light's settings, "interval") are set by the Scene
+    once it is built."""
     light_component = CaribuLight
     compartment = "Atmosphere"
+    interval = 4 * 3600.
 
     def __init__(self, plant_data_structures, xrange, yrange, time_step):
         super().__init__(plant_data_structures, xrange, yrange, time_step)
@@ -292,17 +273,6 @@ class CaribuLightModel(EnvironmentModel):
         self.light = self.light_component(data_structure=self.data_structure, time_step=time_step,
                                           xrange=xrange, yrange=yrange)
         self.components = [self.light]
-        self.lit_elements = None
-
-    def due(self, time) -> bool:
-        """Every lighting_interval, and when elements appeared."""
-        if self.lit_elements != self.data_structure.n_nodes():
-            return True
-        return self.last_run is None or time - self.last_run >= self.light.lighting_interval - 1e-9
-
-    def full_run(self):
-        self.light()
-        self.lit_elements = self.data_structure.n_nodes()
 
     def between(self):
         self.light.run_stage("state")

@@ -27,12 +27,13 @@ def test_simple_plant_geometry(noon):
 
 
 def test_the_summary_is_the_components(noon):
-    ds = noon.data_structure
     last = noon.summary.iloc[-1]
-    area = np.asarray(ds.get("lit_area"))
+    area = noon.values("lit_area")                          # the plants' (linked) and the light's: the same
+    np.testing.assert_array_equal(area, np.asarray(noon.light_data_structure.get("lit_area")))
     assert list(noon.summary["hour"]) == [12., 13.]
-    assert last["PAR_absorbed"] == pytest.approx(float(np.sum(ds.get("PARa") * area)) / noon.ground_area, rel=1e-12)
-    assert last["absorbed_fraction"] == pytest.approx(float(np.sum(ds.get("Erel") * area)) / noon.ground_area)
+    assert last["PAR_absorbed"] == pytest.approx(float(np.sum(noon.values("PARa") * area)) / noon.ground_area,
+                                                 rel=1e-12)
+    assert last["absorbed_fraction"] == pytest.approx(float(np.sum(noon.values("Erel") * area)) / noon.ground_area)
     intercepted = 1. - last["soil_fraction"]
     assert 0. < last["absorbed_fraction"] < intercepted < 1.
     assert noon.plants()["absorbed"].sum() == pytest.approx(noon.elements()["absorbed"].sum() / 1e6, rel=1e-12)
@@ -57,7 +58,8 @@ def test_optics_and_settings():
     result = simulate({"leaf_reflectance": 0.2, "mode": "nested", "sphere_diameter": 0.2}, hours=1, start_hour=12)
     ds = result.data_structure
     leaf = np.asarray(ds.labels()) == "LeafElement"
-    np.testing.assert_allclose(np.asarray(ds.get("reflectance"))[leaf], 0.2)
+    np.testing.assert_allclose(np.asarray(ds.get("PAR_reflectance"))[leaf], 0.2)            # the plants' optics
+    np.testing.assert_allclose(result.values("reflectance")[leaf], 0.2)                          # the light's
     assert result.scene.environment[0].light.mode == "nested" and np.isnan(result.summary["soil_fraction"]).all()
     with pytest.raises(KeyError):
         simulate({"leaf_colour": "green"}, hours=1)
@@ -67,7 +69,7 @@ def test_parameters_table():
     table = parameters({"leaf_inclination": 60.})
     assert tuple(table["name"][:len(MAIN_PARAMETERS)]) == MAIN_PARAMETERS
     assert table.loc[table["name"] == "leaf_inclination", "value"].item() == 60.
-    assert set(parameters(main_only=True)["model"]) == {"SimplePlant", "CaribuLight"}
+    assert set(parameters(main_only=True)["model"]) == {"SimplePlant", "PlantOptics", "CaribuLight"}
     assert "leaf_width" in SimplePlant.declarations()["name"].values
 
 

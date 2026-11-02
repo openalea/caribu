@@ -12,6 +12,7 @@ from openalea.adel.development import ScenarioShoot, coleoptile_sowing_depth, ra
 from openalea.adel.leaf_shapes import LeafShapes
 from openalea.caribu import api
 from openalea.caribu.component import CaribuLightModel, above_soil
+from openalea.caribu.optics import PlantOptics
 from openalea.metafspm.coupling.choregrapher import Choregrapher
 from openalea.metafspm.scene.population import planting
 from openalea.metafspm.scene.scene import Scene
@@ -20,6 +21,22 @@ N_PLANTS, N_ROWS, ROW_SPACING, PLANT_SPACING = 8, 2, 0.15, 0.04
 XRANGE, YRANGE = N_PLANTS // N_ROWS * PLANT_SPACING, N_ROWS * ROW_SPACING
 HOUR = 3600.
 WHEAT_BRIDGES_OPTICS = {"LeafElement": (0.10, 0.05), "StemElement": (0.10,)}
+
+
+class LitShoot(ScenarioShoot):
+    """Adel's plant model with its elements' optics (PlantOptics: Wheat-BRIDGES'), for the light."""
+
+    def __init__(self, data_structure, time_step):
+        super().__init__(data_structure, time_step)
+        self.optics = PlantOptics(data_structure=data_structure, time_step=time_step)
+        self.couple(self.development, self.architecture, self.optics)
+
+    def spin_up(self, scene):
+        self.optics.run_stage("state")
+
+    def run(self):
+        super().run()
+        self.optics()                                      # the new elements' too
 
 
 @pytest.fixture(scope="module")
@@ -32,7 +49,7 @@ def stand():
     plants = sown_stand(N_PLANTS, n_rows=N_ROWS, row_spacing=ROW_SPACING, plant_spacing=PLANT_SPACING)
     plants = [replace(plant, z=-coleoptile_sowing_depth(parameters)) for plant in plants]
     delays = random_delays(N_PLANTS)
-    table = planting(plants, ScenarioShoot, parameters, [{"delay": float(delay)} for delay in delays],
+    table = planting(plants, LitShoot, parameters, [{"delay": float(delay)} for delay in delays],
                      xrange=XRANGE, yrange=YRANGE)
     scene = Scene(table, environment=[CaribuLightModel], time_step=HOUR, forcings={"PARi": lambda time: 400.})
     for _ in range(60):
@@ -45,7 +62,7 @@ def stand():
 
 def _elements(stand):
     stand, triangles = stand
-    ds = stand.populations[0].data_structure
+    ds = stand.environment[0].data_structure                          # the light's: the elements' union
     light = stand.environment[0].light
     primitives = {}
     for vertices, owner in zip(triangles.vertices.tolist(), triangles.owner.tolist()):

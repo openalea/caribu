@@ -23,8 +23,11 @@ from math import radians
 import numpy as np
 import pandas as pd
 
-from openalea.metafspm.coupling.component import StructuralComponent, parameter, state_variable
+from openalea.metafspm.coupling.component import (FunctionalComponent, StructuralComponent, input_variable,
+                                                   parameter, state_variable)
+from openalea.metafspm.coupling.composite_wrapper import CompositeModel
 from openalea.metafspm.coupling.forcings import as_forcing, forcing_value
+from openalea.metafspm.solve.decorator import state
 from openalea.metafspm.coupling.geometry import Triangles
 from openalea.metafspm.data_structure.configs import PropsConfig, ScalesConfig as scales
 from openalea.metafspm.scene.population import Planting, planting
@@ -34,6 +37,7 @@ from openalea.metafspm.scene.scene import Scene
 
 from . import lights
 from .component import CaribuLight, CaribuLightModel
+from .optics import PlantOptics
 
 HOUR = 3600.
 GEOMETRY = dict(default=0., scale=scales.SubOrgan, kind="descriptor")
@@ -114,23 +118,46 @@ class SimplePlant(StructuralComponent):
         return Triangles(vertices, np.repeat(nodes, 2))
 
 
-class SimplePlantModel:
-    """The plant model: SimplePlant alone (the light is the scene's environment model)."""
+@dataclass
+class AbsorbedLight(FunctionalComponent):
+    """The PAR each element absorbed so far: its PARa (per unit area) over its lit area, each step."""
+    PARa: float = input_variable(unit="µmol m-2 s-1", description="The PAR the element absorbs per unit area",
+                                 by="CaribuLight", default=0., scale=scales.SubOrgan, kind="intensive")
+    lit_area: float = input_variable(unit="m2", description="The element's lit area", by="CaribuLight", default=0.,
+                                     scale=scales.SubOrgan, kind="extensive")
+    absorbed_PAR: float = state_variable(unit="µmol", description="The PAR the element absorbed since the start",
+                                         default=0., scale=scales.SubOrgan, kind="extensive")
+
+    @state
+    def _absorbed(self, absorbed_PAR, PARa, lit_area) -> dict:
+        return {"absorbed_PAR": absorbed_PAR + np.asarray(PARa) * np.asarray(lit_area) * self.dt}
+
+
+class SimplePlantModel(CompositeModel):
+    """The plant model: SimplePlant's structure, its optics (PlantOptics) and the light it absorbed (AbsorbedLight);
+    the light is the scene's environment model (CaribuLightModel), linked by name."""
     initiators = (SimplePlant,)
 
     def __init__(self, data_structure, time_step):
-        self.plant = SimplePlant(data_structure=data_structure)
-        self.components = [self.plant]
+        self.plant = SimplePlant(data_structure=data_structure, time_step=time_step)
+        self.optics = PlantOptics(data_structure=data_structure, time_step=time_step)
+        self.absorbed = AbsorbedLight(data_structure=data_structure, time_step=time_step)
+        self.couple(self.plant, self.optics, self.absorbed)
+
+    def spin_up(self, scene):
+        """The optics before the first lighting (its state steps, its clock left at the start)."""
+        self.optics.run_stage("state")
 
     def run(self):
-        pass
+        self.optics()
+        self.absorbed()
 
 
 def parameters(values: dict = None, main_only: bool = False) -> pd.DataFrame:
     """The parameters and settings, one row each: its name, its value (the default, or the one in *values*), its
     unit, its description, the model it belongs to (SimplePlant, the plants; CaribuLight, the light), and whether it
     is one of the main ones (those first), and its bounds (min_value, max_value)."""
-    table = parameter_table(SimplePlant, CaribuLight, values=values, main=MAIN_PARAMETERS)
+    table = parameter_table(SimplePlant, PlantOptics, CaribuLight, values=values, main=MAIN_PARAMETERS)
     table = table.rename(columns={"component": "model"})
     return table[table["main"]].reset_index(drop=True) if main_only else table
 
@@ -145,41 +172,51 @@ def clear_day_PAR(day_of_year: float = 172., latitude: float = 48.85, daily_glob
 
 
 class _Summary:
-    """The summary row of the hour just lit, and the PAR each element absorbed so far (µmol); none before the first
-    lighting."""
+    """The summary row of the hour just lit; none before the first lighting."""
 
-    def __init__(self, incident, clock_start: float, ground: float):
-        self.incident, self.clock_start, self.ground = incident, clock_start, ground
-        self.absorbed = None
+    def __init__(self, incident, ground: float):
+        self.incident, self.ground = incident, ground
 
     def __call__(self, scene):
         if scene.iteration == 0:
             return None
-        ds, light = scene.populations[0].data_structure, scene.environment[0].light
-        hour = self.clock_start + scene.time / HOUR
+        light = scene.environment[0].light
+        union = light.data_structure                                    # the elements' light: the light model's
+        hour = scene.start[1] + scene.time / HOUR                       # from the scene's start, in hours
         PAR = forcing_value(self.incident, scene.time)
-        area = np.asarray(ds.get("lit_area"))
-        absorbed_per_ground = float(np.sum(np.asarray(ds.get("Erel")) * area)) / self.ground
-        intercepted = float(np.sum(np.asarray(ds.get("Erel_incident")) * area)) / self.ground
-        if self.absorbed is None:
-            self.absorbed = np.zeros(ds.n_nodes())
-        self.absorbed += np.asarray(ds.get("PARa")) * area * HOUR
+        area = np.asarray(union.get("lit_area"))
+        absorbed_per_ground = float(np.sum(np.asarray(union.get("Erel")) * area)) / self.ground
+        intercepted = float(np.sum(np.asarray(union.get("Erel_incident")) * area)) / self.ground
         return dict(hour=hour, PARi=PAR, PAR_absorbed=PAR * absorbed_per_ground, absorbed_fraction=absorbed_per_ground,
                     soil_fraction=1. - intercepted if light.mode == "direct" else np.nan)
 
 
 @dataclass
 class Simulation:
-    """A lit stand: its *summary* (a DataFrame, one row per hour) and its *scene* (metafspm's: its DataStructure holds
-    every variable of every element)."""
+    """A lit stand: its *summary* (a DataFrame, one row per hour) and its *scene* (metafspm's: the plants'
+    DataStructure holds the plants' variables, the light model's union the light's)."""
     scene: object
     summary: pd.DataFrame
     ground_area: float
-    absorbed: np.ndarray                # per element, the PAR absorbed over the run (µmol)
 
     @property
     def data_structure(self):
         return self.scene.populations[0].data_structure
+
+    @property
+    def light_data_structure(self):
+        """The light model's DataStructure: the plants' elements' union (one population: in the plants' order)."""
+        return self.scene.environment[0].light.data_structure
+
+    def values(self, name) -> np.ndarray:
+        """Each element's *name*: the plants' variable, else the light's."""
+        ds = self.data_structure if self.data_structure.has(name) else self.light_data_structure
+        return np.asarray(ds.get(name))
+
+    @property
+    def absorbed(self) -> np.ndarray:
+        """Per element, the PAR absorbed over the run (µmol): AbsorbedLight's absorbed_PAR."""
+        return self.values("absorbed_PAR")
 
     def elements(self) -> pd.DataFrame:
         """The elements at the last hour, one row each: its plant (0, 1, ...), kind (leaf or stem), leaf rank from the
@@ -193,8 +230,8 @@ class Simulation:
         return pd.DataFrame({
             "plant": np.asarray(ds.owner("Plant")), "kind": np.where(labels == "LeafElement", "leaf", "stem"),
             "leaf_rank": np.asarray(ds.get("leaf_rank")).astype(int), "height": middle,
-            "area": np.asarray(ds.get("lit_area")), "Erel": np.asarray(ds.get("Erel")),
-            "PARa": np.asarray(ds.get("PARa")), "absorbed": self.absorbed})
+            "area": self.values("lit_area"), "Erel": self.values("Erel"), "PARa": self.values("PARa"),
+            "absorbed": self.absorbed})
 
     def plants(self) -> pd.DataFrame:
         """Per plant: its leaf area (m2) and the PAR it absorbed over the run (mol)."""
@@ -209,7 +246,7 @@ class Simulation:
 
         if ax is None:
             ax = plt.figure(figsize=(8, 6)).add_subplot(projection="3d")
-        values = np.asarray(self.data_structure.get(color_by), dtype=float)
+        values = np.asarray(self.values(color_by), dtype=float)
         limits = (0., max(float(values.max()), 1e-12))
         draw(ax, self.data_structure.triangles(), colors=value_colors(values, limits=limits))
         ax.figure.colorbar(plt.cm.ScalarMappable(norm=plt.Normalize(*limits), cmap="viridis"), ax=ax, shrink=0.6,
@@ -218,21 +255,19 @@ class Simulation:
 
 
 def _split(values: dict):
-    """(the plants' parameters, the light's settings, the light's plant parameters) of *values*."""
-    plant_names = {field.name for field in fields(SimplePlant)}
+    """(the plants' parameters: SimplePlant's and PlantOptics', the light's settings) of *values*."""
+    plant_names = {field.name for field in fields(SimplePlant)} | set(PlantOptics.declared_parameters())
     light = CaribuLight.declarations().set_index("name")["role"]
-    plants, settings, optics = {}, {}, {}
+    plants, settings = {}, {}
     for name, value in values.items():
         if name in plant_names:
             plants[name] = value
-        elif light.get(name) == "setting":
+        elif light.get(name) == "setting" or name == "interval":
             settings[name] = value
-        elif light.get(name) == "parameter":
-            optics[name] = value
         else:
-            raise KeyError(f"simulate: '{name}' is neither a SimplePlant nor a CaribuLight parameter or setting "
-                           "(parameters() lists them)")
-    return plants, settings, optics
+            raise KeyError(f"simulate: '{name}' is neither a plant parameter (SimplePlant, PlantOptics) nor a "
+                           "CaribuLight setting (parameters() lists them)")
+    return plants, settings
 
 
 def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0., day_of_year: float = 172.,
@@ -240,8 +275,9 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
              plant_spacing: float = 0.05, outputs: str = None) -> Simulation:
     """Light a stand of *rows* rows of *plants_per_row* SimplePlants (*row_spacing*, *plant_spacing* m apart), repeated
     around it (an infinite canopy), hour by hour for *hours* hours from *start_hour* (universal time) of day
-    *day_of_year*, the canopy lit every hour. *parameters* ({name: value}) changes the plants' parameters (SimplePlant)
-    and the light's parameters and settings (CaribuLight): parameters() lists them all.
+    *day_of_year*, the canopy lit every hour. *parameters* ({name: value}) changes the plants' parameters (SimplePlant,
+    and their optics: PlantOptics) and the light's settings (CaribuLight; "interval", its lighting's): parameters()
+    lists them all.
 
     Given inputs (each a number, a function of the hour of the day, or a pandas Series indexed by it):
     *PARi* (µmol m-2 s-1; a clear day's by default, clear_day_PAR), the PAR above the stand;
@@ -250,25 +286,23 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
     *outputs*: a folder for the run's files (metafspm's SceneRecorder): run.json, scenario.json, summary.csv (the
     summary), Plant/SimplePlantModel/summaries.csv (the light each plant absorbs, every hour) and a frame of the
     stand every hour (frames/, for ParaView or another platform)."""
-    plant_values, settings, optics = _split(dict(parameters or {}))
+    plant_values, settings = _split(dict(parameters or {}))
     xrange, yrange = plants_per_row * plant_spacing, rows * row_spacing
     plants = [Planting(x=plant_spacing * (column + 0.5), y=row_spacing * (row + 0.5), rotation=(37. * k) % 180.)
               for k, (row, column) in enumerate((row, column) for row in range(rows) for column in range(plants_per_row))]
     table = planting(plants, SimplePlantModel, plant_values, xrange=xrange, yrange=yrange)
-    # the scene's clock starts an hour before start_hour: a step lights the canopy at its end, start_hour first
-    clock_start = start_hour - 1.
-    settings = {"start_day_of_year": day_of_year, "start_hour": clock_start, "lighting_interval": HOUR, **settings}
-    incident = PARi if PARi is not None else clear_day_PAR(settings["start_day_of_year"],
-                                                           settings.get("latitude", CaribuLight.latitude))
-    forcings = {"PARi": as_forcing(incident, time_unit=HOUR, origin=clock_start)}       # by the hour of the day
+    # the scene starts an hour before start_hour: a step lights the canopy at its end, start_hour first
+    start = (day_of_year, start_hour - 1.)
+    settings = {"interval": HOUR, **settings}
+    incident = PARi if PARi is not None else clear_day_PAR(day_of_year, settings.get("latitude", CaribuLight.latitude))
+    forcings = {"PARi": as_forcing(incident, time_unit=HOUR, origin="calendar")}          # by the hour of the day
     if diffuse_fraction is not None:
-        forcings["diffuse_fraction"] = as_forcing(diffuse_fraction, time_unit=HOUR, origin=clock_start)
+        forcings["diffuse_fraction"] = as_forcing(diffuse_fraction, time_unit=HOUR, origin="calendar")
     ground = xrange * yrange
-    summary = _Summary(forcings["PARi"], clock_start, ground)
+    summary = _Summary(forcings["PARi"], ground)
     recorder = SceneRecorder(outputs, summaries=outputs is not None, tables={"summary": summary},
                              frame_period=1 if outputs is not None else None)
-    built = Scene(table, environment=[CaribuLightModel], environment_scenarios=[dict(settings, **optics)],
-                  time_step=HOUR, forcings=forcings, recorder=recorder)
+    built = Scene(table, environment=[CaribuLightModel], environment_scenarios=[settings], time_step=HOUR,
+                  forcings=forcings, recorder=recorder, start=start)
     built.simulate(int(round(hours)))
-    absorbed = summary.absorbed if summary.absorbed is not None else np.zeros(built.populations[0].data_structure.n_nodes())
-    return Simulation(scene=built, summary=recorder.table("summary"), ground_area=ground, absorbed=absorbed)
+    return Simulation(scene=built, summary=recorder.table("summary"), ground_area=ground)

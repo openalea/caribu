@@ -7,9 +7,11 @@ import pytest
 
 from openalea.caribu import api, lights
 from openalea.caribu.component import CaribuLight, CaribuLightModel
+from openalea.caribu.optics import PlantOptics
 from openalea.metafspm.coupling.choregrapher import Choregrapher
 from openalea.metafspm.coupling.component import (FunctionalComponent, StructuralComponent, input_variable,
                                                    state_variable)
+from openalea.metafspm.coupling.composite_wrapper import CompositeModel
 from openalea.metafspm.coupling.geometry import Triangles
 from openalea.metafspm.coupling.translator import Translator
 from openalea.metafspm.data_structure.configs import PropsConfig, ScalesConfig as scales
@@ -75,20 +77,26 @@ class LightUse(FunctionalComponent):
 
 
 def plant_model(name):
-    """A plant model of its own classes (a Scene's component classes are one per model)."""
+    """A plant model of its own classes (a Scene's component classes are one per model): its panels, their optics
+    (PlantOptics: Wheat-BRIDGES' by default) and a component reading the PAR they absorb."""
     panels = dataclass(type(f"{name}Panels", (Panels,), {}))
+    optics = dataclass(type(f"{name}Optics", (PlantOptics,), {}))
     use = dataclass(type(f"{name}LightUse", (LightUse,), {}))
 
-    class Model:
+    class Model(CompositeModel):
         initiators = (panels,)
 
         def __init__(self, data_structure, time_step):
             self.panels = panels(data_structure=data_structure)
+            self.optics = optics(data_structure=data_structure)
             self.use = use(data_structure=data_structure)
-            self.components = [self.panels, self.use]
+            self.couple(self.panels, self.optics, self.use)
+
+        def spin_up(self, scene):
+            self.optics.run_stage("state")
 
         def run(self):
-            pass
+            self.optics()
     Model.__name__ = name
     return Model
 
@@ -124,37 +132,36 @@ def caribu_scene(triangles, labels, mode="direct", **run):
 
 
 def test_one_population_as_caribu_scene():
-    """Wheat-BRIDGES' use: an infinite canopy under the 4 × 5 standard overcast sky, Erel the elements' area-weighted
-    Eabs, PARa = Erel · PARi."""
+    """One population: CaribuLight on its union (of one), each element's Erel and lit area as CaribuScene's
+    Eabs, PARa = Erel · PARi, PARa reaching the plant model's reader by the default identity link."""
     built = scene([Wheat, Wheat])
     built.run()
-    ds = built.populations[0].data_structure
+    union, plants = built.environment[0].data_structure, built.populations[0].data_structure
     light = built.environment[0].light
-    expected = caribu_scene(ds.triangles(), light.element_labels().tolist())
+    expected = caribu_scene(union.triangles(), light.element_labels().tolist())
     for element, value in expected["Eabs"].items():
-        assert ds.get("Erel")[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
-        assert ds.get("lit_area")[element] == pytest.approx(expected["area"][element], rel=1e-12)
-    np.testing.assert_allclose(ds.get("PARa"), 500. * ds.get("Erel"))
-    assert 0 < ds.get("Erel").max() < 1 and (ds.get("Erel_incident") >= ds.get("Erel")).all()
-
+        assert union.get("Erel")[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
+        assert union.get("lit_area")[element] == pytest.approx(expected["area"][element], rel=1e-12)
+    np.testing.assert_allclose(union.get("PARa"), 500. * union.get("Erel"))
+    assert 0 < union.get("Erel").max() < 1 and (union.get("Erel_incident") >= union.get("Erel")).all()
+    np.testing.assert_array_equal(plants.get("PARa"), union.get("PARa"))         # into the plants, at their step
+    assert not plants.has("Erel")                                                 # the light's stays the light's
 
 def test_the_canopy_is_lit_every_interval_PARa_following_PARi():
     PARi = {"value": 500.}
     Choregrapher().reset()
-    built = Scene(planted([Wheat]), environment=[CaribuLightModel],
-                  environment_scenarios=[{"lighting_interval": 2 * HOUR}], time_step=HOUR,
-                  forcings={"PARi": lambda time: PARi["value"]})
-    ds = built.populations[0].data_structure
+    built = Scene(planted([Wheat]), environment=[CaribuLightModel], environment_scenarios=[{"interval": 2 * HOUR}],
+                  time_step=HOUR, forcings={"PARi": lambda time: PARi["value"]})
+    plants, union = built.populations[0].data_structure, built.environment[0].data_structure
     built.run()
-    first = ds.get("Erel").copy()
-    ds.set("tilt", ds.get("tilt") + 0.5)                 # a new geometry, seen at the next lighting
+    first = union.get("Erel").copy()
+    plants.set("tilt", plants.get("tilt") + 0.5)            # a new geometry, seen at the next lighting
     PARi["value"] = 200.
     built.run()
-    np.testing.assert_array_equal(ds.get("Erel"), first)
-    np.testing.assert_allclose(ds.get("PARa"), 200. * first)
+    np.testing.assert_array_equal(union.get("Erel"), first)
+    np.testing.assert_allclose(union.get("PARa"), 200. * first)
     built.run()
-    assert not np.allclose(ds.get("Erel"), first)
-
+    assert not np.allclose(union.get("Erel"), first)
 
 def test_two_populations_in_a_union():
     """Two models: CaribuLight on their union, its outputs to each population by the translator; the canopy is lit
@@ -175,32 +182,33 @@ def test_two_populations_in_a_union():
     np.testing.assert_array_equal(np.r_[wheat.get("PARa"), pea.get("PARa")], union.get("PARa"))
 
 
-def test_optics_from_inputs_and_labels():
+def test_optics_from_the_plants():
+    """The light's optics are the plants' (PAR_reflectance, PAR_transmittance): an element's own, an opaque one
+    (NaN transmittance); an element with triangles but no optics raises."""
     built = scene([Wheat])
-    ds = built.populations[0].data_structure
+    union = built.environment[0].data_structure
     light = built.environment[0].light
     labels = light.element_labels()
     leaves = np.flatnonzero(labels == "LeafElement")
-    reflectance = np.full(ds.n_nodes(), np.nan)
-    transmittance = np.full(ds.n_nodes(), np.nan)
+    reflectance = np.where(labels == "LeafElement", 0.10, 0.10)
+    transmittance = np.where(labels == "LeafElement", 0.05, np.nan)
     reflectance[leaves[0]], transmittance[leaves[0]] = 0.2, 0.1
-    reflectance[leaves[1]] = 0.3                          # an opaque leaf
+    reflectance[leaves[1]], transmittance[leaves[1]] = 0.3, np.nan                 # an opaque leaf
     expected = [(0.10,) if label == "StemElement" else (0.10, 0.05) for label in labels]
     expected[leaves[0]], expected[leaves[1]] = (0.2, 0.1), (0.3,)
     assert sorted(set(labels)) == ["LeafElement", "StemElement"]
-    light.data_structure.set("PAR_reflectance", reflectance)
-    light.data_structure.set("PAR_transmittance", transmittance)
+    union.set("PAR_reflectance", reflectance)
+    union.set("PAR_transmittance", transmittance)
     light.run_stage("rate")
-    assert light.materials(ds.get("reflectance"), ds.get("transmittance")) == expected
-    light.leaf_labels = ()
-    with pytest.raises(ValueError):                       # the leaves without optics
-        light()
-
+    assert light.materials(union.get("reflectance"), union.get("transmittance")) == expected
+    union.set("PAR_reflectance", np.where(labels == "LeafElement", np.nan, 0.10))
+    with pytest.raises(ValueError, match="no optics"):                              # the leaves without optics
+        light.run_stage("rate")
 
 def test_nested_mode_as_caribu_scene():
     built = scene([Wheat, Wheat], {"mode": "nested", "sphere_diameter": 0.1, "layers": 5})
     built.run()
-    ds = built.populations[0].data_structure
+    ds = built.environment[0].data_structure
     light = built.environment[0].light
     triangles = ds.triangles()
     expected = caribu_scene(triangles, light.element_labels().tolist(), mode="nested", d_sphere=0.1, layers=5,
@@ -210,7 +218,7 @@ def test_nested_mode_as_caribu_scene():
 
 
 def test_the_sun_shares_the_unit_energy_and_sets():
-    built = scene([Wheat], {"sun": True, "start_day_of_year": 172, "latitude": 48.85})
+    built = scene([Wheat], {"sun": True, "latitude": 48.85})
     light = built.environment[0].light
     day = light.sources(2000., 172, 12.)                  # a clear noon: a diffuse fraction of 0.2
     assert len(day) == 21 and sum(energy for energy, _ in day) == pytest.approx(1.)
@@ -240,7 +248,7 @@ def test_the_parts_below_the_soil_receive_no_light():
     from openalea.caribu.component import above_soil
     built = scene([Wheat], {"soil_level": 0.1})
     built.run()
-    ds = built.populations[0].data_structure
+    ds = built.environment[0].data_structure
     light = built.environment[0].light
     stems = light.element_labels() == "StemElement"
     np.testing.assert_allclose(ds.get("lit_area")[stems], 0.05 * 0.05 / 2, rtol=1e-6)
@@ -250,19 +258,19 @@ def test_the_parts_below_the_soil_receive_no_light():
 
 
 def test_optics_per_plant():
-    """The optics are plant parameters: two genotypes' leaves reflect differently."""
+    """The optics are plant parameters (PlantOptics): two genotypes' leaves reflect differently."""
     built = scene([Wheat, Wheat])
-    ds = built.populations[0].data_structure
-    light = built.environment[0].light
-    ds.set("leaf_reflectance", np.array([0.08, 0.2]))
+    plants, union = built.populations[0].data_structure, built.environment[0].data_structure
+    plants.set("leaf_reflectance", np.array([0.08, 0.2]))
+    built.populations[0].instance.optics.run_stage("state")      # as at the plants' next step
     built.run()
-    first = np.asarray(ds.owner("Plant")) == 0
-    leaf, stem = light.element_kinds()
-    np.testing.assert_allclose(ds.get("reflectance")[leaf & first], 0.08)
-    np.testing.assert_allclose(ds.get("reflectance")[leaf & ~first], 0.2)
-    np.testing.assert_allclose(ds.get("reflectance")[stem], 0.10)
-    assert np.isnan(ds.get("transmittance")[stem]).all()
-
+    first = np.asarray(plants.owner("Plant")) == 0
+    labels = built.environment[0].light.element_labels()
+    leaf, stem = labels == "LeafElement", labels == "StemElement"
+    np.testing.assert_allclose(union.get("reflectance")[leaf & first], 0.08)
+    np.testing.assert_allclose(union.get("reflectance")[leaf & ~first], 0.2)
+    np.testing.assert_allclose(union.get("reflectance")[stem], 0.10)
+    assert np.isnan(union.get("transmittance")[stem]).all()
 
 def test_the_forcings_are_declared():
     """PARi is a declared forcing, required: a scene without it fails when built; the diffuse fraction is optional."""
@@ -291,7 +299,7 @@ def test_a_subclass_lights_with_its_component():
     Choregrapher().reset()
     built = Scene(planted([Wheat]), environment=[FluxLightModel], time_step=HOUR, forcings={"PARi": lambda time: 500.})
     built.run()
-    ds = built.populations[0].data_structure
+    ds = built.environment[0].data_structure
     assert isinstance(built.environment[0].light, FluxLight)
     np.testing.assert_allclose(ds.get("PAR_flux"), ds.get("PARa") * ds.get("lit_area"))
     assert np.sum(ds.get("PAR_flux")) > 0

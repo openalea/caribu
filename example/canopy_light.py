@@ -21,6 +21,7 @@ from openalea.adel.development import ScenarioShoot, coleoptile_sowing_depth, ra
 from openalea.adel.leaf_shapes import LeafShapes
 from openalea.caribu import lights
 from openalea.caribu.component import CaribuLightModel
+from openalea.caribu.optics import PlantOptics
 from openalea.metafspm.display import draw, value_colors
 from openalea.metafspm.scene.population import planting
 from openalea.metafspm.scene.scene import Scene
@@ -40,16 +41,32 @@ def incident_PAR(time):
     return PAR_PER_GLOBAL * MICROMOLES_PER_JOULE * global_radiation
 
 
+class LitShoot(ScenarioShoot):
+    """Adel's plant model with its elements' optics in the PAR (PlantOptics: Wheat-BRIDGES' leaves and stems)."""
+
+    def __init__(self, data_structure, time_step):
+        super().__init__(data_structure, time_step)
+        self.optics = PlantOptics(data_structure=data_structure, time_step=time_step)
+        self.couple(self.development, self.architecture, self.optics)
+
+    def spin_up(self, scene):
+        self.optics.run_stage("state")                   # before the first lighting
+
+    def run(self):
+        super().run()
+        self.optics()                                    # the new elements' too
+
+
 def stand_scene():
-    """The stand as Adel's shoot_scene sows it, with CaribuLightModel."""
+    """The stand as Adel's shoot_scene sows it, with CaribuLightModel, from midnight of DAY_OF_YEAR."""
     parameters = {"n_sect": 2, "thermal_time_step": 10., "leaves": LeafShapes.echap(xy_model="Soissons_byleafclass")}
     plants = sown_stand(N_PLANTS, n_rows=N_ROWS, row_spacing=ROW_SPACING, plant_spacing=PLANT_SPACING)
     plants = [replace(plant, z=-coleoptile_sowing_depth(parameters)) for plant in plants]
-    table = planting(plants, ScenarioShoot, parameters,
+    table = planting(plants, LitShoot, parameters,
                      [{"delay": float(delay)} for delay in random_delays(N_PLANTS)], xrange=XRANGE, yrange=YRANGE)
-    lighting = {"sun": True, "start_day_of_year": DAY_OF_YEAR, "latitude": LATITUDE, "lighting_interval": 4 * 3600.}
+    lighting = {"sun": True, "latitude": LATITUDE, "interval": 4 * 3600.}
     return Scene(table, environment=[CaribuLightModel], environment_scenarios=[lighting], time_step=3600.,
-                 forcings={"PARi": incident_PAR})
+                 forcings={"PARi": incident_PAR}, start=(DAY_OF_YEAR, 0.))
 
 
 if __name__ == "__main__":
@@ -57,23 +74,25 @@ if __name__ == "__main__":
     scene = stand_scene()
     ds = scene.populations[0].data_structure
     light = scene.environment[0].light
+    light_ds = light.data_structure                      # the light's variables: the elements' union
     hours, incident, absorbed = [], [], []
     started = time.perf_counter()
     for step in range(n_steps):
         scene.run()
-        area = np.asarray(ds.get("lit_area"))
+        area = np.asarray(light_ds.get("lit_area"))
         hours.append(scene.time / 3600.)
         incident.append(light.forcing("PARi"))
-        absorbed.append(float(np.sum(np.asarray(ds.get("PARa")) * area)) / (XRANGE * YRANGE))
+        absorbed.append(float(np.sum(np.asarray(light_ds.get("PARa")) * area)) / (XRANGE * YRANGE))
     elapsed = time.perf_counter() - started
-    triangles = ds.triangles()
+    light_ds.update_topology()                           # the plants grew after the last lighting: their new elements
+    triangles = light_ds.triangles()
 
     figure = plt.figure(figsize=(19, 5.5))
     axes = figure.add_subplot(1, 3, 1, projection="3d")
     draw(axes, triangles)
     axes.set_title(f"the stand after {n_steps} h, {n_steps * 10} °Cd")
     axes = figure.add_subplot(1, 3, 2, projection="3d")
-    erel = np.asarray(ds.get("Erel"))
+    erel = np.asarray(light_ds.get("Erel"))
     draw(axes, triangles, colors=value_colors(erel, limits=(0., 1.)))
     figure.colorbar(plt.cm.ScalarMappable(cmap="viridis"), ax=axes, shrink=0.6, pad=0.12, label="Erel")
     axes.set_title("Erel, the absorbed PAR relative to the incident")
@@ -84,7 +103,7 @@ if __name__ == "__main__":
     axes.set_ylabel("µmol m-2 s-1")
     axes.legend()
     figure.savefig("canopy_light.png", dpi=120)
-    lit = np.asarray(ds.get("lit_area")) > 0
+    lit = np.asarray(light_ds.get("lit_area")) > 0
     print(f"canopy_light.png: {N_PLANTS} plants, {len(triangles)} triangles at the end; {n_steps} hours in "
           f"{elapsed:.1f} s; the stand absorbs {sum(absorbed) / max(sum(incident), 1e-12):.2f} of the incident PAR; "
           f"Erel of the lit elements from {erel[lit].min():.2f} to {erel[lit].max():.2f}")
