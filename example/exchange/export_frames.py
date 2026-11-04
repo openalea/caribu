@@ -12,7 +12,7 @@ variables, among them the light each element absorbs (PARa), and the elements' t
 A second, filtered export shows logging: the plants and their elements only, with the light they absorb, in
 ./outputs/log/frames (outputs only: such frames are not reimported).
 
-Open outputs/frames/scene.fspm.json in ParaView with encoding3d's reader plugin (encoding3d/paraview/encoding3d_reader.py) and
+Open outputs/frames/scene.fspm.json in ParaView with encoding3d's reader plugin (encoding3d/paraview/plugin_encoding3d.py) and
 colour by SubOrgan.PARa to watch the light move over the day; import_frames.py reads the files back.
 """
 import argparse
