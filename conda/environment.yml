@@ -24,7 +24,7 @@ dependencies:
   # drawings, tests, the tutorial
   - matplotlib-base
   - pytest
-  - jsonschema                    # openalea.fspm_tf's (metafspm's fspm-TF exchange)
+  - jsonschema                    # openalea.encoding3d's (metafspm's encoding3d exchange)
   - jupyter
   - nbconvert
   # GPU (optional, not needed): numba's CUDA target needs a CUDA toolkit, e.g.
