@@ -10,10 +10,10 @@ its neighbours (nested radiosity, Chelle, Andrieu & Bouatouch 1998).
                                                                                       plus the far field's light
 """
 import numpy as np
-from numba import njit
 
-from . import direct, geometry, nearfield, sail, solver
+from . import direct, geometry, kernels, nearfield, sail, solver
 from .labels import is_translucent
+from .kernels import _reused
 
 
 def far_field_profile(points, labels, lights, optics, pattern, layers, height, precision="legacy",
@@ -65,7 +65,7 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
     translucent = is_translucent(kept)
     first_face, n_faces = direct.face_numbering(translucent)
     reflectance, transmittance = direct.face_optics(kept, optics)
-    far, far_incident = sail.far_field(geometry.legacy_centres(kept_points), geometry.legacy_normals(kept_points),
+    far, far_incident = sail.far_field(kernels.legacy_centres(kept_points), kernels.legacy_normals(kept_points),
                                        translucent, first_face, n_faces, reflectance, transmittance, profile,
                                        corrections, incident=True)
     result = direct.results(labels, accepted, points, surfaces, first + far, optics,
@@ -73,7 +73,7 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
     result.update(first_order=first, far_field=far, profile=profile, structure=structure, radiosity=first + far)
     if sensors is not None:
         count = len(sensor_points)
-        sensor_far = sail.far_field(geometry.legacy_centres(sensor_points), geometry.legacy_normals(sensor_points),
+        sensor_far = sail.far_field(kernels.legacy_centres(sensor_points), kernels.legacy_normals(sensor_points),
                                     np.zeros(count, dtype=bool), np.arange(count), count, np.ones(count),
                                     np.zeros(count), profile, corrections)
         result["sensors"] = {"Ei0": sensor_first, "Ei": sensor_first + sensor_far, "area": sensor_surfaces,
@@ -106,11 +106,11 @@ def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter,
     receiver_optics[len(kept):, 0] = 1.  # a sensor reflects all
     radius = float(str(diameter)) / 2.  # canestrad -d: the diameter's text, halved
     if weights is None:
-        normals, centres = geometry.legacy_normals(kept_points), geometry.legacy_centres(kept_points)
+        normals, centres = kernels.legacy_normals(kept_points), kernels.legacy_centres(kept_points)
         sensor_normals = sensor_centres = None
         if sensor_count:
-            sensor_normals = geometry.legacy_normals(sensor_points)
-            sensor_centres = geometry.legacy_centres(sensor_points)
+            sensor_normals = kernels.legacy_normals(sensor_points)
+            sensor_centres = kernels.legacy_centres(sensor_points)
         cells = nearfield.grid(kept_points, sensor_points, radius, pattern, threshold, ratio)
         counts, far, level_weights = nearfield.counts(
             kept_points, kept, translucent, first_face, n_faces, normals, centres, radius, sensor_points,
@@ -130,7 +130,7 @@ def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter,
                                       np.concatenate([transmittance, np.zeros(sensor_count)]),
                                       nearfield.form_factor(resolution), tolerance, 100, iterations)
     if "face_irradiance" in corrections:  # the near field's and the far field's light on each face
-        incident = incident + solver.incoming(radiosities, indptr, faces, values, receiver_faces,
+        incident = incident + kernels.incoming(radiosities, indptr, faces, values, receiver_faces,
                                               receiver_translucent, nearfield.form_factor(resolution), n_faces)
         incident[first_face] += far_incoming(level_weights, profile, 0)[:len(kept)]
         lower = translucent.nonzero()[0]
@@ -167,34 +167,3 @@ def reused_far_field(weights, receiver_optics, receiver_translucent, profile, li
                    energy)
 
 
-@njit(cache=True, error_model="numpy")
-def _reused(weights, receiver_optics, receiver_translucent, downward, upward, energy):
-    count = weights.shape[0]
-    flat = np.zeros(2 * count + 1)  # Cenv by face, after a slot for the slip's write before the first
-    index = 1
-    for r in range(count):
-        rho_upper, tau_upper = receiver_optics[r, 0], receiver_optics[r, 1]
-        rho_lower, tau_lower = receiver_optics[r, 2], receiver_optics[r, 3]
-        for level in range(downward.shape[0]):
-            flux = weights[r, 0, level] * downward[level] + weights[r, 1, level] * upward[level]
-            flat[index] += rho_upper * flux
-            if receiver_translucent[r]:
-                flat[index + 1] += tau_upper * flux
-        if receiver_translucent[r]:
-            for level in range(downward.shape[0]):
-                flux = weights[r, 2, level] * downward[level] + weights[r, 3, level] * upward[level]
-                flat[index] += tau_lower * flux
-                flat[index + 1] += rho_lower * flux
-            index += 1
-            flat[index] *= energy
-        flat[index - 1] *= energy
-        index += 1
-    far = np.zeros((count, 2))
-    index = 1
-    for r in range(count):
-        far[r, 0] = flat[index]
-        if receiver_translucent[r]:
-            far[r, 1] = flat[index + 1]
-            index += 1
-        index += 1
-    return far

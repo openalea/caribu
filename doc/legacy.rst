@@ -47,7 +47,7 @@ weights written by a first band and read by the next (``nested.run(weights=...)`
 Direct light
 ============
 
-**The screen** (``projection.legacy_screen``). For a beam ``u`` (normalised in float32), an orthographic screen
+**The screen** (``kernels.legacy_screen``). For a beam ``u`` (normalised in float32), an orthographic screen
 covers the scene's bounding box (x, y the pattern's in an infinite canopy) projected along the beam, its plane lifted
 one length unit above the scene; its image axes ``v`` (horizontal, perpendicular to the beam) and ``w``; a vertical
 beam (``|u_z + 1| < 1e-6``) has its own screen, the bounds themselves. Points and vectors are float32 (canestrad's
@@ -126,8 +126,8 @@ looking down, from canestrad's column-major table of the profile, interpolated b
 Radiosity: the solver
 =====================
 
-``hd_mv_mlt`` (``solver.product``): per receiver, ``B_upper − Σ c dF (c > 0 ? ρ_sup : τ_inf) B_j``, a leaf's
-``B_lower − Σ c dF (c > 0 ? τ_sup : ρ_inf) B_j``. ``hd_mgcr`` (``solver.mgcr``): meschach's restarted MGCR (Leyk's
+``hd_mv_mlt`` (``kernels.product``): per receiver, ``B_upper − Σ c dF (c > 0 ? ρ_sup : τ_inf) B_j``, a leaf's
+``B_lower − Σ c dF (c > 0 ? τ_sup : ρ_inf) B_j``. ``hd_mgcr`` (``kernels.mgcr``): meschach's restarted MGCR (Leyk's
 modified generalised conjugate residuals), restart 100, from ``x = 0``, tolerance ``1e-6`` relative to the first
 residual on its estimated residual, at most 1000 steps, transcribed in its order of operations.
 
@@ -157,7 +157,7 @@ height), by Ross's formula, and B = B0 + ρ E + τ E across a leaf.
 Budgets and outputs
 ===================
 
-``genres`` (``budgets.triangle_budgets``): an opaque face ``Ei = B/ρ``, ``Eabs = Ei − B``; a leaf's two faces by
+``genres`` (``kernels.triangle_budgets``): an opaque face ``Ei = B/ρ``, ``Eabs = Ei − B``; a leaf's two faces by
 inverting ``B_sup = ρ_sup E_sup + τ_inf E_inf``, ``B_inf = ρ_inf E_inf + τ_sup E_sup`` (float32), ``Eabs = E_sup +
 E_inf − B_sup − B_inf``; singular (``ρ_sup ρ_inf = τ_sup τ_inf``): −1, except ``ρ_sup = τ_inf``. ``Etri.vec0``: one row
 per input triangle, ``%f``, a rejected one ``area 0`` and ``NaN`` (``Nan`` before an accepted row). caribu.py reads them

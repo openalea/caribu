@@ -66,6 +66,10 @@ Changelog = "https://github.com/openalea/caribu/releases"
 [project.entry-points."wralea"]
 "openalea.caribu" = "openalea.caribu_wralea"
 
+# numba's cache filled by metafspm's warm_up (python -m openalea.metafspm warm_up)
+[project.entry-points."openalea.metafspm.warm_up"]
+"caribu" = "openalea.caribu.kernels:warm_up"
+
 [tool.conda.environment]
 dependencies = [
   "openalea.libcaribu",

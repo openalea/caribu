@@ -1,7 +1,7 @@
 """The infinite canopy's pieces: periodise, the border flags and copies, the image tiling."""
 import numpy as np
 
-from openalea.caribu import periodic
+from openalea.caribu import kernels, periodic
 
 PATTERN = (0., 0., 10., 10.)
 
@@ -49,5 +49,5 @@ def test_tile_shades_from_neighbours():
     depth = np.full((size, size), periodic.F32(10.), dtype=np.float32)
     owner = np.zeros((size, size), dtype=np.int64)
     depth[0, :] = 1.
-    periodic.tile(owner, depth, np.array([[1, 0], [2, 0], [3, 0]]), 0.)
+    kernels.tile(owner, depth, np.array([[1, 0], [2, 0], [3, 0]]), 0.)
     assert (owner[0] == 0).all() and (owner[1:] == -1).all()

@@ -14,12 +14,12 @@ Python, slowly: the tests use it on small scenes.
 import types
 
 import numpy as np
-from numba import cuda, njit
+from numba import cuda
 
-from . import nearfield
+from . import kernels
 # what _receivers calls: the CPU functions here, for reading and for static checkers; _kernel compiles the kernel
 # with their CUDA device versions in its place
-from .nearfield import _candidates, _clear, _faces, _frame, _neighbourhood
+from .kernels import _candidates, _clear, _count_rows, _faces, _frame, _neighbourhood
 
 F32 = np.float32
 DEVICE_FUNCTIONS = ("_sqrt", "_dot", "_sphere", "_crossing", "_determinant", "_solve3", "_edge_plane", "_copy",
@@ -41,7 +41,7 @@ def _receivers(start, count, receivers, receiver_normals, receiver_centres, rece
                side, voxels, box_sizes, box_indptr, box_members, infinite, period, bias, limit, table, rows, thickness,
                dff, options, owners, depths, faces, frames, works, works64, active_faces, flags, boxes, shifts, cells,
                moves, corners, bfcs, far, weights):
-    """A receiver per thread: its discs' faces, far field and levels' weights (nearfield._receiver_rows' body),
+    """A receiver per thread: its discs' faces, far field and levels' weights (kernels._receiver_rows' body),
     in its own slices of the work arrays."""
     k = cuda.grid(1)
     if k >= count:
@@ -66,12 +66,12 @@ def _receivers(start, count, receivers, receiver_normals, receiver_centres, rece
 
 
 def _kernel():
-    """nearfield's functions cloned into a namespace of device functions, and the kernel compiled in it."""
+    """The near field's kernels cloned into a namespace of device functions, and the kernel compiled in it."""
     if "kernel" not in _compiled:
-        namespace = dict(vars(nearfield))
+        namespace = dict(vars(kernels))
         namespace["cuda"] = cuda
         for name in DEVICE_FUNCTIONS:
-            function = getattr(nearfield, name).py_func
+            function = getattr(kernels, name).py_func
             clone = types.FunctionType(function.__code__, namespace, name, function.__defaults__,
                                        function.__closure__)
             namespace[name] = cuda.jit(device=True)(clone)
@@ -80,58 +80,12 @@ def _kernel():
     return _compiled["kernel"]
 
 
-@njit(cache=True)
-def _count_rows(faces, n_faces, size, separate):
-    """The rows of a chunk's face images (receivers, 2, size, size): (lengths, faces, counts), as _receiver_rows
-    (*separate*: its FACE_COUNTS)."""
-    count = np.zeros(n_faces, dtype=np.int64)
-    count_lower = np.zeros(n_faces, dtype=np.int64)
-    lengths = np.zeros(faces.shape[0], dtype=np.int64)
-    out_faces, out_counts = [0], [0]
-    out_faces.pop()
-    out_counts.pop()
-    for k in range(faces.shape[0]):
-        touched = [0]
-        touched.pop()
-        for i in range(size):
-            for j in range(size):
-                face = faces[k, 0, i, j]
-                if face >= 0:
-                    if count[face] == 0:
-                        touched.append(face)
-                    count[face] += 1
-                face = faces[k, 1, i, j]
-                if face >= 0:
-                    if count[face] == 0 and count_lower[face] == 0:
-                        touched.append(face)
-                    if separate:
-                        count_lower[face] += 1
-                    else:
-                        count[face] -= 1
-        ordered = np.sort(np.array(touched, dtype=np.int64)) if len(touched) else np.zeros(0, dtype=np.int64)
-        previous = -1
-        for face in ordered:
-            if face == previous:
-                continue
-            previous = face
-            if count[face] != 0:
-                out_faces.append(face)
-                out_counts.append(count[face])
-                lengths[k] += 1
-            if count_lower[face] != 0:
-                out_faces.append(face)
-                out_counts.append(-count_lower[face])
-                lengths[k] += 1
-            count[face] = count_lower[face] = 0
-    return lengths, np.array(out_faces, dtype=np.int64), np.array(out_counts, dtype=np.int64)
-
-
 def receiver_rows(total, chunk, receivers, receiver_normals, receiver_centres, receiver_translucent, receiver_labels,
                   receiver_optics, emitters, spreads, translucent, first_face, labels, n_faces, radius, size, pixel,
                   disc, origin, side, voxels, box_sizes, box_indptr, box_members, infinite, period, bias, table, rows,
                   thickness, dff, options=0, threads=64):
     """nearfield's rows of every receiver computed on the GPU, *chunk* receivers per launch: [(lengths, faces,
-    counts, far, weights)] per chunk, as nearfield._receiver_rows'."""
+    counts, far, weights)] per chunk, as kernels._receiver_rows'."""
     kernel = _kernel()
     limit = np.inf if bias else -1. / radius
     rows_count = max(rows, 1)
@@ -159,6 +113,6 @@ def receiver_rows(total, chunk, receivers, receiver_normals, receiver_centres, r
                                 bool(bias), float(limit), profile[1], rows, float(thickness), float(dff), int(options),
                                 *work)
         faces = work[2].copy_to_host()
-        lengths, row_faces, values = _count_rows(faces, n_faces, size, bool(options & nearfield.FACE_COUNTS))
+        lengths, row_faces, values = _count_rows(faces, n_faces, size, bool(options & kernels.FACE_COUNTS))
         parts.append((lengths, row_faces, values, work[14].copy_to_host(), work[15].copy_to_host()[:, :, :rows]))
     return parts

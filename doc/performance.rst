@@ -83,6 +83,15 @@ the pixel size instead, so that a larger pattern keeps its resolution: a 0.3 m p
 is the default's screen, a 3 m pattern at that pixel size a screen ten times as wide (and its buffers a hundred
 times as large: bound the workers accordingly).
 
+The compiled kernels
+====================
+
+Every numba kernel (the projections' z-buffer, the budgets, the periodic copies, the near field, SAIL's layers, the
+solver) is in ``openalea.caribu.kernels``, ``@njit(cache=True)``: compiled at its first call, once per machine.
+``kernels.warm_up()`` compiles them on a tiny scene (the direct light, radiosity and mixed radiosity, legacy and
+full precision); metafspm's ``python -m openalea.metafspm warm_up`` runs it with every port's, at install and before
+the tests.
+
 GPU
 ===
 

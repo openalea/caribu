@@ -3,7 +3,7 @@ small scenes; without them the port stays the legacy's (the comparison tests).""
 import numpy as np
 import pytest
 
-from openalea.caribu import corrections, direct, periodic
+from openalea.caribu import corrections, direct, kernels, periodic
 from openalea.caribu.labels import encode_labels
 
 LEAF = encode_labels(1, leaf=1)
@@ -161,9 +161,9 @@ def test_face_counts():
     translucent = np.array([True, True])
     first_face = np.array([0, 2])
     rows = {}
-    for name, bits in (("legacy", 0), ("corrected", nearfield.FACE_COUNTS)):
+    for name, bits in (("legacy", 0), ("corrected", kernels.FACE_COUNTS)):
         indptr, faces, values = nearfield.counts(points, np.array([LEAF, LEAF]), translucent, first_face, 4,
-                                                 geometry.legacy_normals(points), geometry.legacy_centres(points),
+                                                 kernels.legacy_normals(points), kernels.legacy_centres(points),
                                                  1., options=bits)
         rows[name] = list(zip(faces[indptr[0]:indptr[1]].tolist(), values[indptr[0]:indptr[1]].tolist()))
     (face, net), = rows["legacy"]
@@ -179,12 +179,12 @@ def test_projected_face():
     receiver = [(0.03, 0.2, 0.5), (0.07, 0.2, 0.5), (0.05, 0.3, 0.5)]
     emitter = [(0.3, 0.2, 0.45), (0.3, 0.3, 0.45), (0.3, 0.25, 0.55)]        # vertical, facing x
     points = np.array([receiver, emitter], dtype=np.float32)
-    normals, centres = geometry.legacy_normals(points), geometry.legacy_centres(points)
+    normals, centres = kernels.legacy_normals(points), kernels.legacy_centres(points)
     translucent = np.array([True, True])
     first_face = np.array([0, 2])
     cells = nearfield.grid(points, None, 0.3, pattern)
     seen = {}
-    for name, bits in (("legacy", 0), ("corrected", nearfield.PROJECTED_FACE)):
+    for name, bits in (("legacy", 0), ("corrected", kernels.PROJECTED_FACE)):
         indptr, faces, values = nearfield.counts(points, np.array([LEAF, LEAF]), translucent, first_face, 4, normals,
                                                  centres, 0.3, grid=cells, options=bits)
         seen[name] = set(faces[indptr[0]:indptr[1]].tolist())

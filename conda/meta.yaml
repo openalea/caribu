@@ -45,6 +45,7 @@ test:
   source_files:
     - test/*.py
   commands:
+   - python -m openalea.metafspm warm_up       # numba's cache filled before the suites (caribu's kernels)
    - pytest -v
 
 about:

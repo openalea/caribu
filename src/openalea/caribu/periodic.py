@@ -16,9 +16,9 @@ The legacy's numerics are kept: periodise's output written with 6 significant di
 import math
 
 import numpy as np
-from numba import njit
 
-from . import geometry
+from . import kernels
+from .kernels import _moved, _periodise_centres
 
 F32 = np.float32
 
@@ -53,42 +53,10 @@ def periodised(points, pattern, corrections=frozenset()) -> np.ndarray:
     return np.array(text.split(), dtype=np.float64).reshape(points.shape)
 
 
-@njit(cache=True, nogil=True, error_model="numpy")
-def _moved(points, centres, low, high, lengths, lift):
-    """Each triangle translated by whole pattern lengths, its centre into (low, high] (periodise's walk, its
-    comparisons in double), the scene raised by *lift* (float64)."""
-    moved = np.empty(points.shape, dtype=np.float64)
-    for t in range(points.shape[0]):
-        shift = np.zeros(2)
-        for axis in range(2):
-            centre, m = np.float64(centres[t, axis]), 0
-            while centre <= low[axis] + m * lengths[axis]:
-                m -= 1
-            while centre > high[axis] + m * lengths[axis]:
-                m += 1
-            shift[axis] = -m * lengths[axis]
-        for vertex in range(3):
-            moved[t, vertex, 0] = np.float64(points[t, vertex, 0]) + shift[0]
-            moved[t, vertex, 1] = np.float64(points[t, vertex, 1]) + shift[1]
-            moved[t, vertex, 2] = np.float64(points[t, vertex, 2]) + lift
-    return moved
-
-
 def pattern_bounds(pattern):
     """(low, high) float32 (2,) of a pattern (x1, y1, x2, y2), as the legacy writes it in its `.8` file and reads it."""
     x1, y1, x2, y2 = (F32(float(str(value))) for value in pattern)
     return np.array([min(x1, x2), min(y1, y2)], dtype=F32), np.array([max(x1, x2), max(y1, y2)], dtype=F32)
-
-
-@njit(cache=True, nogil=True, error_model="numpy")
-def _periodise_centres(points):
-    """periodise's Polygone::centre: float32 sums, divided by 3 in double, stored as float32."""
-    centre = np.zeros((points.shape[0], 3), dtype=np.float32)
-    for t in range(points.shape[0]):
-        for q in range(3):
-            total = F32(F32(F32(F32(0.) + points[t, 0, q]) + points[t, 1, q]) + points[t, 2, q])
-            centre[t, q] = F32(np.float64(total) / 3.0)
-    return centre
 
 
 def border_flags(points, pattern):
@@ -97,7 +65,7 @@ def border_flags(points, pattern):
     (Polygone::nb_in: vertices beyond either side, counted with signs, so that one across both sides of an axis may
     count 0)."""
     low, high = pattern_bounds(pattern)
-    centres = geometry.legacy_centres(points)
+    centres = kernels.legacy_centres(points)
     accepted = ((centres[:, 0] > low[0]) & (centres[:, 1] > low[1]) & (centres[:, 0] <= high[0])
                 & (centres[:, 1] <= high[1]))
     flags = np.zeros(len(points), dtype=np.int64)
@@ -186,66 +154,6 @@ def tiling_steps(roof) -> np.ndarray:
     return steps
 
 
-@njit(cache=True, nogil=True, error_model="numpy")
-def _outside(x, y, step_x, step_y, size):
-    """infinitise's out(): the walk stops once the translated image has left the screen along each axis it moves on."""
-    return (step_x == 0 or abs(x) >= size) and (step_y == 0 or abs(y) >= size)
-
-
-@njit(cache=True, nogil=True, error_model="numpy")
-def translations(steps, size):
-    """(k, 2) int: the image translations infinitise's walk (pave, lateral) visits that overlap the screen, the
-    untranslated image left out. A pave walk goes along tr[0:2] (and from its first step back along tr[6:8]), at each
-    stop a lateral walk each way along tr[2:4]."""
-    found = []
-    for start_x, start_y, direction in ((0, 0, 0), (steps[6], steps[7], 6)):
-        x, y = start_x, start_y
-        while not _outside(x, y, steps[direction], steps[direction + 1], size):
-            if not (x == 0 and y == 0) and abs(x) < size and abs(y) < size:
-                found.append((x, y))
-            for side in (2, 4):
-                lateral_x, lateral_y = x + steps[side], y + steps[side + 1]
-                while not _outside(lateral_x, lateral_y, steps[side], steps[side + 1], size):
-                    if abs(lateral_x) < size and abs(lateral_y) < size:
-                        found.append((lateral_x, lateral_y))
-                    lateral_x += steps[side]
-                    lateral_y += steps[side + 1]
-            x += steps[direction]
-            y += steps[direction + 1]
-    result = np.zeros((len(found), 2), dtype=np.int64)
-    for index in range(len(found)):
-        result[index, 0], result[index, 1] = found[index]
-    return result
-
-
-@njit(cache=True, nogil=True, error_model="numpy")
-def tile(owner, depth, shifts, distance_step, own_copies=False):
-    """infinitise without duplication: the image translated by each of *shifts* ((k, 2) pixels), its depth increased
-    by *distance_step* per pixel of the second shift; where a translated pixel lies in front, the pixel is in a
-    neighbouring pattern's shade (owner −1) and takes its depth. With *own_copies* (the correction "border_copies":
-    each triangle's wrapped parts drawn by its copies, the pixels counted in the pattern's cell only) a translate
-    never replaces its own triangle: it is the same surface, which the copy draws exactly (the steps are rounded to
-    pixels). In place."""
-    size = depth.shape[0]
-    original = depth.copy()
-    original_owner = owner.copy()
-    # a pixel ends in the shade when any translate lies in front of the original image, whatever their order: the
-    # rows are walked in memory order, each translate's row in turn
-    for k in range(size):
-        for index in range(shifts.shape[0]):
-            i, j = shifts[index, 0], shifts[index, 1]
-            if k - i < 0 or k - i >= size:
-                continue
-            offset = distance_step * j
-            source, source_owner = original[k - i], original_owner[k - i]
-            target, owners = depth[k], owner[k]
-            for l in range(max(j, 0), size + min(j, 0)):
-                value = np.float64(source[l - j]) + offset
-                if value < target[l] and not (own_copies and source_owner[l - j] == owners[l]):
-                    target[l] = F32(value)
-                    owners[l] = -1
-
-
 def lattice_translations(pattern, v, w, u, du, dv, size):
     """The correction "tiling": ((k, 2) int pixel shifts, (k,) depth offsets) of the neighbouring patterns' images
     overlapping the screen, the untranslated left out. Each translate a·(Lx, 0, 0) + b·(0, Ly, 0) of the lattice is
@@ -280,32 +188,11 @@ def lattice_translations(pattern, v, w, u, du, dv, size):
     return np.array(shifts, dtype=np.int64).reshape(-1, 2), np.array(offsets, dtype=np.float64)
 
 
-@njit(cache=True, nogil=True, error_model="numpy")
-def tile_offsets(owner, depth, shifts, offsets, own_copies):
-    """tile with each translate's own depth offset (lattice_translations')."""
-    size = depth.shape[0]
-    original = depth.copy()
-    original_owner = owner.copy()
-    for k in range(size):
-        for index in range(shifts.shape[0]):
-            i, j = shifts[index, 0], shifts[index, 1]
-            if k - i < 0 or k - i >= size:
-                continue
-            offset = offsets[index]
-            source, source_owner = original[k - i], original_owner[k - i]
-            target, owners = depth[k], owner[k]
-            for l in range(max(j, 0), size + min(j, 0)):
-                value = np.float64(source[l - j]) + offset
-                if value < target[l] and not (own_copies and source_owner[l - j] == owners[l]):
-                    target[l] = F32(value)
-                    owners[l] = -1
-
-
 def roof_pixels(vmin, vmax, origin, v, w, u, du, dv, size) -> np.ndarray:
     """(4, 2) int: the pattern's corners at the scene's top, (xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax), in
     image pixels as projplan computes them (float32 image coordinates times the size, divided by the screen's
     extents, truncated)."""
-    from .projection import _to_image
+    from .kernels import _to_image
     corners = [(vmin[0], vmin[1]), (vmax[0], vmin[1]), (vmax[0], vmax[1]), (vmin[0], vmax[1])]
     roof = np.zeros((4, 2), dtype=np.int64)
     zero = np.zeros(3, dtype=F32)

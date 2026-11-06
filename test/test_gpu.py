@@ -8,7 +8,7 @@ import textwrap
 
 SCRIPT = textwrap.dedent("""
     import numpy as np
-    from openalea.caribu import formats, geometry, direct, nearfield, nested, sail
+    from openalea.caribu import direct, formats, kernels, nearfield, nested, sail
     from openalea.caribu.labels import is_translucent
     from openalea.caribu.comparison import port_run
     from openalea.caribu.legacy.data_samples import data_path
@@ -19,10 +19,10 @@ SCRIPT = textwrap.dedent("""
     kept_points, kept = points[accepted], labels[accepted]
     translucent = is_translucent(kept)
     first_face, n_faces = direct.face_numbering(translucent)
-    normals, centres = geometry.legacy_normals(kept_points), geometry.legacy_centres(kept_points)
+    normals, centres = kernels.legacy_normals(kept_points), kernels.legacy_centres(kept_points)
     sensors = kept_points[:3].copy()
     sensors[:, :, 2] += 0.05
-    sensor_normals, sensor_centres = geometry.legacy_normals(sensors), geometry.legacy_centres(sensors)
+    sensor_normals, sensor_centres = kernels.legacy_normals(sensors), kernels.legacy_centres(sensors)
     flat = kept_points.reshape(-1, 3)
     pattern = (float(flat[:, 0].min()), float(flat[:, 1].min()), float(flat[:, 0].max()), float(flat[:, 1].max()))
     profile, _ = nested.far_field_profile(points, labels, [(1., (0., 0., -1.))], optics, pattern, 3,

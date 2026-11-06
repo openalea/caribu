@@ -65,7 +65,7 @@ Direct light (``projection``, ``direct``)
 =========================================
 
 Each source's beam projects the scene orthographically on a screen of :math:`T \times T` pixels
-(``projection.legacy_screen``, ``rasterise``); a pixel belongs to the nearest triangle along the beam. A pixel's
+(``kernels.legacy_screen``, ``rasterise``); a pixel belongs to the nearest triangle along the beam. A pixel's
 area, counted on the horizontal (the sources' energies are horizontal irradiances), is
 
 .. math::
@@ -75,7 +75,7 @@ area, counted on the horizontal (the sources' energies are horizontal irradiance
 with the correction ``pixel_area`` (the pixels' pitch is :math:`d/(T-1)`; the legacy divides by :math:`T^2`),
 :math:`d_u, d_v` the screen's extents and :math:`\theta_s` the beam's zenith angle. A face's sunlit area is
 :math:`A_{f,s} = n_{f,s}\, A_\text{pix}`, its pixels' count (``projected_areas``; the face met by the beam,
-:math:`\mathbf{u}_s \cdot \mathbf{n} < 0` for the upper face). The first order (``direct.accumulate``):
+:math:`\mathbf{u}_s \cdot \mathbf{n} < 0` for the upper face). The first order (``kernels.accumulate``):
 
 .. math::
 
@@ -97,7 +97,7 @@ Radiosity (``nearfield``, ``solver``, ``radiosity``)
 =====================================================
 
 Each receiver sees its neighbours on the disc of its hemisphere (the Nusselt analogue: a direction's orthographic
-projection on the receiver's plane, ``nearfield._project``): :math:`N \times N` pixels of side :math:`2/N` on the
+projection on the receiver's plane, ``kernels._project``): :math:`N \times N` pixels of side :math:`2/N` on the
 unit disc, each of form factor
 
 .. math::
@@ -107,7 +107,7 @@ unit disc, each of form factor
 (``form_factor``). The nearest emitter face is kept per pixel; :math:`c^{+}_{ij}` and :math:`c^{-}_{ij}` count the
 pixels of emitter face :math:`j` on receiver :math:`i`'s upper and lower discs, :math:`F^\pm_{ij} = c^\pm_{ij}\,dF`
 (the legacy stores :math:`c^+ - c^-`; the correction ``face_counts`` keeps both). The radiosities solve
-(``solver.product``)
+(``kernels.product``)
 
 .. math::
 
@@ -117,7 +117,7 @@ pixels of emitter face :math:`j` on receiver :math:`i`'s upper and lower discs, 
    \text{leaf, lower:}\quad & B_i^\text{inf} = B^{0,\text{inf}}_i + \tau^\text{sup}_i \textstyle\sum_j F^+_{ij} B_j
        + \rho^\text{inf}_i \textstyle\sum_j F^-_{ij} B_j
 
-a linear system :math:`(I - \mathcal{R} F)\,B = B^0`, solved by meschach's MGCR as canestrad (``solver.mgcr``), or
+a linear system :math:`(I - \mathcal{R} F)\,B = B^0`, solved by meschach's MGCR as canestrad (``kernels.mgcr``), or
 by scipy's GMRES (``linear_solver="gmres"``). In the whole scene (``radiosity.run``), every triangle is in every
 receiver's sphere.
 
@@ -128,7 +128,7 @@ Nested radiosity (``nested``)
 In an infinite canopy, a receiver exchanges radiosity with the emitters within a sphere of diameter :math:`D`
 (their periodic images included); beyond, the canopy is a turbid medium of horizontal layers, the far field. A
 pixel of the disc where no emitter lies sees the far field where its direction :math:`\mathbf{d}` leaves the
-sphere, at height :math:`z = z_i + \tfrac{D}{2} d_z` (``nearfield._environment``): the profile's downward flux
+sphere, at height :math:`z = z_i + \tfrac{D}{2} d_z` (``kernels._environment``): the profile's downward flux
 :math:`E^-(z)` when looking up, its upward :math:`E^+(z)` when looking down, interpolated between the levels
 :math:`k, k+1` as :math:`(1 - f)\,E_k + f\,E_{k+1}` (the correction ``profile_interpolation``; the legacy inverts
 the weights) and clamped to the profile (``profile_bounds``). The far field's light on face :math:`i`,
