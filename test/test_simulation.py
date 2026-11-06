@@ -87,3 +87,10 @@ def test_draw(noon):
     matplotlib.use("Agg")
     ax = noon.draw()
     assert ax.collections
+
+
+def test_the_run_configuration_is_the_scenes():
+    """compute= (metafspm's Compute) is the Scene's run configuration."""
+    from openalea.metafspm.compute import Compute
+    compute = Compute(threads=1, memory="keep")
+    assert simulate(hours=1, start_hour=12, compute=compute).scene.compute is compute

@@ -29,6 +29,7 @@ The elements' parts below the soil are cut off: the soil is opaque (Caribu's inf
 put its lowest point at 0, lighting them). The geometry is kept between lightings (a Canopy: the sky's projections
 reused) while the triangles, their optics and the settings are the same.
 """
+import os
 from dataclasses import dataclass
 from typing import Optional
 
@@ -45,6 +46,7 @@ from . import corrections as corrections_module
 from .canopy import Canopy
 
 ELEMENT = dict(scale=scales.SubOrgan)
+SCREEN_SIZE = 1536             # pixels: the projections' screen side without a pixel_size (the reference's)
 
 
 @dataclass
@@ -117,7 +119,14 @@ class CaribuLight(FunctionalComponent):
                                 "elements' parts below it (sown shoots, roots) left out", default=0.)
     soil_reflectance: float = setting(unit="adim", description="The soil's reflectance in the PAR (scattering)",
                                       default=0.15)
-    screen_size: int = setting(unit="pixel", description="The projections' screen side", default=1536)
+    pixel_size: float = setting(unit="m", unit_comment="the scene's unit",
+                                description="The projections' pixel side over the scene's horizontal extent (the "
+                                "screen's side: that extent / pixel_size pixels), so that a larger pattern keeps its "
+                                "resolution; None: a screen of SCREEN_SIZE pixels (1536) whatever the extent",
+                                default=None)
+    workers: object = setting(description="The threads projecting the light sources (each holding a screen of "
+                              "depths): 'auto' half the processors, or a number; in a Scene, its Compute's workers "
+                              "unless the scenario gives it", default="auto")
     precision: str = setting(description="'full' the computed values, 'legacy' the legacy's printed digits",
                              default="full", choices=("full", "legacy"))
     corrections: object = setting(description="The legacy's behaviours corrected: 'recommended' (all), a tuple of "
@@ -135,6 +144,17 @@ class CaribuLight(FunctionalComponent):
     def __post_init__(self):
         super().__post_init__()
         corrections_module.resolve(self.corrections, self.precision)
+
+    def check_settings(self) -> None:
+        """The settings' choices, the workers ('auto' or a positive number) and the pixel size (positive or None),
+        at construction and after a scenario."""
+        super().check_settings()
+        threads = self.workers
+        if threads != "auto" and (isinstance(threads, bool) or not isinstance(threads, (int, np.integer))
+                                  or threads < 1):
+            raise ValueError(f"CaribuLight: workers is 'auto' or a positive number of threads, got {self.workers!r}")
+        if self.pixel_size is not None and not float(self.pixel_size) > 0:
+            raise ValueError(f"CaribuLight: pixel_size is a positive length (m) or None, got {self.pixel_size!r}")
 
     @rate(include_inactive=True)
     def _optics(self, PAR_reflectance, PAR_transmittance) -> dict:
@@ -239,16 +259,35 @@ class CaribuLight(FunctionalComponent):
         return (triangles.mean_per_owner(values["Eabs"], n_elements, weights),
                 triangles.mean_per_owner(values["Ei"], n_elements, weights), triangles.per_owner(weights, n_elements))
 
+    def screen_size(self, vertices, pattern) -> int:
+        """The projections' screen side (pixels): SCREEN_SIZE without a pixel_size, else the scene's horizontal
+        extent (the pattern's, or the triangles') over pixel_size, at least 2."""
+        if self.pixel_size is None:
+            return SCREEN_SIZE
+        if pattern is not None:
+            extent = max(pattern[2] - pattern[0], pattern[3] - pattern[1])
+        else:
+            flat = vertices.reshape(-1, 3)
+            extent = float(max(np.ptp(flat[:, 0]), np.ptp(flat[:, 1]))) if flat.size else 0.
+        return max(2, int(np.ceil(extent / float(self.pixel_size) - 1e-9)))       # within round-off
+
+    def projection_threads(self) -> int:
+        """The threads projecting the sources: workers, "auto" half the processors (at least 1)."""
+        if self.workers == "auto":
+            return max(1, (os.cpu_count() or 1) // 2)
+        return int(self.workers)
+
     def canopy(self, vertices, labels) -> Canopy:
         """The Canopy of these triangles, kept (not checkpointed) while they, their labels and the settings it
         depends on are the same."""
         infinite = self.mode == "nested" or (self.infinite and self.mode == "direct")
         pattern = self.repeated_pattern(vertices) if infinite else None
-        made_with = (pattern, self.screen_size, self.device, corrections_module.resolve(self.corrections))
+        size, workers = self.screen_size(vertices, pattern), self.projection_threads()
+        made_with = (pattern, size, workers, self.device, corrections_module.resolve(self.corrections))
         kept, kept_with = self.kept("canopy", (None, None))
         if (kept is None or kept_with != made_with or kept.vertices.shape != vertices.shape
                 or not np.array_equal(kept.vertices, vertices) or not np.array_equal(kept.labels, labels)):
-            kept = Canopy(vertices, labels, pattern=pattern, size=self.screen_size, device=self.device,
+            kept = Canopy(vertices, labels, pattern=pattern, size=size, workers=workers, device=self.device,
                           corrections=self.corrections)
             self.keep("canopy", (kept, made_with), saved=False)
         return kept

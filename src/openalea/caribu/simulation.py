@@ -275,7 +275,7 @@ def _split(values: dict):
 
 def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0., day_of_year: float = 172.,
              PARi=None, diffuse_fraction=None, rows: int = 3, plants_per_row: int = 8, row_spacing: float = 0.15,
-             plant_spacing: float = 0.05, outputs: str = None) -> Simulation:
+             plant_spacing: float = 0.05, outputs: str = None, compute=None) -> Simulation:
     """Light a stand of *rows* rows of *plants_per_row* SimplePlants (*row_spacing*, *plant_spacing* m apart), repeated
     around it (an infinite canopy), hour by hour for *hours* hours from *start_hour* (universal time) of day
     *day_of_year*, the canopy lit every hour. *parameters* ({name: value}) changes the plants' parameters (SimplePlant,
@@ -292,7 +292,8 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
 
     *outputs*: a folder for the run's files (metafspm's SceneRecorder): run.json, scenario.json, summary.csv (the
     summary), Plant/SimplePlantModel/summaries.csv (the light each plant absorbs, every hour) and a frame of the
-    stand every hour (frames/, for ParaView or another platform)."""
+    stand every hour (frames/, for ParaView or another platform). *compute*: the Scene's run configuration
+    (metafspm's Compute: its threads, its workers the light's projection threads; None: Compute())."""
     plant_values, settings = _split(dict(parameters or {}))
     xrange, yrange = plants_per_row * plant_spacing, rows * row_spacing
     plants = [Planting(x=plant_spacing * (column + 0.5), y=row_spacing * (row + 0.5), rotation=(37. * k) % 180.)
@@ -309,6 +310,6 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
     recorder = SceneRecorder(outputs, summaries=outputs is not None, tables={"summary": summary},
                              frame_period=1 if outputs is not None else None)
     built = Scene(table, environment=[CaribuLightModel], environment_scenarios=[settings], time_step=HOUR,
-                  forcings=forcings, recorder=recorder, start=start)
+                  forcings=forcings, recorder=recorder, start=start, compute=compute)
     built.simulate(int(round(hours)))
     return Simulation(scene=built, summary=recorder.table("summary"), ground_area=ground)

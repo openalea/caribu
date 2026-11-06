@@ -341,3 +341,48 @@ def test_a_subclass_lights_with_its_component():
     assert isinstance(built.environment[0].light, FluxLight)
     np.testing.assert_allclose(ds.get("PAR_flux"), ds.get("PARa") * ds.get("lit_area"))
     assert np.sum(ds.get("PAR_flux")) > 0
+
+
+def test_the_workers_bound_the_projection_threads(monkeypatch):
+    """workers: the threads projecting the sources ('auto' half the processors), the Scene's Compute's unless the
+    scenario gives it; a bad value raises."""
+    from concurrent import futures
+    from openalea.caribu import direct
+    from openalea.metafspm.compute import Compute
+    bounds = []
+
+    class Recording(futures.ThreadPoolExecutor):
+        def __init__(self, max_workers=None, **options):
+            bounds.append(max_workers)
+            super().__init__(max_workers=max_workers, **options)
+
+    monkeypatch.setattr(direct, "ThreadPoolExecutor", Recording)
+    built = scene([Wheat], {"workers": 2})
+    built.run()
+    assert bounds == [2]
+    Choregrapher().reset()
+    built = Scene(planted([Wheat]), environment=[CaribuLightModel], time_step=HOUR,
+                  forcings={"PARi": lambda time: 500.}, compute=Compute(workers=3))
+    assert built.environment[0].light.workers == 3
+    assert scene([Wheat]).environment[0].light.projection_threads() == max(1, (__import__("os").cpu_count() or 1) // 2)
+    for workers in (0, "all", 1.5):
+        with pytest.raises(ValueError, match="workers"):
+            CaribuLight(data_structure=built.environment[0].data_structure, workers=workers)
+
+
+def test_the_screen_follows_the_pixel_size():
+    """pixel_size (m): the screen's side the scene's horizontal extent over it (the pattern's here), so that a larger
+    pattern keeps its resolution; None: 1536 pixels. The light at a pixel size giving 1536 pixels is the default's."""
+    from openalea.caribu.component import SCREEN_SIZE
+    reference = scene([Wheat])
+    reference.run()
+    light = reference.environment[0].light
+    assert light.screen_size(None, light.pattern) == SCREEN_SIZE == 1536
+    fine = scene([Wheat], {"pixel_size": XRANGE / 1536})
+    fine.run()
+    assert fine.environment[0].light.screen_size(None, light.pattern) == 1536
+    np.testing.assert_array_equal(fine.environment[0].data_structure.get("Erel"),
+                                  reference.environment[0].data_structure.get("Erel"))
+    assert scene([Wheat], {"pixel_size": 1e-3}).environment[0].light.screen_size(None, light.pattern) == 300
+    with pytest.raises(ValueError, match="pixel_size"):
+        scene([Wheat], {"pixel_size": 0.})
