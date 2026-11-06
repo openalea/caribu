@@ -13,7 +13,6 @@ from openalea.adel.leaf_shapes import LeafShapes
 from openalea.caribu import api
 from openalea.caribu.component import CaribuLightModel
 from openalea.caribu.optics import PlantOptics
-from openalea.metafspm.coupling.choregrapher import Choregrapher
 from openalea.metafspm.coupling.geometry import HalfSpace
 from openalea.metafspm.scene.population import planting
 from openalea.metafspm.scene.scene import Scene
@@ -45,7 +44,6 @@ def stand():
     """The stand after 61 steps of 10 °Cd, lit every 4 steps: at its last step, before the plants grow in it (the
     Scene runs the environment first), on the triangles of the 60 steps before above the soil, kept. Sown as Adel's
     examples: echap's leaf shapes, each plant at its coleoptile's sowing depth (its base below the soil)."""
-    Choregrapher().reset()
     parameters = {"n_sect": 2, "thermal_time_step": 10., "leaves": LeafShapes.echap(xy_model="Soissons_byleafclass")}
     plants = sown_stand(N_PLANTS, n_rows=N_ROWS, row_spacing=ROW_SPACING, plant_spacing=PLANT_SPACING)
     plants = [replace(plant, z=-coleoptile_sowing_depth(parameters)) for plant in plants]

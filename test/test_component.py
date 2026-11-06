@@ -8,7 +8,6 @@ import pytest
 from openalea.caribu import api, lights
 from openalea.caribu.component import CaribuLight, CaribuLightModel
 from openalea.caribu.optics import PlantOptics
-from openalea.metafspm.coupling.choregrapher import Choregrapher
 from openalea.metafspm.coupling.component import (FunctionalComponent, StructuralComponent, input_variable,
                                                    state_variable)
 from openalea.metafspm.coupling.composite_wrapper import CompositeModel
@@ -111,7 +110,6 @@ def planted(models, n_leaves=3):
 
 
 def scene(models, settings=None, translator=None, PARi=500., soil_surface=0.):
-    Choregrapher().reset()
     scenario = dict(settings or {})
     return Scene(planted(models), environment=[CaribuLightModel], environment_scenarios=[scenario],
                  translator=translator, time_step=HOUR, forcings={"PARi": lambda time: PARi},
@@ -150,7 +148,6 @@ def test_one_population_as_caribu_scene():
 
 def test_the_canopy_is_lit_every_interval_PARa_following_PARi():
     PARi = {"value": 500.}
-    Choregrapher().reset()
     built = Scene(planted([Wheat]), environment=[CaribuLightModel], environment_scenarios=[{"interval": 2 * HOUR}],
                   time_step=HOUR, forcings={"PARi": lambda time: PARi["value"]})
     plants, union = built.populations[0].data_structure, built.environment[0].data_structure
@@ -294,7 +291,6 @@ def test_the_sun_over_the_step_is_consistent_with_its_mean_PAR():
     summed into one."""
     from openalea.caribu.simulation import clear_day_PAR
     from openalea.metafspm.coupling.forcings import as_forcing
-    Choregrapher().reset()
     def by_hour():                                                     # (a forcing is set at its scene's calendar)
         return as_forcing(clear_day_PAR(172, 48.85), time_unit="h", origin="calendar")
     built = Scene(planted([Wheat]), environment=[CaribuLightModel], environment_scenarios=[{"sun": True}],
@@ -306,7 +302,6 @@ def test_the_sun_over_the_step_is_consistent_with_its_mean_PAR():
     assert len(hourly) == 21 and sum(energy for energy, _ in hourly) == pytest.approx(1.)
     np.testing.assert_allclose(hourly[-1][1], middle[-1][1])                           # the sun at 11:30
     assert hourly[-1][1] != pytest.approx(light.sources(light.forcing("PARi"), 172, 12.)[-1][1])
-    Choregrapher().reset()
     daily = Scene(planted([Wheat]), environment=[CaribuLightModel], environment_scenarios=[{"sun": True}],
                   time_step=24 * HOUR, forcings={"PARi": by_hour()}, start=(172, 0.))
     light = daily.environment[0].light
@@ -336,7 +331,6 @@ def test_optics_per_plant():
 def test_the_forcings_are_declared():
     """PARi is a declared forcing, required: a scene without it fails when built; the diffuse fraction is optional."""
     assert CaribuLight.declared_forcings() == {"PARi": True, "diffuse_fraction": False}
-    Choregrapher().reset()
     with pytest.raises(ValueError, match="CaribuLight.PARi"):
         Scene(planted([Wheat]), environment=[CaribuLightModel], time_step=HOUR)
 
@@ -346,7 +340,6 @@ def test_the_pattern_is_the_scenes():
     """The infinite canopy's pattern is the environment model's (the planting's ranges): not a scenario entry."""
     built = scene([Wheat])
     assert built.environment[0].light.pattern == built.environment[0].pattern == (0., 0., XRANGE, YRANGE)
-    Choregrapher().reset()
     with pytest.raises(ValueError, match="pattern"):
         scene([Wheat], {"pattern": (0., 0., 1., 1.)})
 
@@ -366,7 +359,6 @@ def test_a_subclass_lights_with_its_component():
     class FluxLightModel(CaribuLightModel):
         light_component = FluxLight
 
-    Choregrapher().reset()
     built = Scene(planted([Wheat]), environment=[FluxLightModel], time_step=HOUR, forcings={"PARi": lambda time: 500.})
     built.run()
     ds = built.environment[0].data_structure
@@ -392,7 +384,6 @@ def test_the_workers_bound_the_projection_threads(monkeypatch):
     built = scene([Wheat], {"workers": 2})
     built.run()
     assert bounds == [2]
-    Choregrapher().reset()
     built = Scene(planted([Wheat]), environment=[CaribuLightModel], time_step=HOUR,
                   forcings={"PARi": lambda time: 500.}, compute=Compute(workers=3))
     assert built.environment[0].light.workers == 3
