@@ -287,8 +287,8 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
     *diffuse_fraction* (between 0 and 1; with the sun only, Spitters' from PARi by default), its diffuse share.
 
     The clock: the scene's calendar (Scene(start=(day_of_year, hour))) is that of its time 0, and a step reads its
-    forcings over its hour (PARi's mean) and its sun at its end (metafspm's convention, Component.forcing_time): the
-    scene starts an hour before *start_hour*, so that its first step is the hour ending at *start_hour*, the summary's
+    forcings over its hour (PARi's mean) and its sun at the hour's middle (CaribuLight's sources by panel: one panel,
+    so one sun, for an hourly step): the scene starts an hour before *start_hour*, so that its first step is the hour ending at *start_hour*, the summary's
     first hour (its PARi the hour's mean).
 
     *outputs*: a folder for the run's files (metafspm's SceneRecorder): run.json, scenario.json, summary.csv (the

@@ -76,6 +76,12 @@ result = simulate({"sun": True, "leaf_inclination": 70.}, hours=9, start_hour=8)
 result = simulate(outputs="outputs")              # and the run's files: run.json, scenario.json, summaries, frames
 ```
 
+`simulate(..., compute=Compute(...))` (`from openalea.metafspm import Compute`) sets how the run uses the machine:
+the BLAS and numba threads, the process pool of a reduction's kinds (`workers="auto"` by default), the device
+(`"cpu"`, or `"cuda"` with CuPy), the memory policy and the sparse solver (`linear_solver=`). The default
+`Compute()` suits a laptop; metafspm's user guide (`docs/user.md`, *The run configuration*) and *Running on a GPU*
+(`docs/gpu.md`) give the details.
+
 ### User tutorials
 
 Step by step, for newcomers to Caribu, to light models or to Python modelling, in `example/tutorials/user/`:
