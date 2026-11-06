@@ -100,6 +100,11 @@ own functions compiled as device functions, so that the results are the CPU's. T
 radiosity and nested radiosity: it is where a GPU helps. The kernel is tested under numba's CUDA simulator; it has
 not been timed on a GPU yet.
 
+In a metafspm scene, the ``device`` setting that a scenario does not give takes the scene's
+``Compute(device=...)``: ``Scene(..., compute=Compute(device="cuda"))`` puts Caribu's near field on the GPU together
+with the plants' reduced kinds and linear solves (metafspm's "Running on a GPU", which needs CuPy); a scenario's
+``device="cpu"`` keeps Caribu on the CPU.
+
 The direct light stays on the CPU: canestrad's z-buffer resolves the depth ties in its drawing order, which a
 parallel z-buffer cannot reproduce bit for bit; it is already fast and its projections are kept by a ``Canopy``.
 With the corrections, exactness to canestrad no longer binds, and a GPU z-buffer becomes possible.

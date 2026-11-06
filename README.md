@@ -158,7 +158,9 @@ raw, aggregated = api.CaribuScene(scene, light=sky, pattern=domain, opt={"par": 
   whole scene 307 → 62. `openalea.caribu.canopy.Canopy` keeps what depends only on the geometry: a second band or
   a new hour costs 0.03 s (direct) or 0.12 s (nested).
 - **GPU:** `device="cuda"` computes the near field (radiosity's form factors) with numba.cuda, from the CPU
-  kernels' own functions; tested under numba's CUDA simulator.
+  kernels' own functions; tested under numba's CUDA simulator. In a scene, the setting defaults to the scene's
+  `Compute(device=...)` (metafspm's "Running on a GPU": `Compute(device="cuda")` also moves the plants' reduced
+  kinds and linear solves to the GPU, with CuPy); a scenario's `device` overrides it.
 - **Light sources:** `lights` holds the turtle skies, the sector sky (soc, uoc), the sun's position, Spitters'
   diffuse fraction and Kaplanis' hourly radiation.
 - **Examples:** `example/light_modes.py` (the models compared), `example/day_course.py` (a day hour by hour),
