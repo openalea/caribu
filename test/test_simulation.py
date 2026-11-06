@@ -52,9 +52,9 @@ def test_hours_and_given_PAR():
     seen = []
     result = simulate(hours=3, start_hour=10, PARi=lambda hour: seen.append(hour) or 100. * hour)
     assert list(result.summary["hour"]) == [10., 11., 12.]
-    assert list(result.summary["PARi"]) == [1000., 1100., 1200.]
+    assert list(result.summary["PARi"]) == pytest.approx([950., 1050., 1150.])        # each hour's mean, to its end
     by_series = simulate(hours=2, start_hour=10, PARi=pd.Series([0., 200.], index=[10., 12.]))
-    assert list(by_series.summary["PARi"]) == [0., 100.]
+    assert list(by_series.summary["PARi"]) == pytest.approx([0., 50.])
 
 
 def test_more_leaves_leave_less_light_to_the_soil(noon):
@@ -94,3 +94,17 @@ def test_the_run_configuration_is_the_scenes():
     from openalea.metafspm.compute import Compute
     compute = Compute(threads=1, memory="keep")
     assert simulate(hours=1, start_hour=12, compute=compute).scene.compute is compute
+
+
+def test_the_plants_summaries_weigh_the_light_by_the_lit_area(tmp_path):
+    """metafspm's summaries per plant: the light's PARa (on the union of the plants) averaged over each plant's
+    elements by its declared weight, the lit area; the lit area summed."""
+    result = simulate(hours=1, start_hour=12, outputs=str(tmp_path))
+    summaries = pd.read_csv(tmp_path / "Plant" / "SimplePlantModel" / "summaries.csv")
+    last = summaries[summaries["time"] == summaries["time"].max()].reset_index(drop=True)
+    elements = result.data_structure
+    plant = np.asarray(elements.entity_ids("Plant"))[np.asarray(elements.owner("Plant"))]
+    PARa, area = result.values("PARa"), result.values("lit_area")
+    first = plant == np.asarray(elements.entity_ids("Plant"))[0]
+    assert last["lit_area"][0] == pytest.approx(np.sum(area[first]), rel=1e-12)
+    assert last["PARa"][0] == pytest.approx(np.sum((PARa * area)[first]) / np.sum(area[first]), rel=1e-12)

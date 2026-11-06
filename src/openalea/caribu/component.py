@@ -69,26 +69,26 @@ class CaribuLight(FunctionalComponent):
         "PARi)", required=False)
 
     reflectance: float = state_variable(
-        unit="adim", description="The element's reflectance in the light model", kind="intensive",
+        unit="adim", description="The element's reflectance in the light model", kind="intensive", weight="lit_area",
         default=np.nan, **ELEMENT)
     transmittance: float = state_variable(
         unit="adim", description="The element's transmittance in the light model (NaN: opaque, one face)",
-        kind="intensive", default=np.nan, **ELEMENT)
+        kind="intensive", weight="lit_area", default=np.nan, **ELEMENT)
     Erel: float = state_variable(
         unit="adim", description="The PAR the element absorbs per unit area, relative to the PAR above the canopy",
-        kind="intensive", default=0., **ELEMENT)
+        kind="intensive", weight="lit_area", default=0., **ELEMENT)
     Erel_incident: float = state_variable(
         unit="adim", description="The PAR reaching the element per unit area (its two faces), relative to the PAR "
-                                 "above the canopy", kind="intensive", default=0., **ELEMENT)
+                                 "above the canopy", kind="intensive", weight="lit_area", default=0., **ELEMENT)
     lit_area: float = state_variable(
         unit="m2", unit_comment="the scene's unit squared", description="The element's area in the light model (its "
         "triangles' above the soil, within the pattern)", kind="extensive", default=0., **ELEMENT)
     PARa: float = state_variable(
         unit="µmol m-2 s-1", unit_comment="PARi's unit", description="The PAR the element absorbs per unit area",
-        kind="intensive", default=0., **ELEMENT)
+        kind="intensive", weight="lit_area", default=0., **ELEMENT)
     PAR_incident: float = state_variable(
         unit="µmol m-2 s-1", unit_comment="PARi's unit", description="The PAR reaching the element per unit area",
-        kind="intensive", default=0., **ELEMENT)
+        kind="intensive", weight="lit_area", default=0., **ELEMENT)
 
     # the light model: "direct" (first order, Wheat-BRIDGES'), "nested" (the scattering in the infinite canopy:
     # radiosity within a sphere of sphere_diameter around each triangle, a turbid medium of layers beyond; a null

@@ -26,7 +26,7 @@ import pandas as pd
 from openalea.metafspm.coupling.component import (FunctionalComponent, StructuralComponent, input_variable,
                                                    parameter, state_variable)
 from openalea.metafspm.coupling.composite_wrapper import CompositeModel
-from openalea.metafspm.coupling.forcings import as_forcing, forcing_value
+from openalea.metafspm.coupling.forcings import as_forcing, forcing_mean
 from openalea.metafspm.solve.decorator import state
 from openalea.metafspm.coupling.geometry import Triangles
 from openalea.metafspm.data_structure.configs import PropsConfig, ScalesConfig as scales
@@ -186,7 +186,7 @@ class _Summary:
         light = scene.environment[0].light
         union = light.data_structure                                    # the elements' light: the light model's
         hour = scene.start[1] + scene.time / HOUR                       # from the scene's start, in hours
-        PAR = forcing_value(self.incident, scene.time)
+        PAR = forcing_mean(self.incident, scene.time - scene.time_step, scene.time)     # the hour's, as lit
         area = np.asarray(union.get("lit_area"))
         absorbed_per_ground = float(np.sum(np.asarray(union.get("Erel")) * area)) / self.ground
         intercepted = float(np.sum(np.asarray(union.get("Erel_incident")) * area)) / self.ground
@@ -287,8 +287,9 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
     *diffuse_fraction* (between 0 and 1; with the sun only, Spitters' from PARi by default), its diffuse share.
 
     The clock: the scene's calendar (Scene(start=(day_of_year, hour))) is that of its time 0, and a step reads its
-    forcings and its sun at its end (metafspm's convention, Component.forcing_time): the scene starts an hour before
-    *start_hour*, so that its first step lights the canopy at *start_hour*, the summary's first hour.
+    forcings over its hour (PARi's mean) and its sun at its end (metafspm's convention, Component.forcing_time): the
+    scene starts an hour before *start_hour*, so that its first step is the hour ending at *start_hour*, the summary's
+    first hour (its PARi the hour's mean).
 
     *outputs*: a folder for the run's files (metafspm's SceneRecorder): run.json, scenario.json, summary.csv (the
     summary), Plant/SimplePlantModel/summaries.csv (the light each plant absorbs, every hour) and a frame of the
