@@ -115,8 +115,6 @@ class CaribuLight(FunctionalComponent):
     latitude: float = setting(unit="°", description="The scene's latitude", default=48.85)
     orientation: float = setting(unit="°", description="The angle, clockwise, from the scene's X+ to North (the "
                                  "sky's and the sun's azimuths with the correction 'sky')", default=0.)
-    soil_level: float = setting(unit="m", unit_comment="the scene's unit", description="The soil's height: the "
-                                "elements' parts below it (sown shoots, roots) left out", default=0.)
     soil_reflectance: float = setting(unit="adim", description="The soil's reflectance in the PAR (scattering)",
                                       default=0.15)
     pixel_size: float = setting(unit="m", unit_comment="the scene's unit",
@@ -163,13 +161,14 @@ class CaribuLight(FunctionalComponent):
                 "transmittance": np.asarray(PAR_transmittance, dtype=float)}
 
     @rate(include_inactive=True)
-    def _relative_light(self, reflectance, transmittance, soil_level) -> dict:
+    def _relative_light(self, reflectance, transmittance) -> dict:
         """The canopy lit by a sky of unit energy: each element's absorbed and incident light per unit area (the
-        area-weighted means of its triangles' Eabs and Ei), relative to the incident PAR, and its area. The sun's
-        day and hour: the Scene's calendar (day 1, 0 h at time 0 without one)."""
-        day, hour = self.calendar(default=(1., 0.))
-        sources = self.sources(self.forcing("PARi"), day, hour)
-        triangles = self.data_structure.triangles("emerged").clip_below(soil_level)
+        area-weighted means of its triangles' Eabs and Ei), relative to the incident PAR, and its area; its parts
+        above the soil only (the scene's soil surface, metafspm's ds.geometry: "air"). The sun over the step
+        (step_sources): its course by panels of at most an hour, each weighted by its PAR (the Scene's calendar; day
+        1, 0 h at time 0 without one)."""
+        sources = self.step_sources()
+        triangles = self.data_structure.geometry.clipped("air", where="emerged")
         absorbed, incident, area = self.lit(triangles, reflectance, transmittance, sources)
         return {"Erel": absorbed, "Erel_incident": incident, "lit_area": area}
 
@@ -181,30 +180,59 @@ class CaribuLight(FunctionalComponent):
 
     # ── the sky ──────────────────────────────────────────────────────────────
 
-    def sources(self, PARi, day, hour) -> list:
-        """The light sources [(E, (vx, vy, vz))] of unit horizontal energy: the diffuse sky, and the sun with its
-        share when it is on and above the horizon (the forcing diffuse_fraction, else Spitters' of the global
-        radiation PARi · global_per_PARi)."""
-        diffuse = 1.
-        sun = []
-        if self.sun:
-            sun = [(energy, vector) for energy, vector in
-                   lights.sun_light(1., day, hour, self.latitude, self.corrections, self.orientation)
-                   if vector[2] < 0]
-            if sun and PARi > 0:
-                try:
-                    diffuse = self.forcing("diffuse_fraction")
-                except KeyError:
-                    diffuse = lights.diffuse_fraction(PARi * self.global_per_PARi, day, hour, self.latitude)
-            if not sun or PARi <= 0:
-                sun, diffuse = [], 1.
+    def step_sources(self, over="substep") -> list:
+        """
+        The light sources of the step *over* (forcing_interval's: the step being lit) [(E, (vx, vy, vz))], of unit
+        horizontal energy over it, consistent with PARi read as the step's mean: the step in panels of at most an
+        hour (forcing_panels), each panel's sky and sun at its middle (sources), weighted by its share of the step's
+        PAR (its duration times its mean PARi, over the step's); the diffuse skies summed into one, a sun per panel.
+        An hourly step: the sun at the step's middle (not at its end, which is when PARi's mean is read up to); a
+        daily step: the sun's course, 24 suns. Without sun, the diffuse sky alone, as at any instant.
+        """
+        start, end = self.forcing_interval(over)
+        if not self.sun or not end > start:
+            day, hour = self.calendar(end, default=(1., 0.))
+            return self.sources(self.forcing("PARi", over=(start, end)), day, hour)
+        mean = self.forcing("PARi", over=(start, end))
+        diffuse, suns = 0., []
+        for first, last in self.forcing_panels((start, end)):
+            PARi = self.forcing("PARi", over=(first, last))
+            share = (last - first) / (end - start) * (PARi / mean if mean > 0 else 1.)
+            day, hour = self.calendar(0.5 * (first + last), default=(1., 0.))
+            panel_diffuse, sun = self._diffuse_and_sun(PARi, day, hour, over=(first, last))
+            diffuse += share * panel_diffuse
+            suns += [(share * energy, vector) for energy, vector in sun]
+        return self._sky(diffuse) + suns
+
+    def _sky(self, diffuse) -> list:
+        """The diffuse sky's sources, of total horizontal energy *diffuse*."""
         if self.sky == "sectors":
-            sky = lights.Sky(self.azimuth_sectors, self.zenith_sectors, self.corrections,
-                             self.orientation).diffuse(diffuse, self.sky_type).lights()
-        else:
-            sky = lights.turtle_lights(self.sky[len("turtle"):], self.sky_type, diffuse, self.corrections,
-                                       self.orientation)
-        return list(sky) + [(energy * (1 - diffuse), vector) for energy, vector in sun]
+            return list(lights.Sky(self.azimuth_sectors, self.zenith_sectors, self.corrections,
+                                   self.orientation).diffuse(diffuse, self.sky_type).lights())
+        return list(lights.turtle_lights(self.sky[len("turtle"):], self.sky_type, diffuse, self.corrections,
+                                         self.orientation))
+
+    def sources(self, PARi, day, hour) -> list:
+        """The light sources [(E, (vx, vy, vz))] of unit horizontal energy at one instant, *day* and *hour*: the
+        diffuse sky, and the sun with its share when it is on and above the horizon (the forcing diffuse_fraction,
+        else Spitters' of the global radiation PARi · global_per_PARi)."""
+        diffuse, sun = self._diffuse_and_sun(PARi, day, hour)
+        return self._sky(diffuse) + sun
+
+    def _diffuse_and_sun(self, PARi, day, hour, over=None) -> tuple:
+        """(the diffuse share, the sun's sources [(its share, its direction)]) at *day*, *hour*, the forcing
+        diffuse_fraction read over *over* (the step being lit by default)."""
+        if not self.sun:
+            return 1., []
+        sun = [(energy, vector) for energy, vector in
+               lights.sun_light(1., day, hour, self.latitude, self.corrections, self.orientation) if vector[2] < 0]
+        if not sun or PARi <= 0:
+            return 1., []
+        try:
+            diffuse = self.forcing("diffuse_fraction", **({} if over is None else {"over": over}))
+        except KeyError:
+            diffuse = lights.diffuse_fraction(PARi * self.global_per_PARi, day, hour, self.latitude)
+        return diffuse, [(energy * (1 - diffuse), vector) for energy, vector in sun]
 
     # ── the optics ───────────────────────────────────────────────────────────
 

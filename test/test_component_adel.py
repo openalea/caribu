@@ -14,6 +14,7 @@ from openalea.caribu import api
 from openalea.caribu.component import CaribuLightModel
 from openalea.caribu.optics import PlantOptics
 from openalea.metafspm.coupling.choregrapher import Choregrapher
+from openalea.metafspm.coupling.geometry import HalfSpace
 from openalea.metafspm.scene.population import planting
 from openalea.metafspm.scene.scene import Scene
 
@@ -57,7 +58,7 @@ def stand():
     triangles = scene.populations[0].data_structure.triangles()
     assert triangles.vertices[..., 2].min() < 0                       # sown: stems below the soil
     scene.run()
-    return scene, triangles.clip_below(0.)
+    return scene, triangles.clip(HalfSpace(0.))
 
 
 def _elements(stand):

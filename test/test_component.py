@@ -12,7 +12,7 @@ from openalea.metafspm.coupling.choregrapher import Choregrapher
 from openalea.metafspm.coupling.component import (FunctionalComponent, StructuralComponent, input_variable,
                                                    state_variable)
 from openalea.metafspm.coupling.composite_wrapper import CompositeModel
-from openalea.metafspm.coupling.geometry import Triangles
+from openalea.metafspm.coupling.geometry import HalfSpace, Triangles
 from openalea.metafspm.coupling.translator import Translator
 from openalea.metafspm.data_structure.configs import PropsConfig, ScalesConfig as scales
 from openalea.metafspm.scene.population import Planting, planting
@@ -110,11 +110,12 @@ def planted(models, n_leaves=3):
                     {"n_leaves": n_leaves}, xrange=XRANGE, yrange=YRANGE)
 
 
-def scene(models, settings=None, translator=None, PARi=500.):
+def scene(models, settings=None, translator=None, PARi=500., soil_surface=0.):
     Choregrapher().reset()
     scenario = dict(settings or {})
     return Scene(planted(models), environment=[CaribuLightModel], environment_scenarios=[scenario],
-                 translator=translator, time_step=HOUR, forcings={"PARi": lambda time: PARi})
+                 translator=translator, time_step=HOUR, forcings={"PARi": lambda time: PARi},
+                 soil_surface=soil_surface)
 
 
 def caribu_scene(triangles, labels, mode="direct", **run):
@@ -259,13 +260,13 @@ def test_the_sun_shares_the_unit_energy_and_sets():
 
 def test_above_soil():
     """A triangle across the soil cut at its plane (one or two triangles, the area above kept), one below dropped
-    (metafspm's Triangles.clip_below, which CaribuLight lights)."""
+    (metafspm's Triangles.clip, vectorised, which CaribuLight lights: ds.geometry.clipped("air"))."""
     vertices = np.array([[[0, 0, -1], [2, 0, 1], [0, 2, 1]],         # one vertex below: two triangles
                          [[0, 0, 1], [2, 0, -1], [0, 2, -1]],         # two below: one triangle
                          [[0, 0, -1], [1, 0, -1], [0, 1, -2]],        # all below: none
                          [[0, 0, 0], [1, 0, 1], [0, 1, 0]]], dtype=float)  # on the soil: kept whole
-    kept = Triangles(vertices, [0, 1, 2, 3]).clip_below(0.)
-    assert kept.owner.tolist() == [3, 0, 0, 1]
+    kept = Triangles(vertices, [0, 1, 2, 3]).clip(HalfSpace(0.))
+    assert kept.owner.tolist() == [0, 0, 1, 3]
     assert (kept.vertices[..., 2] >= 0).all()
     areas = kept.per_owner(kept.areas(), 4)
     whole = Triangles(vertices, [0, 1, 2, 3]).areas()
@@ -273,17 +274,48 @@ def test_above_soil():
 
 
 def test_the_parts_below_the_soil_receive_no_light():
-    """The soil 10 cm up: the stems' lower halves left out (their lit area halved), the light as CaribuScene's on
-    the parts above."""
-    built = scene([Wheat], {"soil_level": 0.1})
+    """The soil 10 cm up (the Scene's soil_surface): the stems' lower halves left out (their lit area halved), the
+    light as CaribuScene's on the parts above."""
+    built = scene([Wheat], soil_surface=0.1)
     built.run()
     ds = built.environment[0].data_structure
     light = built.environment[0].light
+    assert light.soil_surface == 0.1
     stems = light.element_labels() == "StemElement"
     np.testing.assert_allclose(ds.get("lit_area")[stems], 0.05 * 0.05 / 2, rtol=1e-6)
-    expected = caribu_scene(ds.triangles().clip_below(0.1), light.element_labels().tolist())
+    expected = caribu_scene(ds.triangles().clip(HalfSpace(0.1)), light.element_labels().tolist())
     for element, value in expected["Eabs"].items():
         assert ds.get("Erel")[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
+
+
+def test_the_sun_over_the_step_is_consistent_with_its_mean_PAR():
+    """The sun of a lit step (step_sources): an hourly step's at its middle (PARi its mean over the step); a daily
+    step's course, a sun per hour weighted by that hour's PAR, the energies summing to 1 with the diffuse skies
+    summed into one."""
+    from openalea.caribu.simulation import clear_day_PAR
+    from openalea.metafspm.coupling.forcings import as_forcing
+    Choregrapher().reset()
+    def by_hour():                                                     # (a forcing is set at its scene's calendar)
+        return as_forcing(clear_day_PAR(172, 48.85), time_unit="h", origin="calendar")
+    built = Scene(planted([Wheat]), environment=[CaribuLightModel], environment_scenarios=[{"sun": True}],
+                  time_step=HOUR, forcings={"PARi": by_hour()}, start=(172, 11.))
+    light = built.environment[0].light
+    light.__dict__["_clock"] = 0.                                      # the step [11 h, 12 h]
+    hourly = light.step_sources()
+    middle = light.sources(light.forcing("PARi"), 172, 11.5)
+    assert len(hourly) == 21 and sum(energy for energy, _ in hourly) == pytest.approx(1.)
+    np.testing.assert_allclose(hourly[-1][1], middle[-1][1])                           # the sun at 11:30
+    assert hourly[-1][1] != pytest.approx(light.sources(light.forcing("PARi"), 172, 12.)[-1][1])
+    Choregrapher().reset()
+    daily = Scene(planted([Wheat]), environment=[CaribuLightModel], environment_scenarios=[{"sun": True}],
+                  time_step=24 * HOUR, forcings={"PARi": by_hour()}, start=(172, 0.))
+    light = daily.environment[0].light
+    sources = light.step_sources()
+    suns = sources[20:]
+    assert 12 <= len(suns) <= 18                                       # the sun's daylight hours
+    assert sum(energy for energy, _ in sources) == pytest.approx(1.)
+    noon = max(range(len(suns)), key=lambda k: suns[k][0])
+    assert -suns[noon][1][2] == pytest.approx(max(-vector[2] for _, vector in suns))   # the most at the highest sun
 
 
 def test_optics_per_plant():

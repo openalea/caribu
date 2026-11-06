@@ -215,4 +215,21 @@ triangles :math:`t \in e` above the soil) gets its light relative to the inciden
    \text{PARa}_e = E_{rel,e}\,\text{PAR}_i
 
 (``_relative_light``, ``_absorbed_PAR``); with the sun on, the sky shares the unit energy between the diffuse sky,
-:math:`R_d/R_g`, and the sun, :math:`1 - R_d/R_g`.
+:math:`R_d/R_g`, and the sun, :math:`1 - R_d/R_g`. The triangles above the soil are those above the scene's soil
+surface (metafspm's ``Scene(soil_surface=)``, ``ds.geometry.clipped("air")``: each triangle across it cut at its
+plane).
+
+**The sun over the step** (``step_sources``). PARi is read as its mean over the step lit, so the sun is too: the step
+:math:`[t_0, t_1]` in panels :math:`k` of at most an hour (metafspm's ``forcing_panels``), each panel's diffuse
+share and sun at its middle :math:`t_k`, weighted by its share of the step's PAR,
+
+.. math::
+
+   w_k = \frac{(t_{k+1} - t_k)\,\overline{\text{PAR}_i}^{(k)}}{(t_1 - t_0)\,\overline{\text{PAR}_i}}, \qquad
+   E_\text{sky} = \sum_k w_k \left(\frac{R_d}{R_g}\right)_k, \qquad E_{\text{sun},k} = w_k
+   \left(1 - \frac{R_d}{R_g}\right)_k
+
+(the energies sum to 1; a panel without PAR weighs nothing). Erel being linear in the sources' energies, the step's
+Erel times its mean PARi is the step's mean absorbed PAR, panel by panel: an hourly step is lit with the sun at its
+middle (not at its end, up to which PARi's mean is read), a daily step with the sun's course (a sun per hour of
+daylight, the most weight at noon).
