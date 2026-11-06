@@ -28,9 +28,9 @@ ELEMENT = dict(scale=scales.SubOrgan)
 class PlantOptics(FunctionalComponent):
     """A plant model's elements' optics in the PAR, by kind (leaf, stem), per plant."""
     PAR_reflectance: float = state_variable(unit="adim", description="The element's reflectance in the PAR (NaN: none, "
-                                            "not lit)", kind="intensive", default=np.nan, **ELEMENT)
+                                            "not lit)", kind="intensive", weight="lit_area", default=np.nan, **ELEMENT)
     PAR_transmittance: float = state_variable(unit="adim", description="The element's transmittance in the PAR (NaN: "
-                                              "opaque)", kind="intensive", default=np.nan, **ELEMENT)
+                                              "opaque)", kind="intensive", weight="lit_area", default=np.nan, **ELEMENT)
     leaf_reflectance: float = parameter(unit="adim", description="A leaf element's reflectance in the PAR",
                                         by="Wheat-BRIDGES", default=0.10, min_value=0., max_value=1.)
     leaf_transmittance: float = parameter(unit="adim", description="A leaf element's transmittance in the PAR",
