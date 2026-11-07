@@ -52,7 +52,7 @@ class Panels(StructuralComponent):
             values.append((x + 0.02 * rank, y, 0.12 + 0.06 * rank, 0.08, 0.3 * rank))
         for v, value in zip(elements, values):
             for name, number in zip(("centre_x", "centre_y", "centre_z", "side", "tilt"), value):
-                g.property(name)[v] = float(number)
+                g.set_values(name, [v], [float(number)])
 
     def triangles(self, where=None):
         ds = self.data_structure

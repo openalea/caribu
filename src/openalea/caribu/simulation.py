@@ -87,7 +87,7 @@ class SimplePlant(StructuralComponent):
         stem = g.add_component(phytomer, **PropsConfig(scale=s.Organ, edge_type='/', label=labels.Organ.StemInternode))
         blade = g.add_component(phytomer, **PropsConfig(scale=s.Organ, edge_type='/', label=labels.Organ.Blade))
         # the plant's position, the planting's (written before an initiator builds; z minus its sowing depth)
-        x, y, z, rotation = (g.property(name)[plant] for name in ("x", "y", "z", "rotation"))
+        x, y, z, rotation = (float(g.values_at(name, [plant])[1][0]) for name in ("x", "y", "z", "rotation"))
         elements = [g.add_component(stem, **PropsConfig(scale=s.SubOrgan, edge_type='/',
                                                         label=labels.SubOrgan.StemElement))]
         geometry = [(x, y, z, rotation, 90., value["plant_height"], value["stem_width"], 0)]
@@ -97,10 +97,9 @@ class SimplePlant(StructuralComponent):
             elements.append(g.add_component(blade, **leaf) if rank == 1 else g.add_child(elements[-1], **leaf))
             geometry.append((x, y, z + value["plant_height"] * rank / n_leaves, rotation + 180. * (rank % 2),
                              value["leaf_inclination"], value["leaf_length"], value["leaf_width"], rank))
-        for element, values in zip(elements, geometry):
-            for name, number in zip(("start_x", "start_y", "start_z", "azimuth", "inclination", "element_length",
-                                     "element_width", "leaf_rank"), values):
-                g.property(name)[element] = float(number)
+        for k, name in enumerate(("start_x", "start_y", "start_z", "azimuth", "inclination", "element_length",
+                                  "element_width", "leaf_rank")):
+            g.set_values(name, elements, [float(values[k]) for values in geometry])
 
     def triangles(self, where=None):
         """Each element a rectangle of two triangles: from its start along its direction, its width horizontal."""

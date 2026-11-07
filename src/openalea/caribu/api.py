@@ -608,6 +608,9 @@ def star(scene_geometry, directions=1, output_by_triangle=False, domain=None, co
 def _mtg_star(g, name, directions, output_by_triangle, domain, conv_unit):
     values, exposed = star(g.property("geometry"), directions, output_by_triangle, domain, conv_unit)
     for property_name, property_values in ((name + "_exposed_area", exposed), (name + "_star", values)):
+        if hasattr(g, "set_values"):                 # an MPG: its columns written in bulk
+            g.set_values(property_name, list(property_values), list(property_values.values()))
+            continue
         if property_name not in g.properties():
             g.add_property(property_name)
         g.property(property_name).update(property_values)
