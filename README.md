@@ -37,8 +37,8 @@ them from source (Adel's port, for tutorial 6 and the wheat examples, is optiona
 
 ```bash
 mkdir fspm && cd fspm
-git clone -b data_structure_api https://github.com/openalea/metafspm.git metafspm
-git clone https://github.com/openalea/encoding3d.git encoding3d
+git clone -b release2026 https://github.com/openalea/metafspm.git metafspm
+git clone -b other_platforms_bindings https://github.com/openalea/encoding3d.git encoding3d
 git clone -b to_metafspm https://github.com/openalea/caribu.git caribu
 git clone -b to_metafspm https://github.com/openalea/adel.git adel          # optional
 
@@ -52,8 +52,8 @@ pip install -e adel --no-deps                                               # op
 ### Developers
 
 ```bash
-git clone -b data_structure_api https://github.com/openalea/metafspm.git metafspm
-git clone https://github.com/openalea/encoding3d.git encoding3d
+git clone -b release2026 https://github.com/openalea/metafspm.git metafspm
+git clone -b other_platforms_bindings https://github.com/openalea/encoding3d.git encoding3d
 git clone -b to_metafspm https://github.com/openalea/caribu.git caribu
 cd caribu
 mamba env create -n caribu_dev -f ./conda/environment.yml
