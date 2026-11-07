@@ -29,7 +29,7 @@ def test_simple_plant_geometry(noon):
 
 
 def test_a_sown_plant_starts_at_its_planting_z():
-    table = planting([Planting(x=0.1, y=0.1, z=-0.03, rotation=20.)], SimplePlantModel, {}, xrange=0.2, yrange=0.2)
+    table = planting([Planting(x=0.1, y=0.1, depth=0.03, rotation=20.)], SimplePlantModel, {}, xrange=0.2, yrange=0.2)
     ds = population_data_structure(table, SimplePlantModel, time_step=3600.).data_structure
     start_z, rank = np.asarray(ds.get("start_z")), np.asarray(ds.get("leaf_rank")).astype(int)
     assert start_z[rank == 0].item() == -0.03                                     # the stem's base: the planting's z

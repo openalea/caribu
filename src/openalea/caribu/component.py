@@ -170,7 +170,7 @@ class CaribuLight(FunctionalComponent):
         (step_sources): its course by panels of at most an hour, each weighted by its PAR (the Scene's calendar; day
         1, 0 h at time 0 without one)."""
         sources = self.step_sources()
-        triangles = self.data_structure.geometry.clipped("air", where="emerged")
+        triangles = self.data_structure.geometry.clipped("air", where="planted")
         absorbed, incident, area = self.lit(triangles, reflectance, transmittance, sources)
         return {"Erel": absorbed, "Erel_incident": incident, "lit_area": area}
 

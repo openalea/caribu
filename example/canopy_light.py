@@ -12,19 +12,18 @@ stand's absorbed PAR per m² of ground hour by hour against the incident PAR.
 """
 import sys
 import time
-from dataclasses import replace
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from openalea.adel.development import ScenarioShoot, coleoptile_sowing_depth, random_delays, sown_stand
+from openalea.adel.development import ScenarioShoot, coleoptile_sowing_depth, random_delays
 from openalea.adel.leaf_shapes import LeafShapes
 from openalea.caribu import lights
 from openalea.caribu.component import CaribuLightModel
 from openalea.caribu.simulation import calendar_date
 from openalea.caribu.optics import PlantOptics
 from openalea.metafspm.display import draw, value_colors
-from openalea.metafspm.scene.population import planting
+from openalea.metafspm.scene.population import planting, stand
 from openalea.metafspm.scene.scene import Scene
 
 N_PLANTS, N_ROWS, ROW_SPACING, PLANT_SPACING = 20, 4, 0.15, 0.04
@@ -60,8 +59,8 @@ class LitShoot(ScenarioShoot):
 def stand_scene():
     """The stand as Adel's shoot_scene sows it, with CaribuLightModel, from midnight of DAY_OF_YEAR."""
     parameters = {"n_sect": 2, "thermal_time_step": 10., "leaves": LeafShapes.echap(xy_model="Soissons_byleafclass")}
-    plants = sown_stand(N_PLANTS, n_rows=N_ROWS, row_spacing=ROW_SPACING, plant_spacing=PLANT_SPACING)
-    plants = [replace(plant, z=-coleoptile_sowing_depth(parameters)) for plant in plants]
+    plants = stand(N_PLANTS, rows=N_ROWS, row_spacing=ROW_SPACING, plant_spacing=PLANT_SPACING,
+                   depth=coleoptile_sowing_depth(parameters), jitter=0.005, seed=0)
     table = planting(plants, LitShoot, parameters,
                      [{"delay": float(delay)} for delay in random_delays(N_PLANTS)], xrange=XRANGE, yrange=YRANGE)
     lighting = {"sun": True, "latitude": LATITUDE, "interval": 4 * 3600.}
