@@ -22,6 +22,7 @@ from openalea.caribu import lights
 from openalea.caribu.component import CaribuLightModel
 from openalea.caribu.simulation import calendar_date
 from openalea.caribu.optics import PlantOptics
+from openalea.metafspm.coupling.composite_wrapper import CompositeModel
 from openalea.metafspm.display import draw, value_colors
 from openalea.metafspm.scene.population import planting, stand
 from openalea.metafspm.scene.scene import Scene
@@ -40,20 +41,14 @@ def incident_PAR(time):
     return lights.PAR_PER_GLOBAL * global_radiation
 
 
-class LitShoot(ScenarioShoot):
-    """Adel's plant model with its elements' optics in the PAR (PlantOptics: Wheat-BRIDGES' leaves and stems)."""
-
-    def __init__(self, data_structure, time_step):
-        super().__init__(data_structure, time_step)
-        self.optics = PlantOptics(data_structure=data_structure, time_step=time_step)
-        self.couple(self.development, self.architecture, self.optics)
+class LitShoot(CompositeModel):
+    """Adel's plant model (ScenarioShoot, nested) with its elements' optics in the PAR (PlantOptics: Wheat-BRIDGES'
+    leaves and stems), the new elements' too after each step's growth."""
+    initiators = (ScenarioShoot,)
+    parts = {"shoot": ScenarioShoot, "optics": PlantOptics}
 
     def spin_up(self, scene):
         self.optics.run_stage("state")                   # before the first lighting
-
-    def run(self):
-        super().run()
-        self.optics()                                    # the new elements' too
 
 
 def stand_scene():
@@ -63,7 +58,7 @@ def stand_scene():
                    depth=coleoptile_sowing_depth(parameters), jitter=0.005, seed=0)
     table = planting(plants, LitShoot, parameters,
                      [{"delay": float(delay)} for delay in random_delays(N_PLANTS)], xrange=XRANGE, yrange=YRANGE)
-    lighting = {"sun": True, "latitude": LATITUDE, "interval": 4 * 3600.}
+    lighting = {"sun": True, "latitude": LATITUDE, "cadence": {"light": "4 h"}}
     return Scene(table, environment=[CaribuLightModel], environment_scenarios=[lighting], time_step=3600.,
                  forcings={"PARi": incident_PAR}, start=calendar_date(DAY_OF_YEAR))
 

@@ -1,5 +1,5 @@
 """CaribuLight, the metafspm component: on a population's DataStructure and on a union of two in a Scene, against
-CaribuScene on the same triangles and optics; the lighting interval, the optics, the sky and the sun."""
+CaribuScene on the same triangles and optics; the lighting's cadence, the optics, the sky and the sun."""
 from dataclasses import dataclass
 
 import numpy as np
@@ -85,17 +85,10 @@ def plant_model(name):
     class Model(CompositeModel):
         initiators = (panels,)
 
-        def __init__(self, data_structure, time_step):
-            self.panels = panels(data_structure=data_structure)
-            self.optics = optics(data_structure=data_structure)
-            self.use = use(data_structure=data_structure)
-            self.couple(self.panels, self.optics, self.use)
-
+        parts = {"panels": panels, "optics": optics, "use": use}
+        schedule = ("optics",)
         def spin_up(self, scene):
             self.optics.run_stage("state")
-
-        def run(self):
-            self.optics()
     Model.__name__ = name
     return Model
 
@@ -146,9 +139,9 @@ def test_one_population_as_caribu_scene():
     np.testing.assert_array_equal(plants.get("PARa"), union.get("PARa"))         # into the plants, at their step
     assert not plants.has("Erel")                                                 # the light's stays the light's
 
-def test_the_canopy_is_lit_every_interval_PARa_following_PARi():
+def test_the_canopy_is_lit_at_its_cadence_PARa_following_PARi_every_step():
     PARi = {"value": 500.}
-    built = Scene(planted([Wheat]), environment=[CaribuLightModel], environment_scenarios=[{"interval": 2 * HOUR}],
+    built = Scene(planted([Wheat]), environment=[CaribuLightModel], environment_scenarios=[{"cadence": {"light": 2 * HOUR}}],
                   time_step=HOUR, forcings={"PARi": lambda time: PARi["value"]})
     plants, union = built.populations[0].data_structure, built.environment[0].data_structure
     built.run()
@@ -189,17 +182,10 @@ def test_a_renamed_input_by_the_scene_translator():
     class Model(CompositeModel):
         initiators = (Panels,)
 
-        def __init__(self, data_structure, time_step):
-            self.panels = Panels(data_structure=data_structure)
-            self.optics = PlantOptics(data_structure=data_structure)
-            self.photosynthesis = Photosynthesis(data_structure=data_structure)
-            self.couple(self.panels, self.optics, self.photosynthesis)
-
+        parts = {"panels": Panels, "optics": PlantOptics, "photosynthesis": Photosynthesis}
+        schedule = ("optics",)
         def spin_up(self, scene):
             self.optics.run_stage("state")
-
-        def run(self):
-            self.optics()
 
     translator = Translator().link("Photosynthesis", "absorbed_PAR_density", "CaribuLight", {"PARa": 1e-6})
     built = scene([Model], translator=translator)

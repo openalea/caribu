@@ -12,6 +12,7 @@ from openalea.adel.leaf_shapes import LeafShapes
 from openalea.caribu import api
 from openalea.caribu.component import CaribuLightModel
 from openalea.caribu.optics import PlantOptics
+from openalea.metafspm.coupling.composite_wrapper import CompositeModel
 from openalea.metafspm.coupling.geometry import HalfSpace
 from openalea.metafspm.scene import population
 from openalea.metafspm.scene.population import planting
@@ -23,20 +24,14 @@ HOUR = 3600.
 WHEAT_BRIDGES_OPTICS = {"LeafElement": (0.10, 0.05), "StemElement": (0.10,)}
 
 
-class LitShoot(ScenarioShoot):
-    """Adel's plant model with its elements' optics (PlantOptics: Wheat-BRIDGES'), for the light."""
-
-    def __init__(self, data_structure, time_step):
-        super().__init__(data_structure, time_step)
-        self.optics = PlantOptics(data_structure=data_structure, time_step=time_step)
-        self.couple(self.development, self.architecture, self.optics)
+class LitShoot(CompositeModel):
+    """Adel's plant model (ScenarioShoot, nested) with its elements' optics (PlantOptics: Wheat-BRIDGES'), for the
+    light; the new elements' optics after each step's growth."""
+    initiators = (ScenarioShoot,)
+    parts = {"shoot": ScenarioShoot, "optics": PlantOptics}
 
     def spin_up(self, scene):
         self.optics.run_stage("state")
-
-    def run(self):
-        super().run()
-        self.optics()                                      # the new elements' too
 
 
 @pytest.fixture(scope="module")

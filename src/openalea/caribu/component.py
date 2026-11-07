@@ -18,9 +18,11 @@ Its steps follow the physics:
                       absorbed light per unit area relative to the PAR above the canopy, its incident light, its area
     _absorbed_PAR     PARa = Erel · PARi, PAR_incident = Erel_incident · PARi, PARi the scene's forcing
 
-The canopy is lit every *interval* of CaribuLightModel (4 h by default, Wheat-BRIDGES'; its scenario's "interval")
-and when elements appear or go (geometry_input); in between it runs only _absorbed_PAR, PARa following PARi with the
-last Erel. The sun is the Scene's calendar's (Scene(start="2026-06-21 11:00"), the date of its time 0). How the canopy is lit, the same for
+The canopy is lit every 4 h (Wheat-BRIDGES'), its lighting covering the interval (metafspm's cadence at its start:
+the sun's course over the interval, Erel its PAR-weighted mean), and when elements appear or go (geometry_input);
+_absorbed_PAR runs every step, PARa following PARi with the last Erel: CaribuLightModel's schedule, the lighting
+(its rate stage) at its cadence and the absorbed PAR (its state stage) every step; its scenario's "cadence"
+({"light": "1 h"}) sets the lighting's. The sun is the Scene's calendar's (Scene(start="2026-06-21 11:00"), the date of its time 0). How the canopy is lit, the same for
 every plant, is the component's settings: the light model (direct light, nested radiosity in the infinite canopy,
 pure SAIL, radiosity in the scene alone), the sky and the sun, the site, the soil, the numerics (precision,
 corrections, GPU, the linear solver). The optics are the plants': an optical component of their plant model
@@ -35,8 +37,10 @@ from typing import Optional
 
 import numpy as np
 
+from openalea.metafspm.coupling.cadence import Cadence
 from openalea.metafspm.coupling.component import (FunctionalComponent, forcing_variable, geometry_input,
                                                    input_variable, setting, state_variable)
+from openalea.metafspm.coupling.schedule import Step
 from openalea.metafspm.data_structure.configs import ScalesConfig as scales
 from openalea.metafspm.scene.environment import EnvironmentModel
 from openalea.metafspm.solve.decorator import rate, state
@@ -326,13 +330,15 @@ class CaribuLight(FunctionalComponent):
 class CaribuLightModel(EnvironmentModel):
     """The environment model of a metafspm Scene: CaribuLight on the populations' union (their elements' Erel, PARa,
     ... reach the plant models through the scene translator's links: identity ones by default for the inputs they
-    declare by name, and their optics reach it). The canopy is lit when due (every interval, 4 h by default, or when
-    elements appeared or went); at the other steps PARa only (the row "state"). A subclass may light with a subclass
-    of CaribuLight (light_component). The scenario's entries (the light's settings, "interval") are set by the Scene
-    once it is built."""
+    declare by name, and their optics reach it). Its schedule: the lighting (CaribuLight's rate stage: its optics and
+    Erel) every 4 h, covering the interval (metafspm's Cadence at its start), and when elements appeared or went;
+    PARa every step (its state stage, "absorbed_light"). A subclass may light with a subclass of CaribuLight
+    (light_component). The scenario's entries (the light's settings, "cadence": {"light": "1 h"}) are set by the
+    Scene once it is built."""
     light_component = CaribuLight
     compartment = "Atmosphere"
-    interval = "4 h"
+    schedule = (Step("light", stages="rate", cadence=Cadence("4 h", at="start")),
+                Step("light", stages="state", name="absorbed_light"))
 
     def __init__(self, plant_data_structures, xrange, yrange, time_step):
         super().__init__(plant_data_structures, xrange, yrange, time_step)
@@ -340,6 +346,3 @@ class CaribuLightModel(EnvironmentModel):
         self.light = self.light_component(data_structure=self.data_structure, time_step=time_step,
                                           pattern=self.pattern)
         self.components = [self.light]
-
-    def between(self):
-        self.light.run_stage("state")

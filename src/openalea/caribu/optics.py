@@ -3,10 +3,7 @@ The optics of a plant model's elements in the PAR, for a light model (CaribuLigh
 model, its parameters the plant's (each plant's scenario may change them)::
 
     class Wheat(CompositeModel):
-        def __init__(self, data_structure, time_step):
-            self.shoot = ShootArchitecture(data_structure=data_structure, time_step=time_step)
-            self.optics = PlantOptics(data_structure=data_structure, time_step=time_step)
-            self.couple(self.shoot, self.optics)
+        parts = {"shoot": ShootArchitecture, "optics": PlantOptics}
 
 Each element's reflectance and transmittance by its kind, its MTG label among leaf_labels (two faces, translucent) or
 stem_labels (opaque): Wheat-BRIDGES' leaves ρ 0.10, τ 0.05, stems ρ 0.10; another element (a root) has none, so the

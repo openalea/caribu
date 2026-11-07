@@ -44,7 +44,7 @@ def export(start_hour: float = 6., hours: int = 12, outputs: str = OUTPUTS, fram
     start = calendar_date(DAY_OF_YEAR, start_hour - 1.)    # the first step ends at start_hour (simulate's clock)
     incident = clear_day_PAR(DAY_OF_YEAR, CaribuLight.latitude)                   # PAR (µmol m-2 s-1) by hour
     recorder = SceneRecorder(outputs, summaries=False, frame_period="step", frame_options=frame_options)   # frames only
-    built = Scene(table, environment=[CaribuLightModel], environment_scenarios=[{"interval": HOUR}], time_step=HOUR,
+    built = Scene(table, environment=[CaribuLightModel], environment_scenarios=[{"cadence": {"light": HOUR}}], time_step=HOUR,
                   forcings={"PARi": as_forcing(incident, time_unit=HOUR, origin="calendar")}, recorder=recorder,
                   start=start)
     built.simulate(hours)

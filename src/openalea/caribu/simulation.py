@@ -141,19 +141,11 @@ class SimplePlantModel(CompositeModel):
     the light is the scene's environment model (CaribuLightModel), linked by name."""
     initiators = (SimplePlant,)
 
-    def __init__(self, data_structure, time_step):
-        self.plant = SimplePlant(data_structure=data_structure, time_step=time_step)
-        self.optics = PlantOptics(data_structure=data_structure, time_step=time_step)
-        self.absorbed = AbsorbedLight(data_structure=data_structure, time_step=time_step)
-        self.couple(self.plant, self.optics, self.absorbed)
-
+    parts = {"plant": SimplePlant, "optics": PlantOptics, "absorbed": AbsorbedLight}
+    schedule = ("optics", "absorbed")
     def spin_up(self, scene):
         """The optics before the first lighting (its state steps, its clock left at the start)."""
         self.optics.run_stage("state")
-
-    def run(self):
-        self.optics()
-        self.absorbed()
 
 
 def parameters(values: dict = None, main_only: bool = False) -> pd.DataFrame:
@@ -278,7 +270,7 @@ def _split(values: dict):
     for name, value in values.items():
         if name in plant_names:
             plants[name] = value
-        elif light.get(name) == "setting" or name == "interval":
+        elif light.get(name) == "setting" or name == "cadence":
             settings[name] = value
         else:
             raise KeyError(f"simulate: '{name}' is neither a plant parameter (SimplePlant, PlantOptics) nor a "
@@ -292,8 +284,8 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
     """Light a stand of *rows* rows of *plants_per_row* SimplePlants (*row_spacing*, *plant_spacing* m apart), repeated
     around it (an infinite canopy), hour by hour for *hours* hours from *start_hour* (universal time) of day
     *day_of_year*, the canopy lit every hour. *parameters* ({name: value}) changes the plants' parameters (SimplePlant,
-    and their optics: PlantOptics) and the light's settings (CaribuLight; "interval", its lighting's): parameters()
-    lists them all.
+    and their optics: PlantOptics) and the light's settings (CaribuLight; "cadence", {"light": ...}, its lighting's):
+    parameters() lists them all.
 
     Given inputs (each a number, a function of the hour of the day, or a pandas Series indexed by it):
     *PARi* (µmol m-2 s-1; a clear day's by default, clear_day_PAR), the PAR above the stand;
@@ -316,7 +308,7 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
               for k, (row, column) in enumerate((row, column) for row in range(rows) for column in range(plants_per_row))]
     table = planting(plants, SimplePlantModel, plant_values, xrange=xrange, yrange=yrange)
     start = calendar_date(day_of_year, start_hour - 1.)    # the first step ends at start_hour (the clock, above)
-    settings = {"interval": "1 h", **settings}
+    settings = {"cadence": {"light": "1 h"}, **settings}
     incident = PARi if PARi is not None else clear_day_PAR(day_of_year, settings.get("latitude", CaribuLight.latitude))
     forcings = {"PARi": as_forcing(incident, time_unit=HOUR, origin="calendar")}          # by the hour of the day
     if diffuse_fraction is not None:
