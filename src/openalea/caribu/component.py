@@ -20,7 +20,7 @@ Its steps follow the physics:
 
 The canopy is lit every *interval* of CaribuLightModel (4 h by default, Wheat-BRIDGES'; its scenario's "interval")
 and when elements appear or go (geometry_input); in between it runs only _absorbed_PAR, PARa following PARi with the
-last Erel. The sun is the Scene's calendar's (Scene(start=(day_of_year, hour))). How the canopy is lit, the same for
+last Erel. The sun is the Scene's calendar's (Scene(start="2026-06-21 11:00"), the date of its time 0). How the canopy is lit, the same for
 every plant, is the component's settings: the light model (direct light, nested radiosity in the infinite canopy,
 pure SAIL, radiosity in the scene alone), the sky and the sun, the site, the soil, the numerics (precision,
 corrections, GPU, the linear solver). The optics are the plants': an optical component of their plant model
@@ -46,6 +46,8 @@ from . import corrections as corrections_module
 from .canopy import Canopy
 
 ELEMENT = dict(scale=scales.SubOrgan)
+# The date of time 0 of a component lit without a Scene start (Scene(start=)): 1 January, midnight (UTC)
+WITHOUT_START = "2026-01-01 00:00"
 SCREEN_SIZE = 1536             # pixels: the projections' screen side without a pixel_size (the reference's)
 
 
@@ -191,14 +193,14 @@ class CaribuLight(FunctionalComponent):
         """
         start, end = self.forcing_interval(over)
         if not self.sun or not end > start:
-            day, hour = self.calendar(end, default=(1., 0.))
+            day, hour = self.calendar(end, default=WITHOUT_START)
             return self.sources(self.forcing("PARi", over=(start, end)), day, hour)
         mean = self.forcing("PARi", over=(start, end))
         diffuse, suns = 0., []
         for first, last in self.forcing_panels((start, end)):
             PARi = self.forcing("PARi", over=(first, last))
             share = (last - first) / (end - start) * (PARi / mean if mean > 0 else 1.)
-            day, hour = self.calendar(0.5 * (first + last), default=(1., 0.))
+            day, hour = self.calendar(0.5 * (first + last), default=WITHOUT_START)
             panel_diffuse, sun = self._diffuse_and_sun(PARi, day, hour, over=(first, last))
             diffuse += share * panel_diffuse
             suns += [(share * energy, vector) for energy, vector in sun]
@@ -330,7 +332,7 @@ class CaribuLightModel(EnvironmentModel):
     once it is built."""
     light_component = CaribuLight
     compartment = "Atmosphere"
-    interval = 4 * 3600.
+    interval = "4 h"
 
     def __init__(self, plant_data_structures, xrange, yrange, time_step):
         super().__init__(plant_data_structures, xrange, yrange, time_step)

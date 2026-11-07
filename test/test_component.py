@@ -294,7 +294,7 @@ def test_the_sun_over_the_step_is_consistent_with_its_mean_PAR():
     def by_hour():                                                     # (a forcing is set at its scene's calendar)
         return as_forcing(clear_day_PAR(172, 48.85), time_unit="h", origin="calendar")
     built = Scene(planted([Wheat]), environment=[CaribuLightModel], environment_scenarios=[{"sun": True}],
-                  time_step=HOUR, forcings={"PARi": by_hour()}, start=(172, 11.))
+                  time_step=HOUR, forcings={"PARi": by_hour()}, start="2026-06-21 11:00")
     light = built.environment[0].light
     light.__dict__["_clock"] = 0.                                      # the step [11 h, 12 h]
     hourly = light.step_sources()
@@ -303,7 +303,7 @@ def test_the_sun_over_the_step_is_consistent_with_its_mean_PAR():
     np.testing.assert_allclose(hourly[-1][1], middle[-1][1])                           # the sun at 11:30
     assert hourly[-1][1] != pytest.approx(light.sources(light.forcing("PARi"), 172, 12.)[-1][1])
     daily = Scene(planted([Wheat]), environment=[CaribuLightModel], environment_scenarios=[{"sun": True}],
-                  time_step=24 * HOUR, forcings={"PARi": by_hour()}, start=(172, 0.))
+                  time_step=24 * HOUR, forcings={"PARi": by_hour()}, start="2026-06-21 00:00")
     light = daily.environment[0].light
     sources = light.step_sources()
     suns = sources[20:]

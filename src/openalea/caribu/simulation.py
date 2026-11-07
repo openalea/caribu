@@ -18,6 +18,7 @@ The stand: rows of identical plants (SimplePlant), each a vertical stem and leav
 on alternate sides, repeated around the stand (an infinite canopy). Lengths in m, PAR in µmol m-2 s-1.
 """
 from dataclasses import dataclass, fields
+from datetime import datetime, timedelta
 from math import radians
 
 import numpy as np
@@ -165,6 +166,18 @@ def parameters(values: dict = None, main_only: bool = False) -> pd.DataFrame:
     return table[table["main"]].reset_index(drop=True) if main_only else table
 
 
+def calendar_date(day_of_year: float, hour: float = 0., year: int = 2026) -> datetime:
+    """The date (UTC) of *hour* of day *day_of_year* (1: 1 January) of *year* (2026, 365 days), a Scene's start=; an
+    hour out of [0, 24) moves to the day before or after."""
+    return datetime(year, 1, 1) + timedelta(days=float(day_of_year) - 1., hours=float(hour))
+
+
+def hours_since(scene, midnight: datetime) -> float:
+    """The hours from *midnight* (a date) to *scene*'s time: a summary's hour of the day, counted on from the first
+    day (25 is the next day's 1 h)."""
+    return ((scene.start - midnight).total_seconds() + scene.time) / HOUR
+
+
 def clear_day_PAR(day_of_year: float = 172., latitude: float = 48.85, daily_global_radiation: float = 28e6):
     """The incident PAR (µmol m-2 s-1) of a clear day, a function of the hour (universal time): the hourly share of a
     day's global radiation (J m-2), 48 % of it PAR, 4.57 µmol per joule (lights.PAR_PER_GLOBAL)."""
@@ -177,15 +190,15 @@ def clear_day_PAR(day_of_year: float = 172., latitude: float = 48.85, daily_glob
 class _Summary:
     """The summary row of the hour just lit; none before the first lighting."""
 
-    def __init__(self, incident, ground: float):
-        self.incident, self.ground = incident, ground
+    def __init__(self, incident, ground: float, midnight: datetime):
+        self.incident, self.ground, self.midnight = incident, ground, midnight
 
     def __call__(self, scene):
         if scene.iteration == 0:
             return None
         light = scene.environment[0].light
         union = light.data_structure                                    # the elements' light: the light model's
-        hour = scene.start[1] + scene.time / HOUR                       # from the scene's start, in hours
+        hour = hours_since(scene, self.midnight)                        # since the first day's midnight
         PAR = forcing_mean(self.incident, scene.time - scene.time_step, scene.time)     # the hour's, as lit
         area = np.asarray(union.get("lit_area"))
         absorbed_per_ground = float(np.sum(np.asarray(union.get("Erel")) * area)) / self.ground
@@ -286,7 +299,8 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
     *PARi* (µmol m-2 s-1; a clear day's by default, clear_day_PAR), the PAR above the stand;
     *diffuse_fraction* (between 0 and 1; with the sun only, Spitters' from PARi by default), its diffuse share.
 
-    The clock: the scene's calendar (Scene(start=(day_of_year, hour))) is that of its time 0, and a step reads its
+    The clock: the scene's calendar (Scene(start=), the date of its time 0: *day_of_year* of 2026, a year of 365 days)
+    is that of its time 0, and a step reads its
     forcings over its hour (PARi's mean) and its sun at the hour's middle (CaribuLight's sources by panel: one panel,
     so one sun, for an hourly step): the scene starts an hour before *start_hour*, so that its first step is the hour ending at *start_hour*, the summary's
     first hour (its PARi the hour's mean).
@@ -301,16 +315,16 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
     plants = [Planting(x=plant_spacing * (column + 0.5), y=row_spacing * (row + 0.5), rotation=(37. * k) % 180.)
               for k, (row, column) in enumerate((row, column) for row in range(rows) for column in range(plants_per_row))]
     table = planting(plants, SimplePlantModel, plant_values, xrange=xrange, yrange=yrange)
-    start = (day_of_year, start_hour - 1.)                 # the first step ends at start_hour (the clock, above)
-    settings = {"interval": HOUR, **settings}
+    start = calendar_date(day_of_year, start_hour - 1.)    # the first step ends at start_hour (the clock, above)
+    settings = {"interval": "1 h", **settings}
     incident = PARi if PARi is not None else clear_day_PAR(day_of_year, settings.get("latitude", CaribuLight.latitude))
     forcings = {"PARi": as_forcing(incident, time_unit=HOUR, origin="calendar")}          # by the hour of the day
     if diffuse_fraction is not None:
         forcings["diffuse_fraction"] = as_forcing(diffuse_fraction, time_unit=HOUR, origin="calendar")
     ground = xrange * yrange
-    summary = _Summary(forcings["PARi"], ground)
+    summary = _Summary(forcings["PARi"], ground, calendar_date(day_of_year))
     recorder = SceneRecorder(outputs, summaries=outputs is not None, tables={"summary": summary},
-                             frame_period=1 if outputs is not None else None)
+                             frame_period="step" if outputs is not None else None)
     built = Scene(table, environment=[CaribuLightModel], environment_scenarios=[settings], time_step=HOUR,
                   forcings=forcings, recorder=recorder, start=start, compute=compute)
     built.simulate(int(round(hours)))

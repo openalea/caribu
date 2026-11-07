@@ -21,6 +21,7 @@ from openalea.adel.development import ScenarioShoot, coleoptile_sowing_depth, ra
 from openalea.adel.leaf_shapes import LeafShapes
 from openalea.caribu import lights
 from openalea.caribu.component import CaribuLightModel
+from openalea.caribu.simulation import calendar_date
 from openalea.caribu.optics import PlantOptics
 from openalea.metafspm.display import draw, value_colors
 from openalea.metafspm.scene.population import planting
@@ -65,7 +66,7 @@ def stand_scene():
                      [{"delay": float(delay)} for delay in random_delays(N_PLANTS)], xrange=XRANGE, yrange=YRANGE)
     lighting = {"sun": True, "latitude": LATITUDE, "interval": 4 * 3600.}
     return Scene(table, environment=[CaribuLightModel], environment_scenarios=[lighting], time_step=3600.,
-                 forcings={"PARi": incident_PAR}, start=(DAY_OF_YEAR, 0.))
+                 forcings={"PARi": incident_PAR}, start=calendar_date(DAY_OF_YEAR))
 
 
 if __name__ == "__main__":
