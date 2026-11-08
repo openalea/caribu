@@ -48,14 +48,14 @@ def face_optics(labels, optics):
     return reflectance, transmittance
 
 
-def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=None, workers=None, pattern=None,
+def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=None, threads=None, pattern=None,
                 flags=None, cache=None, corrections=frozenset()):
     """The accepted triangles' first-order radiosities (n_faces,) in canestrad's face order, their areas, the
     sensors' (m,) irradiances (their first-order radiosities: a sensor reflects all, ρ = 1) and their areas, and the
     faces' irradiances (n_faces,). *points*: float32
     (n, 3, 3) accepted triangles; *lights*: [(E, (vx, vy, vz))]; *bounds*: the scene's (vmin, vmax) float32, by default
     those of *points*; *sensors*: float32 (m, 3, 3) virtual sensors, seen only from above their upper face, which
-    neither shade nor scatter; *workers*: the threads projecting the sources (by default, one per processor). With a
+    neither shade nor scatter; *threads*: the threads projecting the sources (by default, one per processor). With a
     *pattern* (xmin, ymin, xmax, ymax) the canopy is infinite: the screen spans the pattern, the triangles across its
     borders (*flags*, periodic.border_flags') drawn with their shifted copies, the image tiled. *cache*: a dict of
     each direction's lit areas, filled and reused (the same scene, size, sensors and corrections: the caller's to
@@ -117,7 +117,7 @@ def first_order(points, labels, lights, optics, size=1536, bounds=None, sensors=
     missing = [direction for direction in dict.fromkeys(directions) if direction not in cache]
     radiosity, incident, sensor_radiosity = np.zeros(n_faces), np.zeros(n_faces), np.zeros(len(sensors))
     # the sources' projections in parallel (numba releases the GIL), their contributions summed in the sources' order
-    with ThreadPoolExecutor(max_workers=workers) as executor:
+    with ThreadPoolExecutor(max_workers=threads) as executor:
         cache.update(zip(missing, executor.map(lit_areas, missing)))
         for (energy, _), (areas, seen) in zip(lights, (cache[direction] for direction in directions)):
             accumulate(radiosity, incident, areas, float(energy), first_face, translucent, reflectance, transmittance,
@@ -176,14 +176,14 @@ def results(labels, accepted, points, surfaces, radiosity, optics, incident=None
     return result
 
 
-def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None, pattern=None, cache=None,
+def run(vertices, labels, lights, optics, size=1536, sensors=None, threads=None, pattern=None, cache=None,
         prepared=None, corrections=frozenset()):
     """Direct light on a scene, as canestrad -1: per input triangle (n,) its area (canestrad's, 0 if rejected), Eabs,
     Ei (sup + inf), Ei_sup, Ei_inf (float32; NaN if rejected, Ei_inf −1 for an opaque triangle) and whether it was
     accepted. *vertices* (n, 3, 3), *labels* (n,) or one for all, *lights* [(E, (vx, vy, vz))], *optics* (soil
     reflectance, {species: (rho_stem, rho_sup, tau_sup, rho_inf, tau_inf)}); *size* the z-buffer's side in pixels. With
     *sensors*
-    (m, 3, 3), result["sensors"] holds their irradiance "Ei" and "area". *workers*: first_order's. With a *pattern*
+    (m, 3, 3), result["sensors"] holds their irradiance "Ei" and "area". *threads*: first_order's. With a *pattern*
     (x1, y1, x2, y2) the canopy is infinite (canestrad -8, after periodise): the triangles are first moved into the
     pattern (result["points"], the scene canestrad reads), those whose centre still lies outside it rejected.
     *cache*: first_order's; *prepared*: scene's result on these vertices, labels and pattern; *corrections*:
@@ -194,7 +194,7 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
         lights = []  # nothing to light: every row rejected
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     radiosity, surfaces, sensor_radiosity, sensor_surfaces, incident = first_order(
-        points[accepted], kept, lights, optics, size, sensors=sensor_points, workers=workers, pattern=pattern,
+        points[accepted], kept, lights, optics, size, sensors=sensor_points, threads=threads, pattern=pattern,
         flags=flags, cache=cache, corrections=corrections)
     result = results(labels, accepted, points, surfaces, radiosity, optics,
                      incident if "face_irradiance" in corrections else None)

@@ -1644,7 +1644,7 @@ def warm_up() -> None:
     lights, domain, sensors = [(1., (0.3, 0.1, -0.9))], (-1., -1., 2., 2.), [[(0., 0., 0.2), (0.1, 0., 0.2),
                                                                                 (0., 0.1, 0.2)]]
     for precision, corrections in (("legacy", None), ("full", None), ("full", "recommended")):
-        options = dict(screen_size=64, precision=precision, corrections=corrections, workers=1)
+        options = dict(screen_size=64, precision=precision, corrections=corrections, threads=1)
         api.raycasting(triangles, materials, lights, domain=domain, sensors=sensors, **options)
         api.raycasting(triangles, materials, lights, **options)
         api.radiosity(triangles, materials, lights, sensors=sensors, **options)

@@ -353,8 +353,8 @@ def test_a_subclass_lights_with_its_component():
     assert np.sum(ds.get("PAR_flux")) > 0
 
 
-def test_the_workers_bound_the_projection_threads(monkeypatch):
-    """workers: the threads projecting the sources ('auto' half the processors), the Scene's Compute's unless the
+def test_the_threads_bound_the_projection_threads(monkeypatch):
+    """threads: the threads projecting the sources ('auto' half the processors), the Scene's Compute's unless the
     scenario gives it; a bad value raises."""
     from concurrent import futures
     from openalea.caribu import direct
@@ -367,16 +367,16 @@ def test_the_workers_bound_the_projection_threads(monkeypatch):
             super().__init__(max_workers=max_workers, **options)
 
     monkeypatch.setattr(direct, "ThreadPoolExecutor", Recording)
-    built = scene([Wheat], {"workers": 2})
+    built = scene([Wheat], {"threads": 2})
     built.run()
     assert bounds == [2]
     built = Scene(planted([Wheat]), environment=[CaribuLightModel], time_step=HOUR,
-                  forcings={"PARi": lambda time: 500.}, compute=Compute(workers=3))
-    assert built.environment[0].light.workers == 3
+                  forcings={"PARi": lambda time: 500.}, compute=Compute(threads=3))
+    assert built.environment[0].light.threads == 3
     assert scene([Wheat]).environment[0].light.projection_threads() == max(1, (__import__("os").cpu_count() or 1) // 2)
-    for workers in (0, "all", 1.5):
-        with pytest.raises(ValueError, match="workers"):
-            CaribuLight(data_structure=built.environment[0].data_structure, workers=workers)
+    for threads in (0, "all", 1.5):
+        with pytest.raises(ValueError, match="threads"):
+            CaribuLight(data_structure=built.environment[0].data_structure, threads=threads)
 
 
 def test_the_screen_follows_the_pixel_size():

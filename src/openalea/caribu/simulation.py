@@ -299,8 +299,7 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
     *outputs*: a folder for the run's files (metafspm's SceneRecorder): run.json, scenario.json, summary.csv (the
     summary), Plant/SimplePlantModel/summaries.csv (the light each plant absorbs, every hour) and a frame of the
     stand every hour (frames/, for ParaView or another platform). *compute*: the Scene's run configuration
-    (metafspm's Compute: its threads, its workers the light's projection threads and its process pool, its sparse
-    solver; None: Compute())."""
+    (metafspm's Compute: its threads, the light's projection threads too, its sparse solver; None: Compute())."""
     plant_values, settings = _split(dict(parameters or {}))
     xrange, yrange = plants_per_row * plant_spacing, rows * row_spacing
     plants = [Planting(x=plant_spacing * (column + 0.5), y=row_spacing * (row + 0.5), rotation=(37. * k) % 180.)

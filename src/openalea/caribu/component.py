@@ -128,8 +128,8 @@ class CaribuLight(FunctionalComponent):
                                 "screen's side: that extent / pixel_size pixels), so that a larger pattern keeps its "
                                 "resolution; None: a screen of SCREEN_SIZE pixels (1536) whatever the extent",
                                 default=None)
-    workers: object = setting(description="The threads projecting the light sources (each holding a screen of "
-                              "depths): 'auto' half the processors, or a number; in a Scene, its Compute's workers "
+    threads: object = setting(description="The threads projecting the light sources (each holding a screen of "
+                              "depths): 'auto' half the processors, or a number; in a Scene, its Compute's threads "
                               "unless the scenario gives it", default="auto")
     precision: str = setting(description="'full' the computed values, 'legacy' the legacy's printed digits",
                              default="full", choices=("full", "legacy"))
@@ -150,13 +150,13 @@ class CaribuLight(FunctionalComponent):
         corrections_module.resolve(self.corrections, self.precision)
 
     def check_settings(self) -> None:
-        """The settings' choices, the workers ('auto' or a positive number) and the pixel size (positive or None),
+        """The settings' choices, the threads ('auto' or a positive number) and the pixel size (positive or None),
         at construction and after a scenario."""
         super().check_settings()
-        threads = self.workers
+        threads = self.threads
         if threads != "auto" and (isinstance(threads, bool) or not isinstance(threads, (int, np.integer))
                                   or threads < 1):
-            raise ValueError(f"CaribuLight: workers is 'auto' or a positive number of threads, got {self.workers!r}")
+            raise ValueError(f"CaribuLight: threads is 'auto' or a positive number, got {self.threads!r}")
         if self.pixel_size is not None and not float(self.pixel_size) > 0:
             raise ValueError(f"CaribuLight: pixel_size is a positive length (m) or None, got {self.pixel_size!r}")
 
@@ -306,22 +306,22 @@ class CaribuLight(FunctionalComponent):
         return max(2, int(np.ceil(extent / float(self.pixel_size) - 1e-9)))       # within round-off
 
     def projection_threads(self) -> int:
-        """The threads projecting the sources: workers, "auto" half the processors (at least 1)."""
-        if self.workers == "auto":
+        """The threads projecting the sources: threads, "auto" half the processors (at least 1)."""
+        if self.threads == "auto":
             return max(1, (os.cpu_count() or 1) // 2)
-        return int(self.workers)
+        return int(self.threads)
 
     def canopy(self, vertices, labels) -> Canopy:
         """The Canopy of these triangles, kept (not checkpointed) while they, their labels and the settings it
         depends on are the same."""
         infinite = self.mode == "nested" or (self.infinite and self.mode == "direct")
         pattern = self.repeated_pattern(vertices) if infinite else None
-        size, workers = self.screen_size(vertices, pattern), self.projection_threads()
-        made_with = (pattern, size, workers, self.device, corrections_module.resolve(self.corrections))
+        size, threads = self.screen_size(vertices, pattern), self.projection_threads()
+        made_with = (pattern, size, threads, self.device, corrections_module.resolve(self.corrections))
         kept, kept_with = self.kept("canopy", (None, None))
         if (kept is None or kept_with != made_with or kept.vertices.shape != vertices.shape
                 or not np.array_equal(kept.vertices, vertices) or not np.array_equal(kept.labels, labels)):
-            kept = Canopy(vertices, labels, pattern=pattern, size=size, workers=workers, device=self.device,
+            kept = Canopy(vertices, labels, pattern=pattern, size=size, threads=threads, device=self.device,
                           corrections=self.corrections)
             self.keep("canopy", (kept, made_with), saved=False)
         return kept

@@ -116,7 +116,7 @@ def _sensor_outputs(sensors, precision) -> dict:
 # --- Direct light ---
 
 def raycasting(triangles, materials, lights=(DEFAULT_LIGHT,), domain=None, screen_size=1536, sensors=None,
-               debug=False, precision="legacy", workers=None, corrections=None) -> dict:
+               debug=False, precision="legacy", threads=None, corrections=None) -> dict:
     """Direct light on triangles of *materials* (caribu.raycasting): per triangle index, label, area, Eabs, Ei,
     Ei_sup, Ei_inf, and "sensors" when *sensors* are given. *domain* (xmin, ymin, xmax, ymax): an infinite canopy
     repeating it. *debug*: the legacy's (it kept its files), without effect here. *corrections*: the legacy's
@@ -127,18 +127,18 @@ def raycasting(triangles, materials, lights=(DEFAULT_LIGHT,), domain=None, scree
     species, labels = species_and_labels(materials)
     sensor_points = None if sensors is None else _as_array(sensors)
     result = direct.run(_as_array(triangles), labels, list(lights), optics(species), screen_size,
-                        sensor_points, workers, pattern=domain, corrections=chosen)
+                        sensor_points, threads, pattern=domain, corrections=chosen)
     return _radiosity_outputs(labels, result, materials, sensors, precision, chosen)
 
 
 def x_raycasting(triangles, x_materials, lights=(DEFAULT_LIGHT,), domain=None, screen_size=1536, sensors=None,
-                 debug=False, precision="legacy", workers=None, corrections=None) -> dict:
+                 debug=False, precision="legacy", threads=None, corrections=None) -> dict:
     """raycasting for several bands, {band: materials}: the projections are the same for all, so the last band is
     computed and the others' Eabs follow from its Ei (their absorptance times it), as caribu.x_raycasting. With
     *corrections*, from its faces' Ei_sup and Ei_inf (each face's absorptance: an asymmetric leaf's too)."""
     x_materials = dict(x_materials)
     band, materials = x_materials.popitem()
-    out = raycasting(triangles, materials, lights, domain, screen_size, sensors, debug, precision, workers,
+    out = raycasting(triangles, materials, lights, domain, screen_size, sensors, debug, precision, threads,
                      corrections)
     x_out = {band: out}
     for other in x_materials:
@@ -177,7 +177,7 @@ def _radiosity_outputs(labels, result, materials, sensors, precision, correction
 
 
 def radiosity(triangles, materials, lights=(DEFAULT_LIGHT,), screen_size=1536, sensors=None, debug=False,
-              precision="legacy", workers=None, corrections=None) -> dict:
+              precision="legacy", threads=None, corrections=None) -> dict:
     """Every order of scattering between triangles of *materials* (caribu.radiosity, the whole scene in the near
     field): raycasting's outputs, the sensors' "Ei0" their first order and "Ei" their total."""
     if len(triangles) <= 1:
@@ -188,12 +188,12 @@ def radiosity(triangles, materials, lights=(DEFAULT_LIGHT,), screen_size=1536, s
     species, labels = species_and_labels(materials)
     sensor_points = None if sensors is None else _as_array(sensors)
     result = radiosity_module.run(_as_array(triangles), labels, list(lights), optics(species), screen_size,
-                                  sensor_points, workers, corrections=chosen)
+                                  sensor_points, threads, corrections=chosen)
     return _radiosity_outputs(labels, result, materials, sensors, precision, chosen)
 
 
 def x_radiosity(triangles, x_materials, lights=(DEFAULT_LIGHT,), screen_size=1536, sensors=None, debug=False,
-                precision="legacy", workers=None, corrections=None) -> dict:
+                precision="legacy", threads=None, corrections=None) -> dict:
     """radiosity for several bands, {band: materials}: {band: outputs}; the form factors computed once (caribu's
     first band computes them, the others read them)."""
     if len(triangles) <= 1:
@@ -205,14 +205,14 @@ def x_radiosity(triangles, x_materials, lights=(DEFAULT_LIGHT,), screen_size=153
     out, counts = {}, None
     for band, materials in x_materials.items():
         result = radiosity_module.run(points, labels, list(lights), optics(x_species[band]), screen_size,
-                                      sensor_points, workers, counts=counts, corrections=chosen)
+                                      sensor_points, threads, counts=counts, corrections=chosen)
         counts = result["counts"]
         out[band] = _radiosity_outputs(labels, result, materials, sensors, precision, chosen)
     return out
 
 
 def mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, diameter, layers, height,
-                    screen_size=1536, sensors=None, debug=False, precision="legacy", workers=None,
+                    screen_size=1536, sensors=None, debug=False, precision="legacy", threads=None,
                     corrections=None) -> dict:
     """Scattering in the infinite canopy repeating *domain* (caribu.mixed_radiosity): the far field in *layers*
     up to *height* (s2v, mcsail), the triangles within a sphere of *diameter* in radiosity (0: none, pure SAIL);
@@ -225,12 +225,12 @@ def mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, diam
     species, labels = species_and_labels(materials)
     sensor_points = None if sensors is None else _as_array(sensors)
     result = nested.run(_as_array(triangles), labels, list(lights), optics(species, soil_reflectance), domain,
-                        layers, height, diameter, screen_size, sensor_points, workers, precision, corrections=chosen)
+                        layers, height, diameter, screen_size, sensor_points, threads, precision, corrections=chosen)
     return _radiosity_outputs(labels, result, materials, sensors, precision, chosen)
 
 
 def x_mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, diameter, layers, height,
-                      sensors=None, screen_size=1536, debug=False, precision="legacy", workers=None,
+                      sensors=None, screen_size=1536, debug=False, precision="legacy", threads=None,
                       corrections=None) -> dict:
     """mixed_radiosity for several bands, {band: materials}, *soil_reflectance* {band: ρ}: {band: outputs}; the
     near field's form factors and the far field's weights computed in the first band, reused in the others (as
@@ -244,7 +244,7 @@ def x_mixed_radiosity(triangles, materials, lights, domain, soil_reflectance, di
     out, reused = {}, None
     for band, band_materials in materials.items():
         result = nested.run(points, labels, list(lights), optics(x_species[band], soil_reflectance[band]), domain,
-                            layers, height, diameter, screen_size, sensor_points, workers, precision,
+                            layers, height, diameter, screen_size, sensor_points, threads, precision,
                             weights=reused, corrections=chosen)
         if diameter != 0 and reused is None:
             reused = (result["counts"], result["weights"])
@@ -455,7 +455,7 @@ class CaribuScene:
         return incident, entering
 
     def run(self, direct=True, infinite=False, d_sphere=0.5, layers=10, height=None, screen_size=1536,
-            screen_resolution=None, sensors=None, split_face=False, simplify=False, workers=None):
+            screen_resolution=None, sensors=None, split_face=False, simplify=False, threads=None):
         """Light on the scene: (raw, aggregated), each {band: {name: {pid: values}}}, names Eabs, Ei, area (and
         Ei_inf, Ei_sup with *split_face*; "sensors" {name: {sensor id: values}} with *sensors* {id: [triangles]}).
         *direct*: first order only; *infinite*: the pattern repeated; *simplify*: no band level for a single band.
@@ -492,7 +492,7 @@ class CaribuScene:
             sensor_groups = [key for key, values in sensors.items() for _ in values]
             sensors = [triangle for values in sensors.values() for triangle in values]
         domain = self.pattern if infinite else None
-        common = dict(precision=self.precision, workers=workers, corrections=self.corrections)
+        common = dict(precision=self.precision, threads=threads, corrections=self.corrections)
         if not direct and infinite and len(bands) == 1:
             out = {bands[0]: mixed_radiosity(triangles, materials[bands[0]], lights, domain,
                                              self.soil_reflectance[bands[0]], d_sphere, layers, height, screen_size,

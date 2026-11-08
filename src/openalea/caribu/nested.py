@@ -33,7 +33,7 @@ def far_field_profile(points, labels, lights, optics, pattern, layers, height, p
 
 
 def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diameter=0., size=1536, sensors=None,
-        workers=None, precision="legacy", bias=True, resolution=52, tolerance=1e-6, iterations=1000, threshold=50,
+        threads=None, precision="legacy", bias=True, resolution=52, tolerance=1e-6, iterations=1000, threshold=50,
         ratio=1., weights=None, cache=None, prepared=None, device="cpu", corrections=frozenset(), linear_solver="mgcr"):
     """Direct light and its scattering in the infinite canopy repeating *pattern* (x1, y1, x2, y2), the far field
     in *layers* up to *height*: direct.run's result, its budgets from the radiosities; result["profile"] the far
@@ -50,7 +50,7 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
     if linear_solver != "mgcr" and precision == "legacy":
         raise ValueError("the legacy's precision solves with canestrad's MGCR: linear_solver 'gmres' needs 'full'")
     if diameter != 0:
-        return _nested(vertices, labels, lights, optics, pattern, layers, height, diameter, size, sensors, workers,
+        return _nested(vertices, labels, lights, optics, pattern, layers, height, diameter, size, sensors, threads,
                        precision, bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared,
                        device, corrections, linear_solver)
     points, labels, accepted, flags = (direct.scene(vertices, labels, pattern, corrections) if prepared is None
@@ -60,7 +60,7 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
                                            corrections)
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     first, surfaces, sensor_first, sensor_surfaces, incident = direct.first_order(
-        kept_points, kept, lights if accepted.any() else [], optics, size, sensors=sensor_points, workers=workers,
+        kept_points, kept, lights if accepted.any() else [], optics, size, sensors=sensor_points, threads=threads,
         pattern=pattern, flags=flags, cache=cache, corrections=corrections)
     translucent = is_translucent(kept)
     first_face, n_faces = direct.face_numbering(translucent)
@@ -81,7 +81,7 @@ def run(vertices, labels, lights, optics, pattern, layers=10, height=1., diamete
     return result
 
 
-def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter, size, sensors, workers, precision,
+def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter, size, sensors, threads, precision,
             bias, resolution, tolerance, iterations, threshold, ratio, weights, cache, prepared, device, corrections,
             linear_solver):
     points, labels, accepted, flags = (direct.scene(vertices, labels, pattern, corrections) if prepared is None
@@ -91,7 +91,7 @@ def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter,
                                            corrections)
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     first, surfaces, sensor_first, sensor_surfaces, incident = direct.first_order(
-        kept_points, kept, lights if accepted.any() else [], optics, size, sensors=sensor_points, workers=workers,
+        kept_points, kept, lights if accepted.any() else [], optics, size, sensors=sensor_points, threads=threads,
         pattern=pattern, flags=flags, cache=cache, corrections=corrections)
     translucent = is_translucent(kept)
     first_face, n_faces = direct.face_numbering(translucent)
@@ -114,7 +114,7 @@ def _nested(vertices, labels, lights, optics, pattern, layers, height, diameter,
         cells = nearfield.grid(kept_points, sensor_points, radius, pattern, threshold, ratio)
         counts, far, level_weights = nearfield.counts(
             kept_points, kept, translucent, first_face, n_faces, normals, centres, radius, sensor_points,
-            sensor_normals, sensor_centres, resolution, workers, grid=cells, profile=profile, optics=receiver_optics,
+            sensor_normals, sensor_centres, resolution, threads, grid=cells, profile=profile, optics=receiver_optics,
             bias=bias, device=device, options=nearfield.options(corrections))
     else:
         counts, level_weights = weights

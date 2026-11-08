@@ -76,12 +76,12 @@ Threads, screen and memory
 ==========================
 
 The sources are projected in parallel threads (numba releases the GIL), each holding a screen of float32 depths of
-side ``size`` pixels: the component's ``workers`` setting bounds them (``"auto"``, by default: half the processors;
-in a metafspm Scene, its ``Compute(workers=)`` unless the scenario gives it). The screen's side is 1536 pixels by
+side ``size`` pixels: the component's ``threads`` setting bounds them (``"auto"``, by default: half the processors;
+in a metafspm Scene, its ``Compute(threads=)`` unless the scenario gives it). The screen's side is 1536 pixels by
 default whatever the scene's extent; ``pixel_size`` (m) sets it to the scene's horizontal extent (the pattern's) over
 the pixel size instead, so that a larger pattern keeps its resolution: a 0.3 m pattern at ``pixel_size=0.3 / 1536``
 is the default's screen, a 3 m pattern at that pixel size a screen ten times as wide (and its buffers a hundred
-times as large: bound the workers accordingly).
+times as large: bound the threads accordingly).
 
 The compiled kernels
 ====================

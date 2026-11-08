@@ -18,14 +18,14 @@ from . import direct, nested, radiosity
 
 class Canopy:
     """A static scene: *vertices* (n, 3, 3), *labels* (n,), *pattern* (x1, y1, x2, y2) for an infinite canopy,
-    *sensors* (m, 3, 3); *size* the projections' screen (pixels), *workers* the threads; *device* "cuda": the near
-    field on the GPU (gpu.available()); *corrections*: the legacy's behaviours corrected (corrections.resolve:
-    "recommended", names, or none), the same for every call."""
+    *sensors* (m, 3, 3); *size* the projections' screen (pixels), *threads* the projections' threads; *device*
+    "cuda": the near field on the GPU (gpu.available()); *corrections*: the legacy's behaviours corrected
+    (corrections.resolve: "recommended", names, or none), the same for every call."""
 
-    def __init__(self, vertices, labels, pattern=None, sensors=None, size=1536, workers=None, device="cpu",
+    def __init__(self, vertices, labels, pattern=None, sensors=None, size=1536, threads=None, device="cpu",
                  corrections=None):
         self.vertices, self.labels, self.pattern, self.sensors = vertices, labels, pattern, sensors
-        self.size, self.workers, self.device = size, workers, device
+        self.size, self.threads, self.device = size, threads, device
         self.corrections = corrections_module.resolve(corrections)
         # the triangles as canestrad reads them
         self.prepared = direct.scene(vertices, labels, pattern, self.corrections)
@@ -35,14 +35,14 @@ class Canopy:
 
     def direct(self, lights, optics) -> dict:
         """Direct light (canestrad -1, or -8 with a pattern): direct.run's result."""
-        return direct.run(self.vertices, self.labels, lights, optics, self.size, self.sensors, self.workers,
+        return direct.run(self.vertices, self.labels, lights, optics, self.size, self.sensors, self.threads,
                           self.pattern, cache=self._lit, prepared=self.prepared, corrections=self.corrections)
 
     def radiosity(self, lights, optics, resolution=52, tolerance=1e-6, iterations=1000, linear_solver="mgcr") -> dict:
         """Radiosity in the whole scene (not an infinite canopy): radiosity.run's result."""
         if self.pattern is not None:
             raise ValueError("full radiosity is for a closed scene: use nested() in an infinite canopy")
-        result = radiosity.run(self.vertices, self.labels, lights, optics, self.size, self.sensors, self.workers,
+        result = radiosity.run(self.vertices, self.labels, lights, optics, self.size, self.sensors, self.threads,
                                resolution, tolerance, iterations, counts=self._form_factors.get(resolution),
                                cache=self._lit, prepared=self.prepared, device=self.device,
                                corrections=self.corrections, linear_solver=linear_solver)
@@ -58,7 +58,7 @@ class Canopy:
         key = (layers, float(height), float(diameter), bias, resolution, threshold, ratio)  # the weights' levels too
         reused = self._near_field.get(key) if precision == "full" else None
         result = nested.run(self.vertices, self.labels, lights, optics, self.pattern, layers, height, diameter,
-                            self.size, self.sensors, self.workers, precision, bias, resolution, tolerance,
+                            self.size, self.sensors, self.threads, precision, bias, resolution, tolerance,
                             iterations, threshold, ratio, weights=reused, cache=self._lit, prepared=self.prepared,
                             device=self.device, corrections=self.corrections, linear_solver=linear_solver)
         if diameter != 0 and reused is None:

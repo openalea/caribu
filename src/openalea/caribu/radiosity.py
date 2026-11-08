@@ -13,7 +13,7 @@ from .labels import is_translucent
 F32 = np.float32
 
 
-def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None, resolution=52, tolerance=1e-6,
+def run(vertices, labels, lights, optics, size=1536, sensors=None, threads=None, resolution=52, tolerance=1e-6,
         iterations=1000, counts=None, cache=None, prepared=None, device="cpu", corrections=frozenset(),
         linear_solver="mgcr"):
     """Radiosity on the triangles: direct.run's result, its budgets from the solved radiosities; result["steps"]
@@ -26,7 +26,7 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
     kept_points, kept = points[accepted], labels[accepted]
     sensor_points = None if sensors is None else geometry.as_legacy_vertices(sensors)
     first, surfaces, sensor_first, sensor_surfaces, incident = direct.first_order(
-        kept_points, kept, lights, optics, size, sensors=sensor_points, workers=workers, cache=cache,
+        kept_points, kept, lights, optics, size, sensors=sensor_points, threads=threads, cache=cache,
         corrections=corrections)
     translucent = is_translucent(kept)
     first_face, n_faces = direct.face_numbering(translucent)
@@ -41,7 +41,7 @@ def run(vertices, labels, lights, optics, size=1536, sensors=None, workers=None,
         sensor_normals, sensor_centres = kernels.legacy_normals(sensor_points), kernels.legacy_centres(sensor_points)
     if counts is None:
         counts = nearfield.counts(kept_points, kept, translucent, first_face, n_faces, normals, centres, radius,
-                                  sensor_points, sensor_normals, sensor_centres, resolution, workers, device=device,
+                                  sensor_points, sensor_normals, sensor_centres, resolution, threads, device=device,
                                   options=nearfield.options(corrections))
     indptr, faces, values = counts
     receiver_faces = np.concatenate([first_face, n_faces + np.arange(sensor_count)]).astype(np.int64)

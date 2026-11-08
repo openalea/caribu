@@ -159,7 +159,7 @@ def spreads(points) -> np.ndarray:
 
 
 def counts(points, labels, translucent, first_face, n_faces, normals, centres, radius, sensors=None,
-           sensor_normals=None, sensor_centres=None, size=52, workers=None, chunk=64, grid=None, profile=None,
+           sensor_normals=None, sensor_centres=None, size=52, threads=None, chunk=64, grid=None, profile=None,
            optics=None, bias=True, device="cpu", options=0):
     """The near-field rows of every receiver, the accepted triangles then the sensors: (indptr, faces, counts), a
     CSR matrix of net pixel counts (rows: receivers; columns: emitter faces). *radius*: the sphere's radius around
@@ -208,7 +208,7 @@ def counts(points, labels, translucent, first_face, n_faces, normals, centres, r
                                   grid["members"], grid["infinite"], grid["period"], bias, table, rows, thickness,
                                   form_factor(size), options)
     else:
-        with ThreadPoolExecutor(max_workers=workers) as executor:
+        with ThreadPoolExecutor(max_workers=threads) as executor:
             parts = list(executor.map(run, starts))
     lengths = np.concatenate([part[0] for part in parts]) if parts else np.zeros(0, dtype=np.int64)
     indptr = np.concatenate([[0], np.cumsum(lengths)]).astype(np.int64)
