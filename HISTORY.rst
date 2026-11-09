@@ -6,6 +6,11 @@ History
 Unreleased (the metafspm port)
 ------------------------------
 
+* metafspm fix-B (a packed run's frames folder removed once its archive is checked): ``simulate(outputs=)`` packs
+  the frames into ``frames.fspm.zip`` when the run finishes (``SceneRecorder(pack_at_finish=True)``: the archive
+  checked, then ``frames/`` removed); ``example/exchange/export_frames.py`` packs both of its exports and validates
+  the archives, ``import_frames.py`` reads ``outputs/frames.fspm.zip``; user tutorial 1 lists ``frames.fspm.zip``
+  (re-run).
 * Breaking: the projection threads are named ``threads`` everywhere, no longer ``workers`` (no alias):
   ``CaribuLight``'s setting (in a metafspm Scene, its ``Compute(threads=)`` unless the scenario gives it; metafspm's
   process pool and ``Compute.workers`` are removed, devplan_generic_kernels QG-3), ``Canopy(threads=)``,

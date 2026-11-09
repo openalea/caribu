@@ -2,22 +2,25 @@
 Exporting a lit canopy as encoding3d files: one frame per hour of a clear summer day, the format the other FSPM
 platforms (CPlantBox, GroIMP, VirtualPlantLab) and ParaView read.
 
-    python export_frames.py [--start H] [--hours N]      frames in ./outputs/frames: frame_<step>.glb, scene.fspm.json
+    python export_frames.py [--start H] [--hours N]      frames in ./outputs/frames.fspm.zip: frame_<step>.glb, ...
 
 The scene is the one openalea.caribu.simulation.simulate builds: a stand of 3 rows of 8 SimplePlants lit by
 CaribuLightModel, hour by hour, under a clear day's PAR (21 June, Paris). Its recorder (metafspm's SceneRecorder,
 its summaries off), given a frame_period, writes the whole scene every step: every plant, organ and element with its
-variables, among them the light each element absorbs (PARa), and the elements' triangles as a mesh. The sequence is then checked with encoding3d's validator.
+variables, among them the light each element absorbs (PARa), and the elements' triangles as a mesh. At the end the
+frames folder is packed into frames.fspm.zip (the archive checked, then the folder removed), and the sequence is
+checked with encoding3d's validator.
 
 A second, filtered export shows logging: the plants and their elements only, with the light they absorb, in
-./outputs/log/frames (outputs only: such frames are not reimported).
+./outputs/log/frames.fspm.zip (outputs only: such frames are not reimported).
 
-Open outputs/frames/scene.fspm.json in ParaView with encoding3d's reader plugin (encoding3d/paraview/plugin_encoding3d.py) and
+Open outputs/frames.fspm.zip in ParaView with encoding3d's reader plugin (encoding3d/paraview/plugin_encoding3d.py) and
 colour by SubOrgan.PARa to watch the light move over the day; import_frames.py reads the files back.
 """
 import argparse
 import os
 
+from openalea.encoding3d import read_index
 from openalea.encoding3d.validate import validate_sequence
 from openalea.metafspm.scene.population import Planting, planting
 from openalea.metafspm.coupling.forcings import as_forcing
@@ -37,18 +40,19 @@ LOG = dict(scales=["Plant", "SubOrgan"], variables=["PARa", "lit_area", "leaf_ra
 
 def export(start_hour: float = 6., hours: int = 12, outputs: str = OUTPUTS, frame_options: dict = None) -> str:
     """Light the stand hour by hour from *start_hour* (universal time) for *hours* hours, a frame per hour (filtered by
-    *frame_options*, e.g. LOG); the sequence's index path."""
+    *frame_options*, e.g. LOG), packed at the end; the sequence's archive."""
     plants = [Planting(x=PLANT_SPACING * (column + 0.5), y=ROW_SPACING * (row + 0.5), rotation=(37. * k) % 180.)
               for k, (row, column) in enumerate((row, column) for row in range(ROWS) for column in range(PLANTS_PER_ROW))]
     table = planting(plants, SimplePlantModel, {}, xrange=PLANTS_PER_ROW * PLANT_SPACING, yrange=ROWS * ROW_SPACING)
     start = calendar_date(DAY_OF_YEAR, start_hour - 1.)    # the first step ends at start_hour (simulate's clock)
     incident = clear_day_PAR(DAY_OF_YEAR, CaribuLight.latitude)                   # PAR (µmol m-2 s-1) by hour
-    recorder = SceneRecorder(outputs, summaries=False, frame_period="step", frame_options=frame_options)   # frames only
+    recorder = SceneRecorder(outputs, summaries=False, frame_period="step", frame_options=frame_options,   # frames only
+                             pack_at_finish=True)
     built = Scene(table, environment=[CaribuLightModel], environment_scenarios=[{"cadence": {"light": HOUR}}], time_step=HOUR,
                   forcings={"PARi": as_forcing(incident, time_unit=HOUR, origin="calendar")}, recorder=recorder,
                   start=start)
     built.simulate(hours)
-    return os.path.join(outputs, "frames", "scene.fspm.json")
+    return os.path.join(outputs, "frames.fspm.zip")
 
 
 def main():
@@ -58,18 +62,18 @@ def main():
     arguments = parser.parse_args()
     index = export(arguments.start, arguments.hours)
     report = validate_sequence(index)
-    frames = sorted(name for name in os.listdir(os.path.dirname(index)) if name.endswith(".glb"))
-    print(f"{len(frames)} frames ({folder_size(os.path.dirname(index)):.1f} MB) and their index: {index}")
+    frames = read_index(index)["frames"]
+    print(f"{len(frames)} frames, their parts and their index packed ({archive_size(index):.1f} MB): {index}")
     print(f"encoding3d validator: {len(report.errors)} error(s), {len(report.warnings)} warning(s)")
     log = export(arguments.start, arguments.hours, os.path.join(OUTPUTS, "log"), frame_options=LOG)
     report = validate_sequence(log)
-    print(f"logged (scales {LOG['scales']}, {len(LOG['variables'])} variables): {folder_size(os.path.dirname(log)):.1f} MB, "
+    print(f"logged (scales {LOG['scales']}, {len(LOG['variables'])} variables): {archive_size(log):.1f} MB, "
           f"{len(report.errors)} error(s)")
 
 
-def folder_size(folder: str) -> float:
-    """The size of the .glb files in *folder* (MB)."""
-    return sum(os.path.getsize(os.path.join(folder, name)) for name in os.listdir(folder) if name.endswith(".glb")) / 1e6
+def archive_size(path: str) -> float:
+    """The size of the archive *path* (MB)."""
+    return os.path.getsize(path) / 1e6
 
 
 if __name__ == "__main__":

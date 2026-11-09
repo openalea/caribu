@@ -21,7 +21,7 @@ from openalea.metafspm.io.encoding3d import import_frame
 
 from export_frames import OUTPUTS, PLANTS_PER_ROW, PLANT_SPACING, ROW_SPACING, ROWS, export
 
-INDEX = os.path.join(OUTPUTS, "frames", "scene.fspm.json")
+INDEX = os.path.join(OUTPUTS, "frames.fspm.zip")              # the frames packed (encoding3d reads them there)
 GROUND = PLANTS_PER_ROW * PLANT_SPACING * ROWS * ROW_SPACING                         # m2
 
 
