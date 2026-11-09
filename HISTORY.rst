@@ -6,6 +6,10 @@ History
 Unreleased (the metafspm port)
 ------------------------------
 
+* ``PlantOptics`` reads the elements' ``lit_area`` from ``CaribuLight`` (an input): the weight of its reflectance's
+  and transmittance's means in a scene's summaries is on the plant's DataStructure whatever else its plant model reads
+  (CNW-Grass's gas exchange stand warned "averaged without a declared weight"). ``example/canopy_light.py``: the
+  Scene's time step the duration ``"1 h"``.
 * metafspm fix-B (a packed run's frames folder removed once its archive is checked): ``simulate(outputs=)`` packs
   the frames into ``frames.fspm.zip`` when the run finishes (``SceneRecorder(pack_at_finish=True)``: the archive
   checked, then ``frames/`` removed); ``example/exchange/export_frames.py`` packs both of its exports and validates
