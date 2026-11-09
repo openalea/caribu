@@ -59,7 +59,7 @@ def stand_scene():
     table = planting(plants, LitShoot, parameters,
                      [{"delay": float(delay)} for delay in random_delays(N_PLANTS)], xrange=XRANGE, yrange=YRANGE)
     lighting = {"sun": True, "latitude": LATITUDE, "cadence": {"light": "4 h"}}
-    return Scene(table, environment=[CaribuLightModel], environment_scenarios=[lighting], time_step=3600.,
+    return Scene(table, environment=[CaribuLightModel], environment_scenarios=[lighting], time_step="1 h",
                  forcings={"PARi": incident_PAR}, start=calendar_date(DAY_OF_YEAR))
 
 
