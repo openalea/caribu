@@ -16,19 +16,19 @@ import numpy as np
 from .kernels import mgcr, product
 
 
-SOLVERS = ("mgcr", "gmres")
+METHODS = ("mgcr", "gmres")              # the radiosity system's iterative methods (radiosity_method)
 
 
-def solve(name, rhs, indptr, faces, values, receiver_faces, receiver_translucent, reflectance, transmittance, dff,
+def solve(method, rhs, indptr, faces, values, receiver_faces, receiver_translucent, reflectance, transmittance, dff,
           tolerance=1e-6, krylov=100, limit=1000):
-    """The radiosities (x, steps) of the system, by meschach's MGCR (*name* "mgcr", canestrad's) or scipy's GMRES
+    """The radiosities (x, steps) of the system, by meschach's MGCR (*method* "mgcr", canestrad's) or scipy's GMRES
     ("gmres", restarted every *krylov* steps), to a residual *tolerance* relative to the first one (x = 0: the
     right-hand side's), in *limit* steps at most."""
-    if name == "mgcr":
+    if method == "mgcr":
         return mgcr(rhs, indptr, faces, values, receiver_faces, receiver_translucent, reflectance, transmittance, dff,
                     tolerance, krylov, limit)
-    if name != "gmres":
-        raise ValueError(f"the linear solver is one of {SOLVERS}, got '{name}'")
+    if method != "gmres":
+        raise ValueError(f"the radiosity method is one of {METHODS}, got '{method}'")
     from scipy.sparse.linalg import LinearOperator, gmres
 
     def apply(x):

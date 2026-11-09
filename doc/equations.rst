@@ -118,7 +118,7 @@ pixels of emitter face :math:`j` on receiver :math:`i`'s upper and lower discs, 
        + \rho^\text{inf}_i \textstyle\sum_j F^-_{ij} B_j
 
 a linear system :math:`(I - \mathcal{R} F)\,B = B^0`, solved by meschach's MGCR as canestrad (``kernels.mgcr``), or
-by scipy's GMRES (``linear_solver="gmres"``). In the whole scene (``radiosity.run``), every triangle is in every
+by scipy's GMRES (``radiosity_method="gmres"``). In the whole scene (``radiosity.run``), every triangle is in every
 receiver's sphere.
 
 

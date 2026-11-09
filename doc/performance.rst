@@ -65,10 +65,10 @@ Where the time goes: in radiosity on 5,000 triangles (1.1 s), the near field's f
 linear solve 1.3 % (5 steps); in the nested radiosity of the Adel scene (3.1 s), the near field 63 %, the direct
 light and the turbid medium most of the rest, the solve 3 %.
 
-The linear solver
-=================
+The radiosity method
+====================
 
-The radiosity system is solved by meschach's MGCR, transcribed (``linear_solver="mgcr"``, canestrad's), or by scipy's
+The radiosity system is solved by meschach's MGCR, transcribed (``radiosity_method="mgcr"``, canestrad's), or by scipy's
 GMRES (``"gmres"``, ``precision="full"``): the same radiosities in the same few steps. The solve is a few percent of
 the run: neither a faster solver nor a GPU would change the time.
 

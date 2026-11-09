@@ -6,6 +6,12 @@ History
 Unreleased (the metafspm port)
 ------------------------------
 
+* Breaking (metafspm fix-D): ``CaribuLight``'s setting ``linear_solver`` is renamed ``radiosity_method`` (no alias),
+  and so is the argument of ``radiosity.run``, ``nested.run``, ``Canopy.radiosity`` and ``Canopy.nested``: it chooses
+  the radiosity system's iterative method, meschach's MGCR (``"mgcr"``, canestrad's, the default) or scipy's GMRES
+  (``"gmres"``), not a sparse direct solver. A metafspm Scene's ``Compute(linear_solver=)`` is the graph systems'
+  sparse solver, which Caribu has none of. ``solver.SOLVERS`` is ``solver.METHODS``; the test file is
+  ``test_radiosity_method.py``.
 * ``PlantOptics`` reads the elements' ``lit_area`` from ``CaribuLight`` (an input): the weight of its reflectance's
   and transmittance's means in a scene's summaries is on the plant's DataStructure whatever else its plant model reads
   (CNW-Grass's gas exchange stand warned "averaged without a declared weight"). ``example/canopy_light.py``: the

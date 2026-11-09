@@ -25,7 +25,7 @@ _absorbed_PAR runs every step, PARa following PARi with the last Erel: CaribuLig
 ({"light": "1 h"}) sets the lighting's. The sun is the Scene's calendar's (Scene(start="2026-06-21 11:00"), the date of its time 0). How the canopy is lit, the same for
 every plant, is the component's settings: the light model (direct light, nested radiosity in the infinite canopy,
 pure SAIL, radiosity in the scene alone), the sky and the sun, the site, the soil, the numerics (precision,
-corrections, GPU, the linear solver). The optics are the plants': an optical component of their plant model
+corrections, GPU, the radiosity method). The optics are the plants': an optical component of their plant model
 (PlantOptics), whose parameters may differ between plants.
 The elements' parts below the soil are cut off: the soil is opaque (Caribu's infinite canopy would lift the scene to
 put its lowest point at 0, lighting them). The geometry is kept between lightings (a Canopy: the sky's projections
@@ -138,8 +138,9 @@ class CaribuLight(FunctionalComponent):
                                   default="recommended")
     device: str = setting(description="The near field's device: 'cpu' or 'cuda'", default="cpu",
                           choices=("cpu", "cuda"))
-    linear_solver: str = setting(description="The radiosity system's solver: 'mgcr' (canestrad's) or 'gmres' "
-                                 "(scipy's)", default="mgcr", choices=("mgcr", "gmres"))
+    radiosity_method: str = setting(description="The radiosity system's iterative method: 'mgcr' (meschach's "
+                                    "MGCR, canestrad's) or 'gmres' (scipy's GMRES)", default="mgcr",
+                                    choices=("mgcr", "gmres"))
 
     # The infinite canopy's pattern (x1, y1, x2, y2, m), a construction argument, not a setting: in a Scene its
     # environment model's (EnvironmentModel.pattern, the scene's); None: the triangles' extent
@@ -283,9 +284,9 @@ class CaribuLight(FunctionalComponent):
             result = canopy.direct(sources, optics)
         elif self.mode == "nested":
             result = canopy.nested(sources, optics, self.layers, float(triangles.vertices[..., 2].max()),
-                                   self.sphere_diameter, self.precision, linear_solver=self.linear_solver)
+                                   self.sphere_diameter, self.precision, radiosity_method=self.radiosity_method)
         else:
-            result = canopy.radiosity(sources, optics, linear_solver=self.linear_solver)
+            result = canopy.radiosity(sources, optics, radiosity_method=self.radiosity_method)
         values = {name: np.nan_to_num(np.asarray(result[name], dtype=float)) for name in ("area", "Eabs", "Ei")}
         if self.precision == "legacy":
             values = {name: np.array(api.printed(value)) for name, value in values.items()}
