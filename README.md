@@ -32,8 +32,10 @@ mamba env create -n caribu -c openalea3 -c conda-forge openalea.caribu
 ``` 
 
 This version (Caribu in Python, its metafspm component and the tutorials below) depends on
-[metafspm](https://github.com/openalea/metafspm), not yet published: clone the repositories side by side and install
-them from source (Adel's port, for tutorial 6 and the wheat examples, is optional):
+[metafspm](https://github.com/openalea/metafspm), which its environment brings (`openalea.metafspm`, from `openalea3`,
+and through it encoding3d). Until metafspm's `release2026` and encoding3d are published on `openalea3`, the environment's `openalea.metafspm`
+is an older version: install the two from their clones over it, as below; Adel's port, for tutorial 6 and the wheat examples, is optional (`--no-deps`: the environment already has
+their dependencies). Once they are published, the clones and those two lines are no longer needed.
 
 ```bash
 mkdir fspm && cd fspm
@@ -44,8 +46,8 @@ git clone -b to_metafspm https://github.com/openalea/adel.git adel          # op
 
 mamba env create -n caribu -f caribu/conda/environment.yml
 mamba activate caribu
-pip install -e encoding3d
-pip install -e metafspm
+pip install -e encoding3d --no-deps                                         # until encoding3d is published
+pip install -e metafspm --no-deps                                           # until release2026 is published
 pip install -e adel --no-deps                                               # optional
 ```
 
@@ -58,8 +60,8 @@ git clone -b to_metafspm https://github.com/openalea/caribu.git caribu
 cd caribu
 mamba env create -n caribu_dev -f ./conda/environment.yml
 mamba activate caribu_dev
-pip install -e ../encoding3d
-pip install -e ../metafspm
+pip install -e ../encoding3d --no-deps                # until encoding3d is published
+pip install -e ../metafspm --no-deps                  # until metafspm's release2026 is published
 ```
 
 ## Getting started
