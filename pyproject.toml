@@ -38,9 +38,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dynamic = ["version", "readme"]
-dependencies = [
-  "numpy"
-]
+dependencies = []          # numpy: openalea.metafspm's (below, a conda package)
 
 [project.optional-dependencies]
 test = [
@@ -72,6 +70,7 @@ Changelog = "https://github.com/openalea/caribu/releases"
 
 [tool.conda.environment]
 dependencies = [
+  "openalea.metafspm",       # the component's platform; brings numpy, scipy, pandas, numba, openalea.mtg
   "openalea.libcaribu",
   "matplotlib-base",
   "openalea.plantgl"
