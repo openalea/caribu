@@ -167,8 +167,8 @@ def counts(points, labels, translucent, first_face, n_faces, normals, centres, r
     (`grid`; one box holding all by default). With a *profile* (the far field's fluxes, as canestrad reads them)
     and the receivers' *optics* (receivers, 4: ρ, τ of the upper face, of the lower one), also each receiver's
     far field (receivers, 2) and its levels' weights (receivers, 4, levels). *bias* False: canestrad's `-B`.
-    *device* "cuda": the receivers computed on the GPU (gpu.receiver_rows, the same results), in chunks of
-    *chunk* × 64 receivers. *options*: the corrections' bits (options())."""
+    *device* "cuda": the receivers computed on the GPU (gpu.receiver_rows; experimental, the results within
+    round-off of the CPU's), in chunks of *chunk* × 64 receivers. *options*: the corrections' bits (options())."""
     pixel, disc = disc_heights(size)
     emitters = np.concatenate([points, centres[:, None], normals[:, None]], axis=1).astype(np.float32)
     receivers, receiver_normals, receiver_centres = points, normals, centres

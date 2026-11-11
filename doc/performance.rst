@@ -96,9 +96,11 @@ GPU
 ===
 
 ``device="cuda"`` computes the near field on a GPU (numba.cuda): one thread per receiver, with the CPU kernels'
-own functions compiled as device functions, so that the results are the CPU's. The near field is most of the time of
-radiosity and nested radiosity: it is where a GPU helps. The kernel is tested under numba's CUDA simulator; it has
-not been timed on a GPU yet.
+own functions compiled as device functions, the same arithmetic in the same order. The near field is most of the
+time of radiosity and nested radiosity: it is where a GPU helps. The GPU path is experimental: it should work on
+suitable hardware but has not been tested on a GPU yet. The kernel is tested under numba's CUDA simulator, which runs
+it in Python. On a GPU, the results should agree with the CPU's within round-off, not bit for bit: numba does not
+forbid CUDA's compiler (NVVM) to fuse a multiply and an add into one operation, which it does by default.
 
 In a metafspm scene, the ``device`` setting that a scenario does not give takes the scene's
 ``Compute(device=...)``: ``Scene(..., compute=Compute(device="cuda"))`` puts Caribu's near field on the GPU together

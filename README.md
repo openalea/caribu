@@ -81,7 +81,7 @@ result = simulate(outputs="outputs")              # and its files: run.json, sce
 `simulate(..., compute=Compute(...))` (`from openalea.metafspm import Compute`) sets how the run uses the machine:
 the threads of numba's kernels, of the linear solves' blocks and of a reduction's kinds (`threads="auto"` by
 default: the processors, each part taking those that pay, the results the same at any number; BLAS stays at one;
-the light's projection threads follow it), the device (`"cpu"`, or `"cuda"` with CuPy), the memory policy and
+the light's projection threads follow it), the device (`"cpu"`, or `"cuda"` with CuPy, experimental: it should work on suitable hardware but has not been tested on a GPU yet), the memory policy and
 the graph systems' sparse solver (`linear_solver="superlu"` by default: one backend for every system, or a mapping
 giving each its own, by its qualified name `"Component._system"`, else a property it declares such as `"symmetric"`,
 else `"default"`; CHOLMOD, PARDISO and MUMPS optional, checked when the Scene is built). The default
@@ -173,7 +173,9 @@ raw, aggregated = api.CaribuScene(scene, light=sky, pattern=domain, opt={"par": 
   whole scene 307 → 62. `openalea.caribu.canopy.Canopy` keeps what depends only on the geometry: a second band or
   a new hour costs 0.03 s (direct) or 0.12 s (nested).
 - **GPU:** `device="cuda"` computes the near field (radiosity's form factors) with numba.cuda, from the CPU
-  kernels' own functions; tested under numba's CUDA simulator. In a scene, the setting defaults to the scene's
+  kernels' own functions. It is experimental: it should work on suitable hardware but has not been tested on a GPU
+  yet (its tests run under numba's CUDA simulator). On a GPU its results agree with the CPU's within round-off, not
+  bit for bit. In a scene, the setting defaults to the scene's
   `Compute(device=...)` (metafspm's "Running on a GPU": `Compute(device="cuda")` also moves the plants' reduced
   kinds and linear solves to the GPU, with CuPy); a scenario's `device` overrides it.
 - **Light sources:** `lights` holds the turtle skies, the sector sky (soc, uoc), the sun's position, Spitters'

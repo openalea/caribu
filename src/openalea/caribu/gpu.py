@@ -1,9 +1,10 @@
 """
 The near field on a GPU (numba.cuda), for the full and the nested radiosity: one thread per receiver fills its
 discs, projects its candidates and sums its far field with the CPU kernels' own functions (nearfield's), compiled
-as device functions: the same arithmetic in the same order, sequential within a receiver, so the counts and far
-field are the CPU's (CUDA without fast math: no fused multiply-add). The discs' faces are counted into rows on the
-CPU.
+as device functions: the same arithmetic in the same order, sequential within a receiver. The counts and
+the far field agree with the CPU's within round-off, not bit for bit: numba does not forbid CUDA's compiler (NVVM)
+to fuse a multiply and an add into one operation, which it does by default. Experimental: it should work on suitable
+hardware but has not been tested on a GPU yet. The discs' faces are counted into rows on the CPU.
 
     if gpu.available():
         rows = nearfield.counts(..., device="cuda")
