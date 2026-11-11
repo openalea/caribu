@@ -164,7 +164,7 @@ raw, aggregated = api.CaribuScene(scene, light=sky, pattern=domain, opt={"par": 
   field's voxels, the tiling of the neighbouring patterns), the layers' exact areas, each face's irradiance
   accumulated (leaves with ρ = τ budgeted), one azimuth convention for the sky and the sun, and more.
 - **The metafspm component.** `openalea.caribu.component.CaribuLight` lights the elements of one or several plant
-  populations from their triangles (`ds.triangles()`), on their union, as a metafspm environment model
+  populations from their triangles (`data_structure.triangles()`), on their union, as a metafspm environment model
   (`CaribuLightModel`): Erel and PARa per element, linked by name to the plant models' inputs, the canopy kept
   between lightings; with the corrections by default. The elements' optics are the plants'
   (`openalea.caribu.optics.PlantOptics`, a component of their plant model).

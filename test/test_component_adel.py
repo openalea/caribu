@@ -44,7 +44,7 @@ def stand():
                               depth=coleoptile_sowing_depth(parameters), jitter=0.005, seed=0)
     delays = random_delays(N_PLANTS)
     table = planting(plants, LitShoot, parameters, [{"delay": float(delay)} for delay in delays],
-                     xrange=XRANGE, yrange=YRANGE)
+                     x_range=XRANGE, y_range=YRANGE)
     scene = Scene(table, environment=[CaribuLightModel], time_step=HOUR, forcings={"PARi": lambda time: 400.})
     for _ in range(60):
         scene.run()
@@ -56,26 +56,26 @@ def stand():
 
 def _elements(stand):
     stand, triangles = stand
-    ds = stand.environment[0].data_structure                          # the light's: the elements' union
+    data_structure = stand.environment[0].data_structure                          # the light's: the elements' union
     light = stand.environment[0].light
     primitives = {}
     for vertices, owner in zip(triangles.vertices.tolist(), triangles.owner.tolist()):
         primitives.setdefault(owner, []).append([tuple(point) for point in vertices])
     labels = light.element_labels()
     opt = {"par": {owner: WHEAT_BRIDGES_OPTICS[labels[owner]] for owner in primitives}}
-    return ds, primitives, opt
+    return data_structure, primitives, opt
 
 
 def test_the_stand_is_lit_as_by_caribu_scene(stand):
-    ds, primitives, opt = _elements(stand)
+    data_structure, primitives, opt = _elements(stand)
     assert len(primitives) > 50
     sky = stand[0].environment[0].light.sources(400., 1, 0)
     _, aggregated = api.CaribuScene(scene=primitives, light=sky, pattern=(0, 0, XRANGE, YRANGE), opt=opt,
                                     precision="full", corrections="recommended").run(direct=True, infinite=True)
-    erel = np.asarray(ds.get("Erel"))
+    erel = np.asarray(data_structure.get("Erel"))
     for element, value in aggregated["par"]["Eabs"].items():
         assert erel[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
-    np.testing.assert_allclose(ds.get("PARa"), 400. * erel)
+    np.testing.assert_allclose(data_structure.get("PARa"), 400. * erel)
     lit = np.isin(np.arange(erel.size), list(primitives))
     assert (erel[~lit] == 0).all() and erel[lit].max() > 0.5
 
@@ -87,7 +87,7 @@ def test_wheat_bridges_use_reproduced(stand):
         pytest.skip("libcaribu is not installed")
     from openalea.caribu.legacy.CaribuScene import CaribuScene as LegacyScene
     from openalea.caribu.legacy.sky_tools import GenSky, GetLight
-    ds, primitives, opt = _elements(stand)
+    data_structure, primitives, opt = _elements(stand)
     sky = []
     for line in GetLight.GetLight(GenSky.GenSky()(1, "soc", 4, 5)).split("\n"):
         if line:
@@ -96,9 +96,9 @@ def test_wheat_bridges_use_reproduced(stand):
     _, aggregated = LegacyScene(scene=primitives, light=sky, pattern=(0, 0, XRANGE, YRANGE),
                                 opt=opt).run(direct=True, infinite=True)
     light = stand[0].environment[0].light
-    full = np.asarray(ds.get("Erel"))
+    full = np.asarray(data_structure.get("Erel"))
     light.precision, light.corrections = "legacy", ()                  # the legacy's numbers: no correction
-    erel, _, _ = light.lit(stand[1], ds.get("reflectance"), ds.get("transmittance"), light.sources(400., 1, 0))
+    erel, _, _ = light.lit(stand[1], data_structure.get("reflectance"), data_structure.get("transmittance"), light.sources(400., 1, 0))
     light.precision, light.corrections = "full", "recommended"
     for element, value in aggregated["par"]["Eabs"].items():
         assert erel[element] == pytest.approx(value, rel=1e-12, abs=1e-15)

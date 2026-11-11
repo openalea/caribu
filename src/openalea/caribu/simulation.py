@@ -76,41 +76,41 @@ class SimplePlant(StructuralComponent):
                                     **GEOMETRY)
 
     @classmethod
-    def initiate_plant(cls, g, plant, parameters):
+    def initiate_plant(cls, mtg, plant, parameters):
         default = {field.name: field.default for field in fields(cls)}
         value = {name: parameters.get(name, default[name]) for name in (
             "n_leaves", "leaf_length", "leaf_width", "leaf_inclination", "plant_height", "stem_width")}
-        s, labels = g.scales, g.labels
-        axis = g.add_component(plant, **PropsConfig(scale=s.Axis, edge_type='/', label=labels.Axis.Shoot))
-        unit = g.add_component(axis, **PropsConfig(scale=s.GrowthUnit, edge_type='/', label=labels.GrowthUnit.Shoot))
-        phytomer = g.add_component(unit, **PropsConfig(scale=s.Phytomer, edge_type='/', label=labels.Phytomer.Shoot))
-        stem = g.add_component(phytomer, **PropsConfig(scale=s.Organ, edge_type='/', label=labels.Organ.StemInternode))
-        blade = g.add_component(phytomer, **PropsConfig(scale=s.Organ, edge_type='/', label=labels.Organ.Blade))
+        s, labels = mtg.scales, mtg.labels
+        axis = mtg.add_component(plant, **PropsConfig(scale=s.Axis, edge_type='/', label=labels.Axis.Shoot))
+        unit = mtg.add_component(axis, **PropsConfig(scale=s.GrowthUnit, edge_type='/', label=labels.GrowthUnit.Shoot))
+        phytomer = mtg.add_component(unit, **PropsConfig(scale=s.Phytomer, edge_type='/', label=labels.Phytomer.Shoot))
+        stem = mtg.add_component(phytomer, **PropsConfig(scale=s.Organ, edge_type='/', label=labels.Organ.StemInternode))
+        blade = mtg.add_component(phytomer, **PropsConfig(scale=s.Organ, edge_type='/', label=labels.Organ.Blade))
         # the plant's position, the planting's (written before an initiator builds; z minus its sowing depth)
-        x, y, z, rotation = (float(g.values_at(name, [plant])[1][0]) for name in ("x", "y", "z", "rotation"))
-        elements = [g.add_component(stem, **PropsConfig(scale=s.SubOrgan, edge_type='/',
+        x, y, z, rotation = (float(mtg.values_at(name, [plant])[1][0]) for name in ("x", "y", "z", "rotation"))
+        elements = [mtg.add_component(stem, **PropsConfig(scale=s.SubOrgan, edge_type='/',
                                                         label=labels.SubOrgan.StemElement))]
         geometry = [(x, y, z, rotation, 90., value["plant_height"], value["stem_width"], 0)]
         n_leaves = int(value["n_leaves"])
         for rank in range(1, n_leaves + 1):
             leaf = PropsConfig(scale=s.SubOrgan, edge_type='/' if rank == 1 else '<', label=labels.SubOrgan.LeafElement)
-            elements.append(g.add_component(blade, **leaf) if rank == 1 else g.add_child(elements[-1], **leaf))
+            elements.append(mtg.add_component(blade, **leaf) if rank == 1 else mtg.add_child(elements[-1], **leaf))
             geometry.append((x, y, z + value["plant_height"] * rank / n_leaves, rotation + 180. * (rank % 2),
                              value["leaf_inclination"], value["leaf_length"], value["leaf_width"], rank))
         for k, name in enumerate(("start_x", "start_y", "start_z", "azimuth", "inclination", "element_length",
                                   "element_width", "leaf_rank")):
-            g.set_values(name, elements, [float(values[k]) for values in geometry])
+            mtg.set_values(name, elements, [float(values[k]) for values in geometry])
 
     def triangles(self, where=None):
         """Each element a rectangle of two triangles: from its start along its direction, its width horizontal."""
-        ds = self.data_structure
-        nodes = np.arange(ds.n_nodes()) if where is None else np.flatnonzero(where)
-        start = np.stack([np.asarray(ds.get(name), dtype=float)[nodes] for name in ("start_x", "start_y", "start_z")],
+        data_structure = self.data_structure
+        nodes = np.arange(data_structure.n_nodes()) if where is None else np.flatnonzero(where)
+        start = np.stack([np.asarray(data_structure.get(name), dtype=float)[nodes] for name in ("start_x", "start_y", "start_z")],
                          1)
-        azimuth = np.radians(np.asarray(ds.get("azimuth"), dtype=float)[nodes])
-        inclination = np.radians(np.asarray(ds.get("inclination"), dtype=float)[nodes])
-        length = np.asarray(ds.get("element_length"), dtype=float)[nodes][:, None]
-        half_width = 0.5 * np.asarray(ds.get("element_width"), dtype=float)[nodes][:, None]
+        azimuth = np.radians(np.asarray(data_structure.get("azimuth"), dtype=float)[nodes])
+        inclination = np.radians(np.asarray(data_structure.get("inclination"), dtype=float)[nodes])
+        length = np.asarray(data_structure.get("element_length"), dtype=float)[nodes][:, None]
+        half_width = 0.5 * np.asarray(data_structure.get("element_width"), dtype=float)[nodes][:, None]
         along = np.stack([np.cos(inclination) * np.cos(azimuth), np.cos(inclination) * np.sin(azimuth),
                           np.sin(inclination)], 1)
         across = np.stack([-np.sin(azimuth), np.cos(azimuth), np.zeros_like(azimuth)], 1)
@@ -132,7 +132,7 @@ class AbsorbedLight(FunctionalComponent):
 
     @state
     def _absorbed(self, absorbed_PAR, PARa, lit_area) -> dict:
-        return {"absorbed_PAR": absorbed_PAR + np.asarray(PARa) * np.asarray(lit_area) * self.dt}
+        return {"absorbed_PAR": absorbed_PAR + np.asarray(PARa) * np.asarray(lit_area) * self.step_duration}
 
 
 class SimplePlantModel(CompositeModel):
@@ -185,7 +185,7 @@ class _Summary:
         self.incident, self.ground, self.midnight = incident, ground, midnight
 
     def __call__(self, scene):
-        if scene.iteration == 0:
+        if scene.step_count == 0:
             return None
         light = scene.environment[0].light
         union = light.data_structure                                    # the elements' light: the light model's
@@ -217,8 +217,8 @@ class Simulation:
 
     def values(self, name) -> np.ndarray:
         """Each element's *name*: the plants' variable, else the light's."""
-        ds = self.data_structure if self.data_structure.has(name) else self.light_data_structure
-        return np.asarray(ds.get(name))
+        data_structure = self.data_structure if self.data_structure.has(name) else self.light_data_structure
+        return np.asarray(data_structure.get(name))
 
     @property
     def absorbed(self) -> np.ndarray:
@@ -230,13 +230,13 @@ class Simulation:
         bottom, height (m, its middle), lit area (m2), Erel (the PAR it absorbs per unit area, relative to the PAR
         above the stand), PARa (the PAR it absorbs per unit area at the last hour, µmol m-2 s-1), absorbed (the PAR it
         absorbed over the run, µmol)."""
-        ds = self.data_structure
-        triangles = ds.triangles()
-        middle = triangles.mean_per_owner(triangles.vertices[..., 2].mean(axis=1), ds.n_nodes())
-        labels = np.asarray(ds.labels())
+        data_structure = self.data_structure
+        triangles = data_structure.triangles()
+        middle = triangles.mean_per_owner(triangles.vertices[..., 2].mean(axis=1), data_structure.n_nodes())
+        labels = np.asarray(data_structure.labels())
         return pd.DataFrame({
-            "plant": np.asarray(ds.owner("Plant")), "kind": np.where(labels == "LeafElement", "leaf", "stem"),
-            "leaf_rank": np.asarray(ds.get("leaf_rank")).astype(int), "height": middle,
+            "plant": np.asarray(data_structure.owner("Plant")), "kind": np.where(labels == "LeafElement", "leaf", "stem"),
+            "leaf_rank": np.asarray(data_structure.get("leaf_rank")).astype(int), "height": middle,
             "area": self.values("lit_area"), "Erel": self.values("Erel"), "PARa": self.values("PARa"),
             "absorbed": self.absorbed})
 
@@ -302,17 +302,17 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
     archive checked, then the folder removed). *compute*: the Scene's run configuration
     (metafspm's Compute: its threads, the light's projection threads too, its sparse solver; None: Compute())."""
     plant_values, settings = _split(dict(parameters or {}))
-    xrange, yrange = plants_per_row * plant_spacing, rows * row_spacing
+    x_range, y_range = plants_per_row * plant_spacing, rows * row_spacing
     plants = [Planting(x=plant_spacing * (column + 0.5), y=row_spacing * (row + 0.5), rotation=(37. * k) % 180.)
               for k, (row, column) in enumerate((row, column) for row in range(rows) for column in range(plants_per_row))]
-    table = planting(plants, SimplePlantModel, plant_values, xrange=xrange, yrange=yrange)
+    table = planting(plants, SimplePlantModel, plant_values, x_range=x_range, y_range=y_range)
     start = calendar_date(day_of_year, start_hour - 1.)    # the first step ends at start_hour (the clock, above)
     settings = {"cadence": {"light": "1 h"}, **settings}
     incident = PARi if PARi is not None else clear_day_PAR(day_of_year, settings.get("latitude", CaribuLight.latitude))
     forcings = {"PARi": as_forcing(incident, time_unit=HOUR, origin="calendar")}          # by the hour of the day
     if diffuse_fraction is not None:
         forcings["diffuse_fraction"] = as_forcing(diffuse_fraction, time_unit=HOUR, origin="calendar")
-    ground = xrange * yrange
+    ground = x_range * y_range
     summary = _Summary(forcings["PARi"], ground, calendar_date(day_of_year))
     recorder = SceneRecorder(outputs, summaries=outputs is not None, tables={"summary": summary},
                              frame_period="step" if outputs is not None else None, pack_at_finish=outputs is not None)

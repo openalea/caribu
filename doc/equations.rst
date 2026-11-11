@@ -216,7 +216,7 @@ triangles :math:`t \in e` above the soil) gets its light relative to the inciden
 
 (``_relative_light``, ``_absorbed_PAR``); with the sun on, the sky shares the unit energy between the diffuse sky,
 :math:`R_d/R_g`, and the sun, :math:`1 - R_d/R_g`. The triangles above the soil are those above the scene's soil
-surface (metafspm's ``Scene(soil_surface=)``, ``ds.geometry.clipped("air")``: each triangle across it cut at its
+surface (metafspm's ``Scene(soil_surface=)``, ``data_structure.geometry.clipped("air")``: each triangle across it cut at its
 plane).
 
 **The sun over the step** (``step_sources``). PARi is read as its mean over the step lit, so the sun is too: the step

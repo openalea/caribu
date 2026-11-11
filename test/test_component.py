@@ -35,29 +35,29 @@ class Panels(StructuralComponent):
     tilt: float = state_variable(**PANEL)
 
     @classmethod
-    def initiate_plant(cls, g, plant, parameters):
-        s, labels = g.scales, g.labels
-        axis = g.add_component(plant, **PropsConfig(scale=s.Axis, edge_type='/', label=labels.Axis.Shoot))
-        unit = g.add_component(axis, **PropsConfig(scale=s.GrowthUnit, edge_type='/', label=labels.GrowthUnit.Shoot))
-        phytomer = g.add_component(unit, **PropsConfig(scale=s.Phytomer, edge_type='/', label=labels.Phytomer.Shoot))
-        stem = g.add_component(phytomer, **PropsConfig(scale=s.Organ, edge_type='/', label=labels.Organ.StemInternode))
-        blade = g.add_component(phytomer, **PropsConfig(scale=s.Organ, edge_type='/', label=labels.Organ.Blade))
-        x, y = g.property("x")[plant], g.property("y")[plant]
-        elements = [g.add_component(stem, **PropsConfig(scale=s.SubOrgan, edge_type='/',
+    def initiate_plant(cls, mtg, plant, parameters):
+        s, labels = mtg.scales, mtg.labels
+        axis = mtg.add_component(plant, **PropsConfig(scale=s.Axis, edge_type='/', label=labels.Axis.Shoot))
+        unit = mtg.add_component(axis, **PropsConfig(scale=s.GrowthUnit, edge_type='/', label=labels.GrowthUnit.Shoot))
+        phytomer = mtg.add_component(unit, **PropsConfig(scale=s.Phytomer, edge_type='/', label=labels.Phytomer.Shoot))
+        stem = mtg.add_component(phytomer, **PropsConfig(scale=s.Organ, edge_type='/', label=labels.Organ.StemInternode))
+        blade = mtg.add_component(phytomer, **PropsConfig(scale=s.Organ, edge_type='/', label=labels.Organ.Blade))
+        x, y = mtg.property("x")[plant], mtg.property("y")[plant]
+        elements = [mtg.add_component(stem, **PropsConfig(scale=s.SubOrgan, edge_type='/',
                                                         label=labels.SubOrgan.StemElement))]
         values = [(x, y, 0.1, 0.05, np.pi / 2)]
         for rank in range(int(parameters.get("n_leaves", 3))):
             leaf = PropsConfig(scale=s.SubOrgan, edge_type='/' if rank == 0 else '<', label=labels.SubOrgan.LeafElement)
-            elements.append(g.add_component(blade, **leaf) if rank == 0 else g.add_child(elements[-1], **leaf))
+            elements.append(mtg.add_component(blade, **leaf) if rank == 0 else mtg.add_child(elements[-1], **leaf))
             values.append((x + 0.02 * rank, y, 0.12 + 0.06 * rank, 0.08, 0.3 * rank))
         for v, value in zip(elements, values):
             for name, number in zip(("centre_x", "centre_y", "centre_z", "side", "tilt"), value):
-                g.set_values(name, [v], [float(number)])
+                mtg.set_values(name, [v], [float(number)])
 
     def triangles(self, where=None):
-        ds = self.data_structure
-        centre = np.stack([np.asarray(ds.get(name), dtype=float) for name in ("centre_x", "centre_y", "centre_z")], 1)
-        half, tilt = 0.5 * np.asarray(ds.get("side")), np.asarray(ds.get("tilt"))
+        data_structure = self.data_structure
+        centre = np.stack([np.asarray(data_structure.get(name), dtype=float) for name in ("centre_x", "centre_y", "centre_z")], 1)
+        half, tilt = 0.5 * np.asarray(data_structure.get("side")), np.asarray(data_structure.get("tilt"))
         nodes = np.arange(centre.shape[0]) if where is None else np.flatnonzero(where)
         corners = []
         for u, v in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
@@ -99,7 +99,7 @@ Wheat, Pea = plant_model("Wheat"), plant_model("Pea")
 def planted(models, n_leaves=3):
     """One plant of each model in a row (metafspm's planting), *n_leaves* leaves each."""
     return planting([Planting(x=0.07 + 0.12 * i, y=0.1) for i in range(len(models))], list(models),
-                    {"n_leaves": n_leaves}, xrange=XRANGE, yrange=YRANGE)
+                    {"n_leaves": n_leaves}, x_range=XRANGE, y_range=YRANGE)
 
 
 def scene(models, settings=None, translator=None, PARi=500., soil_surface=0.):
@@ -222,13 +222,13 @@ def test_optics_from_the_plants():
 def test_nested_mode_as_caribu_scene():
     built = scene([Wheat, Wheat], {"mode": "nested", "sphere_diameter": 0.1, "layers": 5})
     built.run()
-    ds = built.environment[0].data_structure
+    data_structure = built.environment[0].data_structure
     light = built.environment[0].light
-    triangles = ds.triangles()
+    triangles = data_structure.triangles()
     expected = caribu_scene(triangles, light.element_labels().tolist(), mode="nested", d_sphere=0.1, layers=5,
                             height=float(triangles.vertices[..., 2].max()))
     for element, value in expected["Eabs"].items():
-        assert ds.get("Erel")[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
+        assert data_structure.get("Erel")[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
 
 
 def test_the_sun_shares_the_unit_energy_and_sets():
@@ -243,7 +243,7 @@ def test_the_sun_shares_the_unit_energy_and_sets():
 
 def test_above_soil():
     """A triangle across the soil cut at its plane (one or two triangles, the area above kept), one below dropped
-    (metafspm's Triangles.clip, vectorised, which CaribuLight lights: ds.geometry.clipped("air"))."""
+    (metafspm's Triangles.clip, vectorised, which CaribuLight lights: data_structure.geometry.clipped("air"))."""
     vertices = np.array([[[0, 0, -1], [2, 0, 1], [0, 2, 1]],         # one vertex below: two triangles
                          [[0, 0, 1], [2, 0, -1], [0, 2, -1]],         # two below: one triangle
                          [[0, 0, -1], [1, 0, -1], [0, 1, -2]],        # all below: none
@@ -261,14 +261,14 @@ def test_the_parts_below_the_soil_receive_no_light():
     light as CaribuScene's on the parts above."""
     built = scene([Wheat], soil_surface=0.1)
     built.run()
-    ds = built.environment[0].data_structure
+    data_structure = built.environment[0].data_structure
     light = built.environment[0].light
     assert light.soil_surface == 0.1
     stems = light.element_labels() == "StemElement"
-    np.testing.assert_allclose(ds.get("lit_area")[stems], 0.05 * 0.05 / 2, rtol=1e-6)
-    expected = caribu_scene(ds.triangles().clip(HalfSpace(0.1)), light.element_labels().tolist())
+    np.testing.assert_allclose(data_structure.get("lit_area")[stems], 0.05 * 0.05 / 2, rtol=1e-6)
+    expected = caribu_scene(data_structure.triangles().clip(HalfSpace(0.1)), light.element_labels().tolist())
     for element, value in expected["Eabs"].items():
-        assert ds.get("Erel")[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
+        assert data_structure.get("Erel")[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
 
 
 def test_the_sun_over_the_step_is_consistent_with_its_mean_PAR():
@@ -347,10 +347,10 @@ def test_a_subclass_lights_with_its_component():
 
     built = Scene(planted([Wheat]), environment=[FluxLightModel], time_step=HOUR, forcings={"PARi": lambda time: 500.})
     built.run()
-    ds = built.environment[0].data_structure
+    data_structure = built.environment[0].data_structure
     assert isinstance(built.environment[0].light, FluxLight)
-    np.testing.assert_allclose(ds.get("PAR_flux"), ds.get("PARa") * ds.get("lit_area"))
-    assert np.sum(ds.get("PAR_flux")) > 0
+    np.testing.assert_allclose(data_structure.get("PAR_flux"), data_structure.get("PARa") * data_structure.get("lit_area"))
+    assert np.sum(data_structure.get("PAR_flux")) > 0
 
 
 def test_the_threads_bound_the_projection_threads(monkeypatch):

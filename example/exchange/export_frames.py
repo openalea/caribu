@@ -22,10 +22,7 @@ import os
 
 from openalea.encoding3d import read_index
 from openalea.encoding3d.validate import validate_sequence
-from openalea.metafspm.scene.population import Planting, planting
-from openalea.metafspm.coupling.forcings import as_forcing
-from openalea.metafspm.scene.recorder import SceneRecorder
-from openalea.metafspm.scene.scene import Scene
+from openalea.metafspm import as_forcing, Planting, planting, Scene, SceneRecorder
 
 from openalea.caribu.component import CaribuLight, CaribuLightModel
 from openalea.caribu.simulation import HOUR, SimplePlantModel, calendar_date, clear_day_PAR
@@ -43,7 +40,7 @@ def export(start_hour: float = 6., hours: int = 12, outputs: str = OUTPUTS, fram
     *frame_options*, e.g. LOG), packed at the end; the sequence's archive."""
     plants = [Planting(x=PLANT_SPACING * (column + 0.5), y=ROW_SPACING * (row + 0.5), rotation=(37. * k) % 180.)
               for k, (row, column) in enumerate((row, column) for row in range(ROWS) for column in range(PLANTS_PER_ROW))]
-    table = planting(plants, SimplePlantModel, {}, xrange=PLANTS_PER_ROW * PLANT_SPACING, yrange=ROWS * ROW_SPACING)
+    table = planting(plants, SimplePlantModel, {}, x_range=PLANTS_PER_ROW * PLANT_SPACING, y_range=ROWS * ROW_SPACING)
     start = calendar_date(DAY_OF_YEAR, start_hour - 1.)    # the first step ends at start_hour (simulate's clock)
     incident = clear_day_PAR(DAY_OF_YEAR, CaribuLight.latitude)                   # PAR (µmol m-2 s-1) by hour
     recorder = SceneRecorder(outputs, summaries=False, frame_period="step", frame_options=frame_options,   # frames only

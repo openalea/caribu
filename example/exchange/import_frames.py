@@ -54,10 +54,10 @@ def main():
     print(table.round(1).to_string(index=False))
 
     last = encoding3d.read_index(INDEX)["frames"][-1]["path"]
-    identifier, ds = next(iter(import_frame(last).items()))            # {id: DataStructure}, as metafspm wrote them
-    rebuilt = float(np.sum(np.nan_to_num(ds.get("PARa")) * ds.get("lit_area")) / GROUND)
-    print(f"\nRebuilt by metafspm from {os.path.basename(last)}: '{identifier}', a {type(ds).__name__} of "
-          f"{ds.n_nodes()} elements; canopy absorption {rebuilt:.1f} µmol m-2 s-1")
+    identifier, data_structure = next(iter(import_frame(last).items()))            # {id: DataStructure}, as metafspm wrote them
+    rebuilt = float(np.sum(np.nan_to_num(data_structure.get("PARa")) * data_structure.get("lit_area")) / GROUND)
+    print(f"\nRebuilt by metafspm from {os.path.basename(last)}: '{identifier}', a {type(data_structure).__name__} of "
+          f"{data_structure.n_nodes()} elements; canopy absorption {rebuilt:.1f} µmol m-2 s-1")
     assert np.isclose(rebuilt, table["canopy"].iloc[-1], rtol=1e-12, atol=0)
 
     if not show:

@@ -22,10 +22,8 @@ from openalea.caribu import lights
 from openalea.caribu.component import CaribuLightModel
 from openalea.caribu.simulation import calendar_date
 from openalea.caribu.optics import PlantOptics
-from openalea.metafspm.coupling.composite_wrapper import CompositeModel
+from openalea.metafspm import CompositeModel, planting, Scene, stand
 from openalea.metafspm.display import draw, value_colors
-from openalea.metafspm.scene.population import planting, stand
-from openalea.metafspm.scene.scene import Scene
 
 N_PLANTS, N_ROWS, ROW_SPACING, PLANT_SPACING = 20, 4, 0.15, 0.04
 XRANGE, YRANGE = N_PLANTS // N_ROWS * PLANT_SPACING, N_ROWS * ROW_SPACING
@@ -57,7 +55,7 @@ def stand_scene():
     plants = stand(N_PLANTS, rows=N_ROWS, row_spacing=ROW_SPACING, plant_spacing=PLANT_SPACING,
                    depth=coleoptile_sowing_depth(parameters), jitter=0.005, seed=0)
     table = planting(plants, LitShoot, parameters,
-                     [{"delay": float(delay)} for delay in random_delays(N_PLANTS)], xrange=XRANGE, yrange=YRANGE)
+                     [{"delay": float(delay)} for delay in random_delays(N_PLANTS)], x_range=XRANGE, y_range=YRANGE)
     lighting = {"sun": True, "latitude": LATITUDE, "cadence": {"light": "4 h"}}
     return Scene(table, environment=[CaribuLightModel], environment_scenarios=[lighting], time_step="1 h",
                  forcings={"PARi": incident_PAR}, start=calendar_date(DAY_OF_YEAR))
@@ -66,7 +64,7 @@ def stand_scene():
 if __name__ == "__main__":
     n_steps = int(sys.argv[1]) if len(sys.argv) > 1 else 96
     scene = stand_scene()
-    ds = scene.populations[0].data_structure
+    data_structure = scene.populations[0].data_structure
     light = scene.environment[0].light
     light_ds = light.data_structure                      # the light's variables: the elements' union
     hours, incident, absorbed = [], [], []

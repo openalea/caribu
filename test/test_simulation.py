@@ -14,14 +14,14 @@ def noon():
 
 
 def test_simple_plant_geometry(noon):
-    ds = noon.data_structure
+    data_structure = noon.data_structure
     elements = noon.elements()
-    n_plants = len(ds.entity_ids("Plant"))
+    n_plants = len(data_structure.entity_ids("Plant"))
     assert n_plants == 24 and (elements[elements["kind"] == "leaf"].groupby("plant").size() == 4).all()
-    triangles = ds.triangles()
-    leaf = np.flatnonzero(np.asarray(ds.labels()) == "LeafElement")[0]
+    triangles = data_structure.triangles()
+    leaf = np.flatnonzero(np.asarray(data_structure.labels()) == "LeafElement")[0]
     corners = triangles.vertices[triangles.owner == leaf].reshape(-1, 3)
-    top = corners[:, 2].max() - np.asarray(ds.get("start_z"))[leaf]
+    top = corners[:, 2].max() - np.asarray(data_structure.get("start_z"))[leaf]
     assert top == pytest.approx(0.2 * np.sin(np.radians(30.)), rel=1e-12)          # its length up its inclination
     leaf_area = elements.loc[elements["kind"] == "leaf", "area"]          # the lit area: the leaves', whole
     assert leaf_area.sum() == pytest.approx(n_plants * 4 * 0.2 * 0.015, rel=1e-4)
@@ -29,9 +29,9 @@ def test_simple_plant_geometry(noon):
 
 
 def test_a_sown_plant_starts_at_its_planting_z():
-    table = planting([Planting(x=0.1, y=0.1, depth=0.03, rotation=20.)], SimplePlantModel, {}, xrange=0.2, yrange=0.2)
-    ds = population_data_structure(table, SimplePlantModel, time_step=3600.).data_structure
-    start_z, rank = np.asarray(ds.get("start_z")), np.asarray(ds.get("leaf_rank")).astype(int)
+    table = planting([Planting(x=0.1, y=0.1, depth=0.03, rotation=20.)], SimplePlantModel, {}, x_range=0.2, y_range=0.2)
+    data_structure = population_data_structure(table, SimplePlantModel, time_step=3600.).data_structure
+    start_z, rank = np.asarray(data_structure.get("start_z")), np.asarray(data_structure.get("leaf_rank")).astype(int)
     assert start_z[rank == 0].item() == -0.03                                     # the stem's base: the planting's z
     np.testing.assert_allclose(start_z[rank > 0], -0.03 + 0.4 * rank[rank > 0] / 4, rtol=1e-12)
 
@@ -65,9 +65,9 @@ def test_more_leaves_leave_less_light_to_the_soil(noon):
 
 def test_optics_and_settings():
     result = simulate({"leaf_reflectance": 0.2, "mode": "nested", "sphere_diameter": 0.2}, hours=1, start_hour=12)
-    ds = result.data_structure
-    leaf = np.asarray(ds.labels()) == "LeafElement"
-    np.testing.assert_allclose(np.asarray(ds.get("PAR_reflectance"))[leaf], 0.2)            # the plants' optics
+    data_structure = result.data_structure
+    leaf = np.asarray(data_structure.labels()) == "LeafElement"
+    np.testing.assert_allclose(np.asarray(data_structure.get("PAR_reflectance"))[leaf], 0.2)            # the plants' optics
     np.testing.assert_allclose(result.values("reflectance")[leaf], 0.2)                          # the light's
     assert result.scene.environment[0].light.mode == "nested" and np.isnan(result.summary["soil_fraction"]).all()
     with pytest.raises(KeyError):

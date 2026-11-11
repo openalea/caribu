@@ -1,20 +1,20 @@
 """
 Caribu as a metafspm component: the light each element of a canopy absorbs, from its triangles.
 
-    CaribuLight(data_structure=ds, mode="nested", latitude=45., pattern=(0., 0., 0.4, 0.45))
+    CaribuLight(data_structure=data_structure, mode="nested", latitude=45., pattern=(0., 0., 0.4, 0.45))
                                             a FunctionalComponent on a population's DataStructure, or on a
                                             UnionDataStructure of several populations; its pattern (m) the
                                             infinite canopy's (None: the triangles' extent)
-    CaribuLightModel(plant_data_structures, xrange, yrange, time_step)
+    CaribuLightModel(plant_data_structures, x_range, y_range, time_step)
                                             the environment model of a metafspm Scene running it
 
-    PlantOptics(data_structure=ds)          a plant model's: its elements' optics, by kind, per plant (optics)
+    PlantOptics(data_structure=data_structure)          a plant model's: its elements' optics, by kind, per plant (optics)
 
 Its steps follow the physics:
     _optics           each element's reflectance and transmittance in the light model: the plants' (PAR_reflectance,
                       PAR_transmittance, from their optical model, e.g. PlantOptics); an element without (NaN, e.g. a
                       root) is left out
-    _relative_light   the canopy lit by a sky of unit energy (ds.triangles(), above the soil): Erel, each element's
+    _relative_light   the canopy lit by a sky of unit energy (data_structure.triangles(), above the soil): Erel, each element's
                       absorbed light per unit area relative to the PAR above the canopy, its incident light, its area
     _absorbed_PAR     PARa = Erel · PARi, PAR_incident = Erel_incident · PARi, PARi the scene's forcing
 
@@ -66,7 +66,7 @@ class CaribuLight(FunctionalComponent):
     PAR_transmittance: float = input_variable(
         unit="adim", description="The element's transmittance in the PAR, from its plant model's optics (NaN: "
         "opaque)", by="PlantOptics", default=np.nan, **ELEMENT)
-    geometry: object = geometry_input(description="The plants' elements' triangles (ds.triangles())", relight="topology")
+    geometry: object = geometry_input(description="The plants' elements' triangles (data_structure.triangles())", relight="topology")
 
     PARi: float = forcing_variable(unit="µmol m-2 s-1", unit_comment="or any unit: PARa, PAR_incident take it",
                                    description="The PAR above the canopy, on a horizontal plane")
@@ -171,7 +171,7 @@ class CaribuLight(FunctionalComponent):
     def _relative_light(self, reflectance, transmittance) -> dict:
         """The canopy lit by a sky of unit energy: each element's absorbed and incident light per unit area (the
         area-weighted means of its triangles' Eabs and Ei), relative to the incident PAR, and its area; its parts
-        above the soil only (the scene's soil surface, metafspm's ds.geometry: "air"). The sun over the step
+        above the soil only (the scene's soil surface, metafspm's data_structure.geometry: "air"). The sun over the step
         (step_sources): its course by panels of at most an hour, each weighted by its PAR (the Scene's calendar; day
         1, 0 h at time 0 without one)."""
         sources = self.step_sources()
@@ -341,8 +341,8 @@ class CaribuLightModel(EnvironmentModel):
     schedule = (Step("light", stages="rate", cadence=Cadence("4 h", at="start")),
                 Step("light", stages="state", name="absorbed_light"))
 
-    def __init__(self, plant_data_structures, xrange, yrange, time_step):
-        super().__init__(plant_data_structures, xrange, yrange, time_step)
+    def __init__(self, plant_data_structures, x_range, y_range, time_step):
+        super().__init__(plant_data_structures, x_range, y_range, time_step)
         self.data_structure = self.plant_data_structure()
         self.light = self.light_component(data_structure=self.data_structure, time_step=time_step,
                                           pattern=self.pattern)
