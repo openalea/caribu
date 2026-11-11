@@ -48,10 +48,15 @@ def stand():
     scene = Scene(table, environment=[CaribuLightModel], time_step=HOUR, forcings={"PARi": lambda time: 400.})
     for _ in range(60):
         scene.run()
-    triangles = scene.populations[0].data_structure.triangles()
+    union = scene.environment[0].data_structure                       # the light's: the elements' union
+    triangles = union.triangles()
     assert triangles.vertices[..., 2].min() < 0                       # sown: stems below the soil
-    scene.run()
-    return scene, triangles.clip(HalfSpace(0.))
+    triangles = triangles.clip(HalfSpace(0.))
+    owner_ids = union.source_ids()[triangles.owner]                   # the plants' elements, by id: the union is in
+    scene.run()                                                       # plant order, its positions move as they grow
+    union.update_topology()                                           # its values kept by id, at their new positions
+    triangles.owner = union.part_positions(0)[scene.populations[0].data_structure.index_of(owner_ids)]
+    return scene, triangles
 
 
 def _elements(stand):

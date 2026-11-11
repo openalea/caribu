@@ -167,7 +167,8 @@ def test_two_populations_in_a_union():
         assert union.get("Erel")[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
     built.run()                                           # the exchanges into the plants, at their next step
     wheat, pea = (population.data_structure for population in built.populations)
-    np.testing.assert_array_equal(np.r_[wheat.get("PARa"), pea.get("PARa")], union.get("PARa"))
+    for part, data_structure in enumerate((wheat, pea)):          # the union in plant order: each part's positions
+        np.testing.assert_array_equal(data_structure.get("PARa"), union.get("PARa")[union.part_positions(part)])
 
 
 
