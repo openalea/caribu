@@ -109,3 +109,31 @@ def test_wheat_bridges_use_reproduced(stand):
         assert erel[element] == pytest.approx(value, rel=1e-12, abs=1e-15)
     # the printed areas of small triangles (m²) and the corrections move Erel
     assert 1e-3 < np.abs(erel - full).max() < 0.1
+
+
+def _split_stand(processes):
+    """The stand as two populations (alternate plants), 13 steps at *processes* (metafspm's Compute(processes=)): the
+    light's union and each population's lit values."""
+    from openalea.metafspm.compute import Compute
+    parameters = {"n_sect": 2, "thermal_time_step": 10., "leaves": LeafShapes.echap(xy_model="Soissons_byleafclass")}
+    plants = population.stand(4, rows=1, row_spacing=ROW_SPACING, plant_spacing=PLANT_SPACING,
+                              depth=coleoptile_sowing_depth(parameters), jitter=0.005, seed=0)
+    table = planting(plants, LitShoot, parameters, [{"delay": float(delay)} for delay in random_delays(4)],
+                     x_range=4 * PLANT_SPACING, y_range=ROW_SPACING, population=["odd", "even"] * 2)
+    scene = Scene(table, environment=[CaribuLightModel], time_step=HOUR, forcings={"PARi": lambda time: 400.},
+                  compute=Compute(threads=1, processes=processes))
+    for _ in range(13):
+        scene.run()
+    union = scene.environment[0].data_structure
+    found = {name: np.asarray(union.get(name)).copy() for name in ("PARa", "Erel", "lit_area")}
+    for part in scene.populations:
+        found[part.name] = np.asarray(part.data_structure.get("lit_area")).copy()
+    scene.finish()
+    return found
+
+
+def test_the_stand_in_two_processes_is_lit_as_in_one():
+    one, two = _split_stand(1), _split_stand(2)
+    assert one["PARa"].max() > 0. and one.keys() == two.keys()
+    for name, values in one.items():
+        np.testing.assert_array_equal(two[name], values, err_msg=name)
