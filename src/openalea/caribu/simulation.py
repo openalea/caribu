@@ -11,8 +11,9 @@ Caribu for users: a small crop stand lit in a few lines, its results as tables.
     parameters()                                every parameter and setting: its value, unit and description
     simulate({"leaf_inclination": 70.})         more erect leaves
     simulate(PARi=series)                       a measured incident PAR (µmol m-2 s-1), by hour
-    simulate(outputs="outputs")                 the run's files too: run.json, scenario.json, summary.csv, the
-                                                stand's summaries per plant (Plant/), a frame every hour
+    simulate(outputs="outputs")                 the run's files too: run.json, scenario.json, the
+                                                summary (summaries/hand_declared/summary.csv), the stand's
+                                                summaries per plant (summaries/Plant/), a frame every hour
 
 The stand: rows of identical plants (SimplePlant), each a vertical stem and leaves as flat rectangles leaving it
 on alternate sides, repeated around the stand (an infinite canopy). Lengths in m, PAR in µmol m-2 s-1.
@@ -296,10 +297,10 @@ def simulate(parameters: dict = None, hours: float = 24., start_hour: float = 0.
     so one sun, for an hourly step): the scene starts an hour before *start_hour*, so that its first step is the hour ending at *start_hour*, the summary's
     first hour (its PARi the hour's mean).
 
-    *outputs*: a folder for the run's files (metafspm's SceneRecorder): run.json, scenario.json, summary.csv (the
-    summary), Plant/SimplePlantModel/summaries.csv (the light each plant absorbs, every hour) and a frame of the
-    stand every hour (frames.fspm.zip, for ParaView or another platform: the frames folder packed at the end, the
-    archive checked, then the folder removed). *compute*: the Scene's run configuration
+    *outputs*: a folder for the run's files (metafspm's SceneRecorder): run.json, scenario.json,
+    summaries/hand_declared/summary.csv (the summary), summaries/Plant/SimplePlantModel/summaries.csv (the light each
+    plant absorbs, every hour) and a frame of the stand every hour (frames.fspm.zip, for ParaView or another platform:
+    the frames folder packed at the end, the archive checked, then the folder removed). *compute*: the Scene's run configuration
     (metafspm's Compute: its threads, the light's projection threads too, its sparse solver; None: Compute())."""
     plant_values, settings = _split(dict(parameters or {}))
     x_range, y_range = plants_per_row * plant_spacing, rows * row_spacing

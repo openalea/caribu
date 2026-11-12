@@ -100,7 +100,7 @@ def test_the_plants_summaries_weigh_the_light_by_the_lit_area(tmp_path):
     """metafspm's summaries per plant: the light's PARa (on the union of the plants) averaged over each plant's
     elements by its declared weight, the lit area; the lit area summed."""
     result = simulate(hours=1, start_hour=12, outputs=str(tmp_path))
-    summaries = pd.read_csv(tmp_path / "Plant" / "SimplePlantModel" / "summaries.csv")
+    summaries = pd.read_csv(tmp_path / "summaries" / "Plant" / "SimplePlantModel" / "summaries.csv")
     last = summaries[summaries["time"] == summaries["time"].max()].reset_index(drop=True)
     elements = result.data_structure
     plant = np.asarray(elements.entity_ids("Plant"))[np.asarray(elements.owner("Plant"))]
